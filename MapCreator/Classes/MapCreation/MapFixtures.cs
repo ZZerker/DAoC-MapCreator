@@ -224,7 +224,7 @@ namespace MapCreator.Classes.MapCreation
                 var drawables = new Drawables();
                 foreach (var drawableElement in fixture.DrawableElements)
                 {                    
-                    var color = drawableElement.TextureColor?.ToMagickColor() ?? fixture.RendererConf.Color;
+                    var color = drawableElement.TextureColor?.ToMagickColor() ?? fixture.Tree?.AverageColor.ToMagickColor() ?? fixture.RendererConf.Color;
 
                     // A Shaded model without lightning is not shaded... but just we add this just be flexible
                     if (fixture.RendererConf.HasLight)
