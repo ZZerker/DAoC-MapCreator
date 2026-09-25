@@ -20,7 +20,16 @@
                 </xs:complexType>
               </xs:element>
               <xs:element type="xs:string" name="color"/>
-              <xs:element type="xs:boolean" name="texture_color" minOccurs="0"/>
+              <xs:element name="texture" minOccurs="0">
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:enumeration value="map"/>
+                    <xs:enumeration value="color"/>
+                    <xs:enumeration value="none"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element type="xs:float" name="max_size" minOccurs="0"/>
               <xs:element type="xs:byte" name="transparency"/>
               <xs:element name="shadow">
                 <xs:complexType>

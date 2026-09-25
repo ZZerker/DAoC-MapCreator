@@ -17,6 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -82,7 +83,8 @@ namespace NifUtil.Classes
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
                 var transformationMatrix = this.ComputeWorldMatrix(shape);
-                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, this.GetTextureName(shape));
+                var texture = this.GetBaseTexture(shape);
+                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, texture?.Name, GetUvSet(geometry, texture), this.GetMaterialColor(shape));
             }
         }
 
@@ -128,14 +130,17 @@ namespace NifUtil.Classes
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
                 var transformationMatrix = this.ComputeWorldMatrix(strips);
-                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, this.GetTextureName(strips));
+                var texture = this.GetBaseTexture(strips);
+                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, texture?.Name, GetUvSet(geometry, texture), this.GetMaterialColor(strips));
             }
         }
+
+        private sealed record BaseTexture(string Name, int UvSetIndex);
 
         /// <summary>
         /// Base texture of a mesh. Texturing properties are inherited from parent nodes.
         /// </summary>
-        private string GetTextureName(NiAVObject node)
+        private BaseTexture GetBaseTexture(NiAVObject node)
         {
             for (var current = node; current != null; current = current.Parent)
             {
@@ -145,14 +150,48 @@ namespace NifUtil.Classes
                         && this.File.ObjectsByRef.TryGetValue(texturing.BaseTexture.Source.RefId, out var source)
                         && source is NiSourceTexture sourceTexture && sourceTexture.FileName != null)
                     {
-                        return sourceTexture.FileName.ToString();
+                        return new BaseTexture(sourceTexture.FileName.ToString(), (int)texturing.BaseTexture.UVSetIndex);
                     }
                 }
             }
             return null;
         }
 
-        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation, string texture)
+        /// <summary>
+        /// Diffuse material color as 0xRRGGBB, -1 if the mesh has none. Untextured meshes are colored by it.
+        /// </summary>
+        private int GetMaterialColor(NiAVObject node)
+        {
+            for (var current = node; current != null; current = current.Parent)
+            {
+                foreach (var property in current.Properties)
+                {
+                    if (property.IsValid() && property.Object is NiMaterialProperty material)
+                    {
+                        return (ToByte(material.DiffuseColor.Red) << 16) | (ToByte(material.DiffuseColor.Green) << 8) | ToByte(material.DiffuseColor.Blue);
+                    }
+                }
+            }
+            return -1;
+        }
+
+        private static int ToByte(float value)
+        {
+            return (int)Math.Round(Math.Clamp(value, 0f, 1f) * 255);
+        }
+
+        private static Vector2[] GetUvSet(NiGeometryData geometry, BaseTexture texture)
+        {
+            if (texture == null || geometry.UVSets == null || geometry.UVSets.Length == 0)
+            {
+                return null;
+            }
+
+            var uvSet = geometry.UVSets[texture.UvSetIndex < geometry.UVSets.Length ? texture.UvSetIndex : 0];
+            return uvSet.Length == geometry.Vertices.Length ? uvSet : null;
+        }
+
+        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation, string texture, Vector2[] uvSet, int materialColor)
         {
             // Transaform all vertices
             var verticesTransformed = new List<Vector3>();
@@ -164,8 +203,12 @@ namespace NifUtil.Classes
                                        new Vector3(verticesTransformed[triangle.X].X, verticesTransformed[triangle.X].Y, verticesTransformed[triangle.X].Z),
                                        new Vector3(verticesTransformed[triangle.Y].X, verticesTransformed[triangle.Y].Y, verticesTransformed[triangle.Y].Z),
                                        new Vector3(verticesTransformed[triangle.Z].X, verticesTransformed[triangle.Z].Y, verticesTransformed[triangle.Z].Z),
-                                       texture
-                                      );
+                                       texture,
+                                       uvSet == null ? null : new[] { uvSet[triangle.X], uvSet[triangle.Y], uvSet[triangle.Z] }
+                                      )
+                           {
+                               MaterialColor = materialColor
+                           };
                 this.Polys.Add(poly);
             }
         }
@@ -218,6 +261,17 @@ namespace NifUtil.Classes
                         writer.Write(poly.P3.X);
                         writer.Write(poly.P3.Y);
                         writer.Write(poly.P3.Z);
+
+                        writer.Write(poly.MaterialColor);
+                        writer.Write(poly.Uvs != null);
+                        if (poly.Uvs != null)
+                        {
+                            foreach (var uv in poly.Uvs)
+                            {
+                                writer.Write(uv.X);
+                                writer.Write(uv.Y);
+                            }
+                        }
                     }
                 }
             }

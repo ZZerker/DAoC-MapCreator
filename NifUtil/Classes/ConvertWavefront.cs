@@ -20,6 +20,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using ImageMagick;
@@ -110,7 +111,7 @@ namespace NifUtil.Classes
             // Texture coordinates (vt)
             if (geometry.UVSets.Length > 0)
             {
-                export.Add(this.PrintUvSets(geometry.UVSets));
+                export.Add(this.PrintUvSets(geometry.UVSets, 0));
             }
 
             // Normals (vn)
@@ -197,7 +198,7 @@ namespace NifUtil.Classes
             // Texture coordinates (vt)
             if (geometry.UVSets.Length > 0)
             {
-                export.Add(this.PrintUvSets(geometry.UVSets));
+                export.Add(this.PrintUvSets(geometry.UVSets, (int)(texture?.BaseTexture?.UVSetIndex ?? 0)));
             }
 
             // Normals (vn)
@@ -223,10 +224,10 @@ namespace NifUtil.Classes
             this.mtlExport.Add("newmtl " + name);
 
             
-            this.mtlExport.Add(string.Format("Ka {0} {1} {2}", material.AmbientColor.Red, material.AmbientColor.Green, material.AmbientColor.Blue));            
-            this.mtlExport.Add(string.Format("Kd {0} {1} {2}", material.DiffuseColor.Red, material.DiffuseColor.Green, material.DiffuseColor.Blue));            
-            this.mtlExport.Add(string.Format("Ks {0} {1} {2}", material.SpecularColor.Red, material.SpecularColor.Green, material.SpecularColor.Blue));            
-            this.mtlExport.Add(string.Format("d {0}", material.Alpha));
+            this.mtlExport.Add(string.Format(CultureInfo.InvariantCulture, "Ka {0} {1} {2}", material.AmbientColor.Red, material.AmbientColor.Green, material.AmbientColor.Blue));            
+            this.mtlExport.Add(string.Format(CultureInfo.InvariantCulture, "Kd {0} {1} {2}", material.DiffuseColor.Red, material.DiffuseColor.Green, material.DiffuseColor.Blue));            
+            this.mtlExport.Add(string.Format(CultureInfo.InvariantCulture, "Ks {0} {1} {2}", material.SpecularColor.Red, material.SpecularColor.Green, material.SpecularColor.Blue));            
+            this.mtlExport.Add(string.Format(CultureInfo.InvariantCulture, "d {0}", material.Alpha));
             //mtlExport.Add(string.Format("Tr {0}", material.Alpha));
 
             this.PrintTexture(texture);
@@ -242,7 +243,7 @@ namespace NifUtil.Classes
 
             var fileName = source.FileName.ToString().ToLower();
 
-            var offset = string.Format("-o {0} {1}", texture.BaseTexture.CenterOffset.X, texture.BaseTexture.CenterOffset.Y);
+            var offset = string.Format(CultureInfo.InvariantCulture, "-o {0} {1}", texture.BaseTexture.CenterOffset.X, texture.BaseTexture.CenterOffset.Y);
 
             this.mtlExport.Add("# original file " + fileName);
             this.mtlExport.Add(string.Format("map_Ka {0}.tga", Path.GetFileNameWithoutExtension(fileName), offset));
@@ -266,34 +267,18 @@ namespace NifUtil.Classes
             foreach (var verticle in vertices)
             {
                 var vectorTransformed = Vector3.TransformCoordinate(verticle, transformation);
-                export += string.Format("v {0} {1} {2}", vectorTransformed.X, vectorTransformed.Y, vectorTransformed.Z) + Environment.NewLine;
+                export += string.Format(CultureInfo.InvariantCulture, "v {0} {1} {2}", vectorTransformed.X, vectorTransformed.Y, vectorTransformed.Z) + Environment.NewLine;
             }
             return export;
         }
 
-        private string PrintUvSets(Vector2[][] uvsets)
+        // OBJ holds one coordinate per vertex, so write the set the base texture uses
+        private string PrintUvSets(Vector2[][] uvsets, int uvSetIndex)
         {
             var export = "";
-
-            /*
-            foreach (Vector2[] uvset in uvsets.Reverse())
+            foreach (var uv in uvsets[uvSetIndex < uvsets.Length ? uvSetIndex : 0])
             {
-                foreach (Vector2 uv in uvset)
-                {
-                    export += string.Format("vt {0} {1}", uv.X, 1f - uv.Y) + Environment.NewLine;
-                }
-            }
-             * */
-
-            // Test: Draw only the first set without reverse
-            foreach (var uvset in uvsets)
-            {
-                foreach (var uv in uvset)
-                {
-                    export += string.Format("vt {0} {1}", uv.X, 1f - uv.Y) + Environment.NewLine;
-                }
-
-                break;
+                export += string.Format(CultureInfo.InvariantCulture, "vt {0} {1}", uv.X, 1f - uv.Y) + Environment.NewLine;
             }
 
             return export;
@@ -305,7 +290,7 @@ namespace NifUtil.Classes
             foreach (var normal in normals)
             {
                 var vectorTransformed = Vector3.TransformNormal(normal, transformation);
-                export += string.Format("vn {0} {1} {2}", vectorTransformed.X, vectorTransformed.Y, vectorTransformed.Z) + Environment.NewLine;
+                export += string.Format(CultureInfo.InvariantCulture, "vn {0} {1} {2}", vectorTransformed.X, vectorTransformed.Y, vectorTransformed.Z) + Environment.NewLine;
             }
             return export;
         }

@@ -36,13 +36,25 @@ namespace NifUtil.Objects
         /// </summary>
         public string Texture { get; set; }
 
-        public Polygon(Vector3 p1, Vector3 p2, Vector3 p3, string texture = null)
+        /// <summary>
+        /// Texture coordinates of the three corners, null if the mesh has none
+        /// </summary>
+        public Vector2[] Uvs { get; set; }
+
+        /// <summary>
+        /// Diffuse material color as 0xRRGGBB, -1 if the mesh has none
+        /// </summary>
+        public int MaterialColor { get; set; }
+
+        public Polygon(Vector3 p1, Vector3 p2, Vector3 p3, string texture = null, Vector2[] uvs = null)
         {
             this.Vectors = new Vector3[3];
             this.Vectors.SetValue(p1, 0);
             this.Vectors.SetValue(p2, 1);
             this.Vectors.SetValue(p3, 2);
             this.Texture = texture;
+            this.Uvs = uvs;
+            this.MaterialColor = -1;
         }
     }
 }

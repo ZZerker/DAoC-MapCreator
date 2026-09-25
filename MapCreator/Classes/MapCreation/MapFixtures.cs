@@ -219,31 +219,9 @@ namespace MapCreator.Classes.MapCreation
         {
             //this.zoneConfiguration.Reporter.Log(string.Format("Shaded: {0} ({1}) ...", fixture.Name, fixture.NifName), LogLevel.notice);
 
-            using (var modelCanvas = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
+            // A Shaded model without lightning is not shaded... but just we add this just be flexible
+            using (var modelCanvas = DrawTriangles(fixture, fixture.RendererConf.HasLight))
             {
-                var drawables = new Drawables();
-                foreach (var drawableElement in fixture.DrawableElements)
-                {                    
-                    var color = drawableElement.TextureColor?.ToMagickColor() ?? fixture.Tree?.AverageColor.ToMagickColor() ?? fixture.RendererConf.Color;
-
-                    // A Shaded model without lightning is not shaded... but just we add this just be flexible
-                    if (fixture.RendererConf.HasLight)
-                    {
-                        drawables.FillColor(new MagickColor(
-                            Convert.ToUInt16(drawableElement.Lightning * color.R),
-                            Convert.ToUInt16(drawableElement.Lightning * color.G),
-                            Convert.ToUInt16(drawableElement.Lightning * color.B)
-                        ));
-                    }
-                    else
-                    {
-                        drawables.FillColor(color);
-                    }
-
-                    drawables.Polygon(drawableElement.Coordinates);
-                }
-
-                DrawBatch(modelCanvas, drawables);
 
                 if (fixture.RendererConf.HasShadow)
                 {
@@ -277,16 +255,8 @@ namespace MapCreator.Classes.MapCreation
         {
             //this.zoneConfiguration.Reporter.Log(string.Format("Flat: {0} ({1}) ...", fixture.Name, fixture.NifName), LogLevel.notice);
 
-            using (var modelCanvas = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
+            using (var modelCanvas = DrawTriangles(fixture, false))
             {
-                var drawables = new Drawables();
-                foreach (var drawableElement in fixture.DrawableElements)
-                {
-                    drawables.FillColor(drawableElement.TextureColor?.ToMagickColor() ?? fixture.RendererConf.Color);
-                    drawables.Polygon(drawableElement.Coordinates);
-                }
-
-                DrawBatch(modelCanvas, drawables);
 
                 if (fixture.RendererConf.HasShadow)
                 {
@@ -648,6 +618,53 @@ namespace MapCreator.Classes.MapCreation
                     overlay.Composite(treeCluster, Convert.ToInt32(fixture.CanvasX - extendedWidth/2), Convert.ToInt32(fixture.CanvasY - extendedHeight/2), CompositeOperator.SrcOver);
                 }
             }
+        }
+
+        /// <summary>
+        /// Draws the model's triangles in z order into a new canvas, textured or filled with their color
+        /// </summary>
+        private static MagickImage DrawTriangles(DrawableFixture fixture, bool lit)
+        {
+            if (fixture.RendererConf.Texture == TextureMode.Map)
+            {
+                var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight);
+                foreach (var drawableElement in fixture.DrawableElements)
+                {
+                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1);
+                }
+                return canvas.ToImage();
+            }
+
+            var image = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight);
+            var drawables = new Drawables();
+            foreach (var drawableElement in fixture.DrawableElements)
+            {
+                var color = GetFillColor(fixture, drawableElement);
+                if (lit)
+                {
+                    drawables.FillColor(new MagickColor(
+                        Convert.ToUInt16(drawableElement.Lightning * color.R),
+                        Convert.ToUInt16(drawableElement.Lightning * color.G),
+                        Convert.ToUInt16(drawableElement.Lightning * color.B)
+                    ));
+                }
+                else
+                {
+                    drawables.FillColor(color);
+                }
+
+                drawables.Polygon(drawableElement.Coordinates);
+            }
+
+            DrawBatch(image, drawables);
+            return image;
+        }
+
+        private static MagickColor GetFillColor(DrawableFixture fixture, DrawableElement drawableElement)
+        {
+            // Trees switch to TreeShaded after the elements were prepared, so check the mode here
+            var textureColor = fixture.RendererConf.Texture != TextureMode.None ? drawableElement.TextureColor : null;
+            return textureColor?.ToMagickColor() ?? fixture.Tree?.AverageColor.ToMagickColor() ?? fixture.RendererConf.Color;
         }
 
         // One draw call per model: ImageMagick sets up a full draw pass for every call

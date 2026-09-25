@@ -69,6 +69,21 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             return null;
         }
 
+        /// <summary>
+        /// Category for a model no pattern matches: the first one whose max_size fits the footprint, else the default
+        /// </summary>
+        public static FixtureRendererConfiguration2 GetRendererBySize(double footprint)
+        {
+            foreach (var category in RendererCategories)
+            {
+                if (category.MaxSize > 0 && footprint > 0 && footprint <= category.MaxSize)
+                {
+                    return category;
+                }
+            }
+            return defaultConfiguration;
+        }
+
         public static FixtureRendererConfiguration2 GetRendererById(string id)
         {
             var conf = RendererCategories.Where(c => c.Name == id);
@@ -156,7 +171,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 conf.Renderer = GetRendererType(node.Descendants("renderer").First().Value);
                 conf.Color = new ImageMagick.MagickColor((node.Descendants("color").Any()) ? node.Descendants("color").First().Value : "#FFF");
                 conf.Transparency = Convert.ToInt32((node.Descendants("transparency").Any()) ? node.Descendants("transparency").First().Value : "0");
-                conf.UseTextureColor = node.Descendants("texture_color").Any() && Convert.ToBoolean(node.Descendants("texture_color").First().Value);
+                conf.MaxSize = node.Descendants("max_size").Any() ? Convert.ToDouble(node.Descendants("max_size").First().Value, provider) : 0;
+                conf.Texture = node.Descendants("texture").Any() ? Enum.Parse<TextureMode>(node.Descendants("texture").First().Value, true) : TextureMode.Map;
 
                 var lightElement = node.Descendants("light");
                 if (lightElement.Any())
@@ -246,6 +262,21 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
     }
 
+    /// <summary>
+    /// How triangles use their texture. Without a texture they fall back to the tree color, then to the category color.
+    /// </summary>
+    internal enum TextureMode
+    {
+        // Draw the texture onto the triangle
+        Map,
+
+        // Fill with the texture's average color
+        Color,
+
+        // Ignore the texture
+        None
+    }
+
 	internal struct FixtureRendererConfiguration2
     {
         public string Name;
@@ -253,8 +284,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public ImageMagick.MagickColor Color;
         public int Transparency;
 
-        // Fill triangles with the average color of their texture instead of Color
-        public bool UseTextureColor;
+        public TextureMode Texture;
+
+        // Models without a matching pattern and at most this size in world units use this category, 0 = off
+        public double MaxSize;
 
         // Light
         public bool HasLight;

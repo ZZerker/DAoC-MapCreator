@@ -165,6 +165,20 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             FixtureCache.LoadPolygons(models, this.zoneConf.Reporter);
         }
 
+        /// <summary>
+        /// Longer side of the placed model in world units, 0 if it has no polygons
+        /// </summary>
+        private static double GetFootprint(NifRow nifRow, FixtureRow fixtureRow)
+        {
+            if (nifRow.Polygons == null || nifRow.Polygons.Length == 0)
+            {
+                return 0;
+            }
+
+            var size = nifRow.GetSize(0, 0);
+            return Math.Max(size.Width, size.Height) * fixtureRow.Scale / 100d;
+        }
+
         public List<DrawableFixture> GetDrawableFixtures()
         {
             var drawables = new List<DrawableFixture>();
@@ -226,7 +240,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         {
                             foreach (var treePolygon in baseTreePolygons)
                             {
-                                var newPolygon = new Polygon(treePolygon.P1, treePolygon.P2, treePolygon.P3, treePolygon.Texture);
+                                var newPolygon = new Polygon(treePolygon.P1, treePolygon.P2, treePolygon.P3, treePolygon.Texture, treePolygon.Uvs) { MaterialColor = treePolygon.MaterialColor };
                                 for (var i = 0; i < newPolygon.Vectors.Length; i++)
                                 {
                                     newPolygon.Vectors[i].X -= tree.X;
@@ -249,7 +263,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         {
                             fixture.RendererConf = FixtureCache.HasPrerenderedImage(fixture.NifName)
                                 ? FixtureRendererConfigurations.GetRendererById("Prerendered")
-                                : FixtureRendererConfigurations.DefaultConfiguration;
+                                : FixtureRendererConfigurations.GetRendererBySize(GetFootprint(nifRow, fixtureRow));
                         }
                         else fixture.RendererConf = rConf.GetValueOrDefault();
                     }

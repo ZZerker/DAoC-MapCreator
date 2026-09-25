@@ -26,27 +26,28 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static readonly ConcurrentDictionary<string, Color?> Colors = new(StringComparer.OrdinalIgnoreCase);
 
+        private static readonly ConcurrentDictionary<string, byte> MissingTextures = new(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// Average color of a texture, null if the file cannot be found or read
         /// </summary>
         public static Color? Get(string texture, string modelDirectory)
+        {
+            var file = FindFile(texture, modelDirectory);
+            return file == null ? null : Colors.GetOrAdd(file, Average);
+        }
+
+        /// <summary>
+        /// Texture file by the name stored in the NIF, searched in the model's folder first
+        /// </summary>
+        public static string FindFile(string texture, string modelDirectory)
         {
             if (string.IsNullOrEmpty(texture))
             {
                 return null;
             }
 
-            var file = Find(Path.GetFileNameWithoutExtension(texture), modelDirectory);
-            if (file == null)
-            {
-                return null;
-            }
-
-            return Colors.GetOrAdd(file, Average);
-        }
-
-        private static string Find(string name, string modelDirectory)
-        {
+            var name = Path.GetFileNameWithoutExtension(texture);
             var gamePath = Properties.Settings.Default.game_path;
             var folders = SharedTextureFolders.Select(f => Path.Combine(gamePath, f));
             if (!string.IsNullOrEmpty(modelDirectory))
@@ -60,6 +61,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 {
                     return file;
                 }
+            }
+
+            if (MissingTextures.TryAdd(name, 0))
+            {
+                AppLog.Log(string.Format("Texture {0} not found (model folder {1})", texture, modelDirectory), LogLevel.Warning);
             }
             return null;
         }

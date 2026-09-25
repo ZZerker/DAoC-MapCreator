@@ -143,8 +143,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                 // We want to draw the vectors in z-order
                 double maxZ = poly.Vectors.Max(p => p.Z);
-                var textureColor = this.RendererConf.UseTextureColor ? TextureColors.Get(poly.Texture, this.TextureDirectory) : null;
-                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor));
+                var textureMode = this.RendererConf.Texture;
+                var textureColor = textureMode != TextureMode.None ? TextureColors.Get(poly.Texture, this.TextureDirectory) : null;
+                if (textureColor == null && poly.MaterialColor >= 0)
+                {
+                    textureColor = System.Drawing.Color.FromArgb(255, (poly.MaterialColor >> 16) & 0xFF, (poly.MaterialColor >> 8) & 0xFF, poly.MaterialColor & 0xFF);
+                }
+                var texture = textureMode == TextureMode.Map && poly.Uvs != null ? TextureCache.Get(poly.Texture, this.TextureDirectory) : null;
+                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs));
             }
 
             this.DrawableElements = drawlist.OrderBy(o => o.Order);
@@ -194,7 +200,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 // Check visibility of polygons
-                var newPolygon = new Polygon(p1, p2, p3, poly.Texture);
+                var newPolygon = new Polygon(p1, p2, p3, poly.Texture, poly.Uvs) { MaterialColor = poly.MaterialColor };
                 if (this.PolygonArea(newPolygon.Vectors) > 0.01)
                 {
                     this.ProcessedPolygons.Add(newPolygon);
@@ -250,16 +256,25 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public readonly IEnumerable<ImageMagick.PointD> Coordinates;
 
         /// <summary>
-        /// Average color of the triangle's texture, null to use the renderer color
+        /// Average color of the triangle's texture or its material color, null to use the renderer color
         /// </summary>
         public readonly System.Drawing.Color? TextureColor;
 
-        public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates, System.Drawing.Color? textureColor = null)
+        /// <summary>
+        /// Texture to map with Uvs, null to fill with a color
+        /// </summary>
+        public readonly TextureImage Texture;
+
+        public readonly Vector2[] Uvs;
+
+        public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates, System.Drawing.Color? textureColor = null, TextureImage texture = null, Vector2[] uvs = null)
         {
             this.Order = order;
             this.Lightning = lightning;
             this.Coordinates = coordinates;
             this.TextureColor = textureColor;
+            this.Texture = texture;
+            this.Uvs = uvs;
         }
 
         public IEnumerator GetEnumerator()
