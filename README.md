@@ -48,7 +48,6 @@ Everything comes from the game client, except:
 - [x] City and dungeon maps in the same frame as the client maps
 - [x] Renderer quality: relief shading, blended city floors, brighter dungeons, depth buffer, tree colors
 - [x] New Frontiers keeps and towers
-- [ ] Keeps and towers Eden has moved: fit position and heading to the terrain
 - [ ] Names and points of interest on the maps (zone exits, bind stones, keep names)
 - [ ] Maps for all dungeons, including the ones without a client map
 - [ ] Export of city and dungeon maps to the UI
