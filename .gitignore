@@ -308,3 +308,6 @@ OpenCover/
 MapCreator.zip
 # MapCreator batch render output
 Output/
+
+# Downloaded tools (texconv.exe from DirectXTex)
+tools/bin/

@@ -5,11 +5,26 @@ Writes <dds dir>\zNNN.dds, optionally downscaled to <size> x <size>.
 Labels from zNNN.labels.json (written by MapCreator) are drawn after scaling, so text stays sharp at the final size.
 """
 import json
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 FONTS = Path(r"C:\Windows\Fonts")
+
+# DirectXTex texconv (github.com/microsoft/DirectXTex releases) encodes DXT1 with far less error than Pillow
+TEXCONV = Path(__file__).parent / "bin" / "texconv.exe"
+
+
+def save_dxt1(img, dds):
+    if not TEXCONV.exists():
+        img.save(dds, "DDS", pixel_format="DXT1")
+        return
+    with tempfile.TemporaryDirectory() as temp:
+        png = Path(temp) / (dds.stem + ".png")
+        img.save(png)
+        subprocess.run([str(TEXCONV), "-nologo", "-y", "-f", "BC1_UNORM", "-m", "1", "-bc", "xu", "-o", str(dds.parent), str(png)], check=True, stdout=subprocess.DEVNULL)
 
 # Muted colors that sit in the map instead of on top of it
 TEXT = (238, 230, 207)
@@ -124,7 +139,7 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     labels_on = "--no-labels" not in sys.argv
     # DXT1 blurs fine text into 4x4 blocks; uncompressed is 6 times larger
-    pixel_format = None if "--uncompressed" in sys.argv else "DXT1"
+    uncompressed = "--uncompressed" in sys.argv
     source = Path(args[0])
     target = Path(args[1])
     size = int(args[2]) if len(args) > 2 else None
@@ -143,7 +158,10 @@ def main():
             if labels_on and labels_file.exists():
                 img = draw_labels(img, json.loads(labels_file.read_text(encoding="utf-8"))["labels"])
             dds = target / (png.stem + ".dds")
-            img.save(dds, "DDS", pixel_format=pixel_format) if pixel_format else img.save(dds, "DDS")
+            if uncompressed:
+                img.save(dds, "DDS")
+            else:
+                save_dxt1(img, dds)
         print(f"{dds}  {img.size[0]}x{img.size[1]}  {dds.stat().st_size} bytes")
 
 
