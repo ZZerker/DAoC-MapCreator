@@ -146,11 +146,24 @@ namespace NifUtil.Classes
             {
                 foreach (var property in current.Properties)
                 {
-                    if (property.IsValid() && property.Object is NiTexturingProperty texturing && texturing.BaseTexture?.Source != null
+                    if (!property.IsValid() || property.Object is not NiTexturingProperty texturing)
+                    {
+                        continue;
+                    }
+
+                    if (texturing.BaseTexture?.Source != null
                         && this.File.ObjectsByRef.TryGetValue(texturing.BaseTexture.Source.RefId, out var source)
                         && source is NiSourceTexture sourceTexture && sourceTexture.FileName != null)
                     {
                         return new BaseTexture(sourceTexture.FileName.ToString(), (int)texturing.BaseTexture.UVSetIndex);
+                    }
+
+                    // Blended city floors keep their textures in the shader texture list, which Niflib skips.
+                    // The first texture block after the property is the first ground texture.
+                    if (texturing.NumShaderTextures > 0 && this.File.ObjectsByRef.TryGetValue(property.RefId + 1, out var next)
+                        && next is NiSourceTexture shaderTexture && shaderTexture.FileName != null)
+                    {
+                        return new BaseTexture(shaderTexture.FileName.ToString(), 0);
                     }
                 }
             }
