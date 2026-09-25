@@ -306,3 +306,5 @@ OpenCover/
 
 # other
 MapCreator.zip
+# MapCreator batch render output
+Output/
