@@ -38,6 +38,8 @@ namespace NifUtil
 
         private Polygon[] polygons;
 
+        private byte[] nifData;
+
         #region Events
         public event IsNodeDrawableEventHandler IsNodeDrawable;
         #endregion
@@ -81,6 +83,13 @@ namespace NifUtil
         /// </summary>
         private void ReadNifFile()
         {
+            using (var data = new MemoryStream())
+            {
+                this.fileReader.BaseStream.CopyTo(data);
+                this.nifData = data.ToArray();
+                this.fileReader.BaseStream.Position = 0;
+            }
+
             using (var br = new BinaryReader(this.fileReader.BaseStream))
             {
 	            this.nifFile = new NiFile(br);
@@ -111,7 +120,7 @@ namespace NifUtil
                     break;
                 case ConvertType.PolyText:
                 case ConvertType.Poly:
-                    var conv = new ConvertPoly(this.nifFile);
+                    var conv = new ConvertPoly(this.nifFile, this.nifData);
                     if (this.IsNodeDrawable != null)
                     {
                         conv.IsNodeDrawable += delegate (NiAVObject node)
@@ -135,6 +144,8 @@ namespace NifUtil
         /// </summary>
         public const int POLY_FORMAT_MAGIC = 0x33594C50;
 
+        public const int POLY_FORMAT_MAGIC_V4 = 0x34594C50;
+
         /// <summary>
         /// "PLY2": texture names without texture coordinates
         /// </summary>
@@ -144,7 +155,7 @@ namespace NifUtil
         {
             if (this.polygons != null) return this.polygons;
 
-            var conv = new ConvertPoly(this.nifFile);
+            var conv = new ConvertPoly(this.nifFile, this.nifData);
             return conv.Polys.ToArray();
         }
 
@@ -171,7 +182,7 @@ namespace NifUtil
             using (var reader = new BinaryReader(polyFileReader.BaseStream))
             {
                 var magic = reader.BaseStream.Length >= 4 ? reader.ReadInt32() : 0;
-                if (magic == POLY_FORMAT_MAGIC || magic == POLY_FORMAT_MAGIC_V2)
+                if (magic == POLY_FORMAT_MAGIC_V4 || magic == POLY_FORMAT_MAGIC || magic == POLY_FORMAT_MAGIC_V2)
                 {
                     var textures = new string[reader.ReadInt32()];
                     for (var i = 0; i < textures.Length; i++)
@@ -182,13 +193,14 @@ namespace NifUtil
                     while (reader.BaseStream.Position != reader.BaseStream.Length)
                     {
                         var textureIndex = reader.ReadInt32();
+                        var texture2Index = magic == POLY_FORMAT_MAGIC_V4 ? reader.ReadInt32() : -1;
                         var p1 = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
                         var p2 = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
                         var p3 = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
 
-                        var materialColor = magic == POLY_FORMAT_MAGIC ? reader.ReadInt32() : -1;
+                        var materialColor = magic == POLY_FORMAT_MAGIC || magic == POLY_FORMAT_MAGIC_V4 ? reader.ReadInt32() : -1;
                         Vector2[] uvs = null;
-                        if (magic == POLY_FORMAT_MAGIC && reader.ReadBoolean())
+                        if ((magic == POLY_FORMAT_MAGIC || magic == POLY_FORMAT_MAGIC_V4) && reader.ReadBoolean())
                         {
                             uvs = new[]
                                   {
@@ -198,7 +210,18 @@ namespace NifUtil
                                   };
                         }
 
-                        polys.Add(new Polygon(p1, p2, p3, textureIndex >= 0 ? textures[textureIndex] : null, uvs) { MaterialColor = materialColor });
+                        Vector2[] uvs2 = null;
+                        float[] textureBlend = null;
+                        if (magic == POLY_FORMAT_MAGIC_V4 && reader.ReadBoolean())
+                        {
+                            uvs2 = new[] { new Vector2(reader.ReadSingle(), reader.ReadSingle()), new Vector2(reader.ReadSingle(), reader.ReadSingle()), new Vector2(reader.ReadSingle(), reader.ReadSingle()) };
+                        }
+                        if (magic == POLY_FORMAT_MAGIC_V4 && reader.ReadBoolean())
+                        {
+                            textureBlend = new[] { reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle() };
+                        }
+
+                        polys.Add(new Polygon(p1, p2, p3, textureIndex >= 0 ? textures[textureIndex] : null, uvs) { Texture2 = texture2Index >= 0 ? textures[texture2Index] : null, Uvs2 = uvs2, TextureBlend = textureBlend, MaterialColor = materialColor });
                     }
                     return polys.ToArray();
                 }

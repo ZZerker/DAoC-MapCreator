@@ -34,7 +34,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// <summary>
         /// Fills a triangle with its texture, or with the color if there is no texture. Light scales the color.
         /// </summary>
-        public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light)
+        public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null)
         {
             var points = coordinates.Select(p => new PointD(p.X * SUPER_SAMPLING, p.Y * SUPER_SAMPLING)).ToArray();
             if (points.Length != 3)
@@ -84,6 +84,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         var u = w0 * uvs[0].X + w1 * uvs[1].X + w2 * uvs[2].X;
                         var v = w0 * uvs[0].Y + w1 * uvs[1].Y + w2 * uvs[2].Y;
                         texture.Sample(u, v, texelsPerPixel, out r, out g, out b, out var a);
+                        if (texture2 != null && uvs2 != null && textureBlend != null)
+                        {
+                            var u2 = w0 * uvs2[0].X + w1 * uvs2[1].X + w2 * uvs2[2].X;
+                            var v2 = w0 * uvs2[0].Y + w1 * uvs2[1].Y + w2 * uvs2[2].Y;
+                            texture2.Sample(u2, v2, texelsPerPixel, out var r2, out var g2, out var b2, out var a2);
+                            var blend = Math.Clamp(w0 * textureBlend[0] + w1 * textureBlend[1] + w2 * textureBlend[2], 0, 1);
+                            r += (r2 - r) * blend;
+                            g += (g2 - g) * blend;
+                            b += (b2 - b) * blend;
+                            a += (a2 - a) * blend;
+                        }
 
                         // Leaves and fences are cut out by the alpha channel
                         if (a < ALPHA_THRESHOLD)

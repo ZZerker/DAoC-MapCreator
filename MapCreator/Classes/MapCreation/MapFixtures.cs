@@ -630,7 +630,7 @@ namespace MapCreator.Classes.MapCreation
                 var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight);
                 foreach (var drawableElement in fixture.DrawableElements)
                 {
-                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1);
+                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend);
                 }
                 return canvas.ToImage();
             }

@@ -20,7 +20,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static readonly Lazy<HashSet<string>> PrerenderedObjectNames = new(LoadPrerenderedObjectNames);
 
-        // Polygons by cache name, guarded by PolysLock. polys3.mpk is additionally shared with other processes.
+        // Polygons by cache name, guarded by PolysLock. polys4.mpk is additionally shared with other processes.
         private static readonly Dictionary<string, Polygon[]> Polygons = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object PolysLock = new();
 
@@ -92,10 +92,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var polysDirectory = new DirectoryInfo(string.Format("{0}\\data\\polys", System.Windows.Forms.Application.StartupPath));
             if (!polysDirectory.Exists) polysDirectory.Create();
 
-            // polys3.mpk: .poly files with texture names and coordinates, one entry per source archive
-            var polysMpkFile = string.Format("{0}\\data\\polys3.mpk", System.Windows.Forms.Application.StartupPath);
+            // polys4.mpk: .poly files with blended texture layers, one entry per source archive
+            var polysMpkFile = string.Format("{0}\\data\\polys4.mpk", System.Windows.Forms.Application.StartupPath);
             DeleteOldCache("polys.mpk");
             DeleteOldCache("polys2.mpk");
+            DeleteOldCache("polys3.mpk");
 
             var polyMpk = File.Exists(polysMpkFile) ? MpkWrapper.Open(polysMpkFile) : new MPKLib.MPAK();
             var polyMpkModified = !File.Exists(polysMpkFile);

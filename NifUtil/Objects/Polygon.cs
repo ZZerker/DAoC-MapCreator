@@ -36,10 +36,16 @@ namespace NifUtil.Objects
         /// </summary>
         public string Texture { get; set; }
 
+        public string Texture2 { get; set; }
+
         /// <summary>
         /// Texture coordinates of the three corners, null if the mesh has none
         /// </summary>
         public Vector2[] Uvs { get; set; }
+
+        public Vector2[] Uvs2 { get; set; }
+
+        public float[] TextureBlend { get; set; }
 
         /// <summary>
         /// Diffuse material color as 0xRRGGBB, -1 if the mesh has none
@@ -54,6 +60,9 @@ namespace NifUtil.Objects
             this.Vectors.SetValue(p3, 2);
             this.Texture = texture;
             this.Uvs = uvs;
+            this.Texture2 = null;
+            this.Uvs2 = null;
+            this.TextureBlend = null;
             this.MaterialColor = -1;
         }
     }

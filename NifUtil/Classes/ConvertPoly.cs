@@ -29,12 +29,14 @@ namespace NifUtil.Classes
 {
 	internal class ConvertPoly : Convert
     {
+	    private readonly IReadOnlyDictionary<uint, ShaderTexture[]> shaderTextures;
+
 	    internal List<Polygon> Polys { get; set; } = new List<Polygon>();
 
-        public ConvertPoly(NiFile niFile)
+        public ConvertPoly(NiFile niFile, byte[] nifData)
             :base(niFile)
         {
-          
+            this.shaderTextures = ReadShaderTextures(niFile, nifData);
         }
 
         public void Start()
@@ -83,8 +85,8 @@ namespace NifUtil.Classes
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
                 var transformationMatrix = this.ComputeWorldMatrix(shape);
-                var texture = this.GetBaseTexture(shape);
-                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, texture?.Name, GetUvSet(geometry, texture), this.GetMaterialColor(shape));
+                var textures = this.GetTextures(shape);
+                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetMaterialColor(shape));
             }
         }
 
@@ -130,17 +132,18 @@ namespace NifUtil.Classes
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
                 var transformationMatrix = this.ComputeWorldMatrix(strips);
-                var texture = this.GetBaseTexture(strips);
-                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, texture?.Name, GetUvSet(geometry, texture), this.GetMaterialColor(strips));
+                var textures = this.GetTextures(strips);
+                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetMaterialColor(strips));
             }
         }
 
         private sealed record BaseTexture(string Name, int UvSetIndex);
 
-        /// <summary>
-        /// Base texture of a mesh. Texturing properties are inherited from parent nodes.
-        /// </summary>
-        private BaseTexture GetBaseTexture(NiAVObject node)
+        private sealed record TextureLayers(BaseTexture Texture1, BaseTexture Texture2);
+
+        private sealed record ShaderTexture(uint SourceRef, int UvSetIndex, uint MapId);
+
+        private TextureLayers GetTextures(NiAVObject node)
         {
             for (var current = node; current != null; current = current.Parent)
             {
@@ -155,19 +158,134 @@ namespace NifUtil.Classes
                         && this.File.ObjectsByRef.TryGetValue(texturing.BaseTexture.Source.RefId, out var source)
                         && source is NiSourceTexture sourceTexture && sourceTexture.FileName != null)
                     {
-                        return new BaseTexture(sourceTexture.FileName.ToString(), (int)texturing.BaseTexture.UVSetIndex);
+                        return new TextureLayers(new BaseTexture(sourceTexture.FileName.ToString(), (int)texturing.BaseTexture.UVSetIndex), null);
                     }
 
-                    // Blended city floors keep their textures in the shader texture list, which Niflib skips.
-                    // The first texture block after the property is the first ground texture.
-                    if (texturing.NumShaderTextures > 0 && this.File.ObjectsByRef.TryGetValue(property.RefId + 1, out var next)
+                    if (this.shaderTextures.TryGetValue(property.RefId, out var maps)
+                        && TryGetIndex(node, "Texture1Index", out var first)
+                        && TryGetIndex(node, "Texture2Index", out var second))
+                    {
+                        return new TextureLayers(this.Resolve(maps, first), this.Resolve(maps, second));
+                    }
+
+                    if (texturing.NumShaderTextures > 0
+                        && this.File.ObjectsByRef.TryGetValue(property.RefId + 1, out var next)
                         && next is NiSourceTexture shaderTexture && shaderTexture.FileName != null)
                     {
-                        return new BaseTexture(shaderTexture.FileName.ToString(), 0);
+                        return new TextureLayers(new BaseTexture(shaderTexture.FileName.ToString(), 0), null);
                     }
                 }
             }
+            return new TextureLayers(null, null);
+        }
+
+        private BaseTexture Resolve(IEnumerable<ShaderTexture> maps, uint mapId)
+        {
+            var map = maps.FirstOrDefault(m => m?.MapId == mapId);
+            if (map != null && this.File.ObjectsByRef.TryGetValue(map.SourceRef, out var source)
+                && source is NiSourceTexture texture && texture.FileName != null)
+            {
+                return new BaseTexture(texture.FileName.ToString(), map.UvSetIndex);
+            }
             return null;
+        }
+
+        private static bool TryGetIndex(NiAVObject node, string name, out uint value)
+        {
+            foreach (var reference in node.ExtraData)
+            {
+                if (reference.IsValid() && reference.Object is NiIntegerExtraData data
+                    && string.Equals(data.Name.Value, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = data.Data;
+                    return true;
+                }
+            }
+            value = 0;
+            return false;
+        }
+
+        // Niflib skips shader texture lists, so scan the raw NIF for their descriptors.
+        private static IReadOnlyDictionary<uint, ShaderTexture[]> ReadShaderTextures(NiFile file, byte[] bytes)
+        {
+            var properties = file.ObjectsByRef.Where(item => item.Value is NiTexturingProperty property && property.NumShaderTextures > 0).OrderBy(item => item.Key).ToArray();
+            var candidates = new List<ShaderTexture[]>();
+            for (var offset = 0; offset <= bytes.Length - 4; offset++)
+            {
+                var count = BitConverter.ToUInt32(bytes, offset);
+                if (count > 0 && count <= 16 && properties.Any(item => ((NiTexturingProperty)item.Value).NumShaderTextures == count)
+                    && TryReadShaderTextures(file, bytes, offset + 4, (int)count, out var maps))
+                {
+                    candidates.Add(maps);
+                    offset += 3;
+                }
+            }
+
+            var result = new Dictionary<uint, ShaderTexture[]>();
+            var next = 0;
+            foreach (var property in properties)
+            {
+                var count = ((NiTexturingProperty)property.Value).NumShaderTextures;
+                while (next < candidates.Count && candidates[next].Length != count)
+                {
+                    next++;
+                }
+                if (next < candidates.Count)
+                {
+                    result[property.Key] = candidates[next++];
+                }
+            }
+            return result;
+        }
+
+        private static bool TryReadShaderTextures(NiFile file, byte[] bytes, int offset, int count, out ShaderTexture[] maps)
+        {
+            maps = new ShaderTexture[count];
+            for (var i = 0; i < count; i++)
+            {
+                if (offset >= bytes.Length)
+                {
+                    return false;
+                }
+                var hasMap = bytes[offset++];
+                if (hasMap == 0)
+                {
+                    continue;
+                }
+                if (hasMap != 1)
+                {
+                    return false;
+                }
+                if (offset + 25 > bytes.Length)
+                {
+                    return false;
+                }
+
+                var sourceRef = BitConverter.ToUInt32(bytes, offset);
+                var clamp = BitConverter.ToUInt32(bytes, offset + 4);
+                var filter = BitConverter.ToUInt32(bytes, offset + 8);
+                var uvSet = BitConverter.ToUInt32(bytes, offset + 12);
+                var transform = bytes[offset + 20];
+                var mapId = BitConverter.ToUInt32(bytes, offset + 21);
+                if (!file.ObjectsByRef.TryGetValue(sourceRef, out var source) || source is not NiSourceTexture
+                    || clamp > 3 || filter > 5 || uvSet > 15 || transform != 0 || mapId >= count)
+                {
+                    return false;
+                }
+                maps[i] = new ShaderTexture(sourceRef, (int)uvSet, mapId);
+                offset += 25;
+            }
+            var usedMaps = maps.Where(map => map != null).ToArray();
+            return usedMaps.Length > 0 && usedMaps.Select(map => map.MapId).Distinct().Count() == usedMaps.Length;
+        }
+
+        private static float[] GetBlend(NiGeometryData geometry, BaseTexture texture2)
+        {
+            if (texture2 == null || !geometry.HasVertexColors || geometry.VertexColors == null || geometry.VertexColors.Length != geometry.Vertices.Length)
+            {
+                return null;
+            }
+            return geometry.VertexColors.Select(color => color.Alpha).ToArray();
         }
 
         /// <summary>
@@ -204,7 +322,7 @@ namespace NifUtil.Classes
             return uvSet.Length == geometry.Vertices.Length ? uvSet : null;
         }
 
-        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation, string texture, Vector2[] uvSet, int materialColor)
+        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation, string texture, Vector2[] uvSet, string texture2, Vector2[] uvSet2, float[] textureBlend, int materialColor)
         {
             // Transaform all vertices
             var verticesTransformed = new List<Vector3>();
@@ -220,6 +338,9 @@ namespace NifUtil.Classes
                                        uvSet == null ? null : new[] { uvSet[triangle.X], uvSet[triangle.Y], uvSet[triangle.Z] }
                                       )
                            {
+                               Texture2 = texture2,
+                               Uvs2 = uvSet2 == null ? null : new[] { uvSet2[triangle.X], uvSet2[triangle.Y], uvSet2[triangle.Z] },
+                               TextureBlend = textureBlend == null ? null : new[] { textureBlend[triangle.X], textureBlend[triangle.Y], textureBlend[triangle.Z] },
                                MaterialColor = materialColor
                            };
                 this.Polys.Add(poly);
@@ -250,9 +371,9 @@ namespace NifUtil.Classes
             {
                 using (var writer = new BinaryWriter(fs))
                 {
-                    var textures = this.Polys.Select(p => p.Texture).Where(t => t != null).Distinct().ToList();
+                    var textures = this.Polys.SelectMany(p => new[] { p.Texture, p.Texture2 }).Where(t => t != null).Distinct().ToList();
 
-                    writer.Write(NifParser.POLY_FORMAT_MAGIC);
+                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V4);
                     writer.Write(textures.Count);
                     foreach (var texture in textures)
                     {
@@ -262,6 +383,7 @@ namespace NifUtil.Classes
                     foreach (var poly in this.Polys)
                     {
                         writer.Write(poly.Texture == null ? -1 : textures.IndexOf(poly.Texture));
+                        writer.Write(poly.Texture2 == null ? -1 : textures.IndexOf(poly.Texture2));
 
                         writer.Write(poly.P1.X);
                         writer.Write(poly.P1.Y);
@@ -283,6 +405,23 @@ namespace NifUtil.Classes
                             {
                                 writer.Write(uv.X);
                                 writer.Write(uv.Y);
+                            }
+                        }
+                        writer.Write(poly.Uvs2 != null);
+                        if (poly.Uvs2 != null)
+                        {
+                            foreach (var uv in poly.Uvs2)
+                            {
+                                writer.Write(uv.X);
+                                writer.Write(uv.Y);
+                            }
+                        }
+                        writer.Write(poly.TextureBlend != null);
+                        if (poly.TextureBlend != null)
+                        {
+                            foreach (var blend in poly.TextureBlend)
+                            {
+                                writer.Write(blend);
                             }
                         }
                     }
