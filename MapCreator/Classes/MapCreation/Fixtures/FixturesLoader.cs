@@ -322,8 +322,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                                 return NifParser_IsNodeDrawable(nifRow, node);
                             };
 
-                            nifParser.Load(nifFileFromNpk);
-                            nifParser.Convert(ConvertType.Poly, modelPolySavePath);
+                            try
+                            {
+                                nifParser.Load(nifFileFromNpk);
+                                nifParser.Convert(ConvertType.Poly, modelPolySavePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                MainForm.Log(string.Format("Skipping {0} ({1}): {2}", nifRow.TextualName, nifArchivePath, ex.Message), MainForm.LogLevel.Warning);
+                                nifRow.Polygons = Array.Empty<Polygon>();
+                                continue;
+                            }
 
                             // Add file to polys.mpk
                             polyMpk.AddFile(modelPolySavePath);
