@@ -281,7 +281,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var textureName = string.IsNullOrEmpty(treeRow.LeafTexture) ? treeRow.BarkTexture : treeRow.LeafTexture;
             if (string.IsNullOrEmpty(textureName))
             {
-                AppLog.Log(string.Format("Tree {0} has no texture in Treemap.csv. Using default color.", treeRow.Name));
+                AppLog.Log(string.Format("Tree {0} has no texture in Treemap.csv, its model textures are used.", treeRow.Name));
+                treeRow.HasTextureColor = false;
                 return DefaultTreeColor;
             }
 

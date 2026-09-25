@@ -32,6 +32,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures.Objects
         public string LeafTexture { get; set; }
 
         public System.Drawing.Color AverageColor { get; set; }
+
+        /// <summary>
+        /// False while AverageColor is the default green because Treemap.csv names no texture
+        /// </summary>
+        public bool HasTextureColor { get; set; } = true;
         #endregion
 
         public TreeRow()

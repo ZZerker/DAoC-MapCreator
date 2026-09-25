@@ -81,6 +81,20 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
         }
 
+        /// <summary>
+        /// Trees without a texture in Treemap.csv (BigHibTree, mightyoak) take the color of the texture most of their model uses
+        /// </summary>
+        private static void SetModelTreeColor(TreeRow tree, NifRow nifRow)
+        {
+            var texture = nifRow.Polygons?.Where(p => p.Texture != null).GroupBy(p => p.Texture, StringComparer.OrdinalIgnoreCase).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;
+            var color = texture == null ? null : TextureColors.Get(texture, nifRow.ArchiveDirectory);
+            if (color != null)
+            {
+                tree.AverageColor = color.Value;
+                tree.HasTextureColor = true;
+            }
+        }
+
         // Textures the client loads in place of others in this zone, by file name without extension
         private readonly Dictionary<string, string> textureProxies;
 
@@ -489,6 +503,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     {
                         fixture.Tree = trees.FirstOrDefault(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
                         fixture.RawPolygons = nifRow.Polygons;
+                        if (fixture.Tree != null && !fixture.Tree.HasTextureColor)
+                        {
+                            SetModelTreeColor(fixture.Tree, nifRow);
+                        }
 
                         fixture.RendererConf = rConf ?? FixtureRendererConfigurations.GetRendererById("TreeImage");
                     }
