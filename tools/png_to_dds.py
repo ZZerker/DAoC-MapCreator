@@ -20,19 +20,19 @@ ICON_FILL = {"entrance": (70, 58, 44), "portal": (60, 70, 96), "boss": (150, 60,
 
 # Pixel sizes at 512; smaller maps scale down and drop labels with a higher priority number
 STYLE = {
-    "keep": ("georgiab.ttf", 13),
-    "place": ("georgiai.ttf", 11),
-    "neighbor": ("georgiaz.ttf", 12),
-    "entrance": ("georgia.ttf", 10),
-    "portal": ("georgiab.ttf", 11),
-    "boss": ("georgiab.ttf", 10),
-    "dock": ("georgiai.ttf", 10),
+    "keep": ("segoeuib.ttf", 11),
+    "place": ("segoeuii.ttf", 9),
+    "neighbor": ("segoeuiz.ttf", 10),
+    "entrance": ("segoeui.ttf", 9),
+    "portal": ("segoeuib.ttf", 9),
+    "boss": ("segoeuib.ttf", 9),
+    "dock": ("segoeuii.ttf", 8),
 }
 
 
 def font(kind, size):
-    name, points = STYLE.get(kind, ("georgia.ttf", 10))
-    return ImageFont.truetype(str(FONTS / name), max(7, round(points * size / 512)))
+    name, points = STYLE.get(kind, ("segoeui.ttf", 9))
+    return ImageFont.truetype(str(FONTS / name), max(6, round(points * size / 512)))
 
 
 def overlaps(box, boxes):
