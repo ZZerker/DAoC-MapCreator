@@ -31,7 +31,6 @@ namespace MapCreator.Classes
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             yield return Path.Combine(programFilesX86, "Electronic Arts", "Dark Age of Camelot");
             yield return Path.Combine(programFiles, "Electronic Arts", "Dark Age of Camelot");
-            yield return @"C:\Spiele\Eden DAoC";
         }
 
         private static string ReadLauncherKey(string configPath, string key)
