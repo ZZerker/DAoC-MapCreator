@@ -659,6 +659,10 @@ namespace MapCreator
 
                 reporter.Log("Finished without errors!", LogLevel.Success);
             }
+            catch (NotSupportedException ex)
+            {
+                reporter.Log("Skipped: " + ex.Message, LogLevel.Warning);
+            }
             catch (Exception ex)
             {
                 reporter.Log("Unhandled Exception thrown!", LogLevel.Error);

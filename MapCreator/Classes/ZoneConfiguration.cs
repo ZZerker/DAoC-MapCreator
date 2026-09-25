@@ -77,7 +77,10 @@ namespace MapCreator.Classes
             this.TerMpk = string.Format("{0}\\ter{1}.mpk", this.ZoneDirectory, this.ZoneId);
             this.TexMpk = string.Format("{0}\\tex{1}.mpk", this.ZoneDirectory, this.ZoneId);
 
-            // Check if the zone gets its data from an other zone
+            if (!MpkWrapper.ContainsFile(this.DatMpk, "terrain.pcx") || !MpkWrapper.ContainsFile(this.DatMpk, "offset.pcx"))
+            {
+                throw new NotSupportedException(string.Format("Zone {0} has no terrain (dungeon, city or indoor zone), not supported yet.", zoneId));
+            }
 
             // Check if file exists, else map to datXXX.mpk
             if (!File.Exists(this.CvsMpk)) this.CvsMpk = this.DatMpk;

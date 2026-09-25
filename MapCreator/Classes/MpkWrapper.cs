@@ -139,7 +139,18 @@ namespace MapCreator.Classes
         public static Byte[] GetFileBytesFromMpk(string mpk, string filename)
         {
             var mpak = Open(mpk);
-            return mpak.GetFile(filename).Data;
+            var file = mpak.GetFile(filename);
+            if (file == null)
+            {
+                throw new FileNotFoundException(string.Format("{0} not found in {1}", filename, mpk));
+            }
+
+            return file.Data;
+        }
+
+        public static bool ContainsFile(string mpk, string filename)
+        {
+            return File.Exists(mpk) && Open(mpk).Files.Any(f => string.Equals(f.Name, filename, StringComparison.OrdinalIgnoreCase));
         }
 
 
