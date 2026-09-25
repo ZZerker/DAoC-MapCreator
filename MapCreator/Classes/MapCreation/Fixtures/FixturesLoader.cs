@@ -94,6 +94,22 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public MapLevel Level { get; set; }
 
         /// <summary>
+        /// Replaces the model bounds frame by the zone's known map frame, in model coordinates
+        /// </summary>
+        private void ApplyMapFrame(ref double side, ref double left, ref double bottom)
+        {
+            var frame = MapFrame.Get(this.zoneConf.ZoneId);
+            if (frame == null)
+            {
+                return;
+            }
+
+            side = frame.Width;
+            left = MapFrame.ORIGIN - frame.OffsetX - side;
+            bottom = frame.OffsetY - MapFrame.ORIGIN;
+        }
+
+        /// <summary>
         /// Placement heights a level shows
         /// </summary>
         private (double Bottom, double Top) GetHeightBand(MapLevel level)
@@ -170,11 +186,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 return;
             }
 
-            // areas.dat gives the frame size of the client maps (Darkness Falls: the extent of all rooms)
+            // Without a known frame: areas.dat gives the size of the client maps (Darkness Falls: the extent of all rooms)
             var extent = Math.Max(maxX - minX, maxY - minY);
             var side = this.zoneConf.Levels.Count > 0 ? Math.Max(extent, this.zoneConf.Levels.Max(l => l.Width)) : extent * (1 + 2 * CITY_MARGIN);
             var left = (minX + maxX) / 2d - side / 2d;
             var bottom = (minY + maxY) / 2d - side / 2d;
+            this.ApplyMapFrame(ref side, ref left, ref bottom);
             this.zoneConf.SetZoneSize(side);
             this.zoneConf.Reporter.Log(string.Format("Dungeon frame: x {0:F0} to {1:F0}, y {2:F0} to {3:F0}", left, left + side, bottom, bottom + side), LogLevel.Notice);
 
@@ -206,7 +223,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         }
 
         /// <summary>
-        /// City models share one coordinate system with the north up. The map frame is the square around all of them;
+        /// City models share one coordinate system with the north up. The map frame comes from MapFrames.csv, else it is the square around all of them;
         /// each model is centered on its own bounds so its canvas stays small.
         /// </summary>
         private void PlaceCityPieces()
@@ -223,7 +240,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var maxY = vectors.Max(v => v.Y);
             var side = Math.Max(maxX - minX, maxY - minY) * (1 + 2 * CITY_MARGIN);
             var left = (minX + maxX) / 2d - side / 2d;
-            var top = (minY + maxY) / 2d + side / 2d;
+            var bottom = (minY + maxY) / 2d - side / 2d;
+            this.ApplyMapFrame(ref side, ref left, ref bottom);
+            var top = bottom + side;
             this.zoneConf.SetZoneSize(side);
             this.zoneConf.Reporter.Log(string.Format("City frame: x {0:F0} to {1:F0}, y {2:F0} to {3:F0}", left, left + side, top - side, top), LogLevel.Notice);
 
