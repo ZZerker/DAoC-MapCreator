@@ -38,6 +38,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public double CanvasX;
         public double CanvasY;
         public double CanvasZ;
+
+        /// <summary>
+        /// Placement height in map units; element depths are relative to it
+        /// </summary>
+        public double BaseCanvasZ;
         public int CanvasWidth;
         public int CanvasHeight;
         public ImageMagick.MagickColor ModelColor;
@@ -100,6 +105,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 this.FixtureRow.Z = this.ZoneConf.Heightmap.GetHeight(this.FixtureRow.X, this.FixtureRow.Y);
             }
             var baseZ = this.FixtureRow.Z;
+            this.BaseCanvasZ = this.ZoneConf.ZoneCoordinateToMapCoordinate(baseZ);
             this.FixtureRow.Z = this.RawPolygons.SelectMany(p => p.Vectors).Max(p => p.Z) + this.FixtureRow.Z;
             this.CanvasZ = this.ZoneConf.ZoneCoordinateToMapCoordinate(this.FixtureRow.Z);
 
@@ -158,6 +164,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 else if (lighting > 1) lighting = 1;
 
                 var coordinates = new List<ImageMagick.PointD>();
+                var depths = poly.Vectors.Select(v => (double)v.Z).ToArray();
                 foreach (var vector in poly.Vectors)
                 {
                     coordinates.Add(new ImageMagick.PointD(this.CanvasWidth / 2 + vector.X, this.CanvasHeight / 2 - vector.Y));
@@ -175,7 +182,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var texture2Name = poly.Texture2 != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.Texture2), out var proxy2) ? proxy2 : poly.Texture2;
                 var texture = textureMode == TextureMode.Map && poly.Uvs != null ? TextureCache.Get(textureName, this.TextureDirectory) : null;
                 var texture2 = textureMode == TextureMode.Map && poly.Uvs2 != null ? TextureCache.Get(texture2Name, this.TextureDirectory) : null;
-                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend));
+                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths });
             }
 
             this.DrawableElements = drawlist.OrderBy(o => o.Order);
@@ -307,6 +314,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public readonly TextureImage Texture2;
         public readonly Vector2[] Uvs2;
         public readonly float[] TextureBlend;
+
+        /// <summary>
+        /// Height of each corner in map units, for the depth test
+        /// </summary>
+        public double[] Depths;
 
         public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates, System.Drawing.Color? textureColor = null, TextureImage texture = null, Vector2[] uvs = null, TextureImage texture2 = null, Vector2[] uvs2 = null, float[] textureBlend = null)
         {

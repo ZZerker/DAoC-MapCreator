@@ -73,7 +73,7 @@ namespace MapCreator.Classes.Rendering
                 models.Start();
 
                 reporter.Log("Rendering models ...", LogLevel.Notice);
-                models.Draw(layer, false);
+                models.DrawShared(layer);
             }
             return layer;
         }

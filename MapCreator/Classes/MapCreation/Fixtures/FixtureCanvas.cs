@@ -22,6 +22,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private readonly int bufferHeight;
         private readonly byte[] pixels;
 
+        // Highest surface drawn so far per pixel; overlapping parts (ramps, bridges) keep the top one
+        private readonly float[] depth;
+
         public FixtureCanvas(int width, int height)
         {
             this.width = width;
@@ -29,14 +32,18 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             this.bufferWidth = width * SUPER_SAMPLING;
             this.bufferHeight = height * SUPER_SAMPLING;
             this.pixels = new byte[this.bufferWidth * this.bufferHeight * 4];
+            this.depth = new float[this.bufferWidth * this.bufferHeight];
+            Array.Fill(this.depth, float.MinValue);
         }
 
         /// <summary>
         /// Fills a triangle with its texture, or with the color if there is no texture. Light scales the color.
+        /// Depths are corner heights; the offsets place a model's canvas coordinates on a shared canvas.
         /// </summary>
-        public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null)
+        public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null,
+                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0)
         {
-            var points = coordinates.Select(p => new PointD(p.X * SUPER_SAMPLING, p.Y * SUPER_SAMPLING)).ToArray();
+            var points = coordinates.Select(p => new PointD((p.X + offsetX) * SUPER_SAMPLING, (p.Y + offsetY) * SUPER_SAMPLING)).ToArray();
             if (points.Length != 3)
             {
                 return;
@@ -78,6 +85,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         continue;
                     }
 
+                    var index = (y * this.bufferWidth + x) * 4;
+                    var z = depths == null ? 0 : (float)(w0 * depths[0] + w1 * depths[1] + w2 * depths[2] + depthOffset);
+                    if (depths != null && z < this.depth[index / 4])
+                    {
+                        continue;
+                    }
+
                     double r = solidR, g = solidG, b = solidB;
                     if (textured)
                     {
@@ -107,7 +121,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         b *= light;
                     }
 
-                    var index = (y * this.bufferWidth + x) * 4;
+                    if (depths != null)
+                    {
+                        this.depth[index / 4] = z;
+                    }
                     this.pixels[index] = ToByte(r);
                     this.pixels[index + 1] = ToByte(g);
                     this.pixels[index + 2] = ToByte(b);

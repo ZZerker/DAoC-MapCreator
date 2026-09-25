@@ -131,6 +131,42 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration.Reporter.ProgressReset();
         }
 
+        /// <summary>
+        /// Draws all textured models into one map sized canvas with a shared depth buffer, so overlapping models
+        /// (ramps, bridges, stacked halls) show their top surface. Used for cities and dungeons, which have no
+        /// trees or water. Models of other renderers are drawn the usual way on top.
+        /// </summary>
+        public void DrawShared(MagickImage map)
+        {
+            var shared = this.fixturesAboveWater.Where(f => f.RendererConf.Texture == TextureMode.Map
+                                                            && (f.RendererConf.Renderer == FixtureRendererType.Shaded || f.RendererConf.Renderer == FixtureRendererType.Flat)
+                                                            && f.RendererConf.Transparency == 0).ToList();
+            this.zoneConfiguration.Reporter.Log(string.Format("There are {0} fixtures to draw.", this.fixturesAboveWater.Count), LogLevel.Notice);
+
+            var canvas = new FixtureCanvas(this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize);
+            foreach (var fixture in shared)
+            {
+                var lit = fixture.RendererConf.Renderer == FixtureRendererType.Shaded && fixture.RendererConf.HasLight;
+                foreach (var drawableElement in fixture.DrawableElements)
+                {
+                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1,
+                                        drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths, fixture.CanvasX, fixture.CanvasY, fixture.BaseCanvasZ);
+                }
+            }
+
+            using (var layer = canvas.ToImage())
+            {
+                var shadowConf = shared.Select(f => f.RendererConf).FirstOrDefault(c => c.HasShadow);
+                if (shadowConf.HasShadow)
+                {
+                    this.CastShadow(layer, shadowConf.ShadowOffsetX, shadowConf.ShadowOffsetY, shadowConf.ShadowSize, new Percentage(100 - shadowConf.ShadowTransparency), shadowConf.ShadowColor, false);
+                }
+                map.Composite(layer, 0, 0, CompositeOperator.SrcOver);
+            }
+
+            this.Draw(map, this.fixturesAboveWater.Except(shared).ToList());
+        }
+
         public void Draw(MagickImage map, bool underwater)
         {
             if (underwater)
@@ -630,7 +666,7 @@ namespace MapCreator.Classes.MapCreation
                 var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight);
                 foreach (var drawableElement in fixture.DrawableElements)
                 {
-                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend);
+                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths);
                 }
                 return canvas.ToImage();
             }
