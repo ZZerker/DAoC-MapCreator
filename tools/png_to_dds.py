@@ -97,6 +97,23 @@ def draw_labels(img, labels):
         x, y = label["x"] * size, label["y"] * size
         color = REALM_TEXT.get(label["realm"], TEXT) if kind == "keep" else NEIGHBOR_TEXT if kind == "neighbor" else TEXT
 
+        if kind == "neighbor" and label["edge"] in ("west", "east"):
+            # Along the side border: reads upwards on the west edge, downwards on the east edge, arrow pointing out
+            w, h = draw.textbbox((0, 0), text, font=f, stroke_width=stroke)[2:]
+            arrow = round(h * 0.7)
+            strip = Image.new("RGBA", (w + arrow + 2, h + 2), (0, 0, 0, 0))
+            strip_halo = Image.new("RGBA", strip.size, (0, 0, 0, 0))
+            strip_draw = ImageDraw.Draw(strip)
+            draw_arrow(strip_draw, "north", arrow / 2 + 1, h / 2 + 1, arrow / 2 - 1, color)
+            ImageDraw.Draw(strip_halo).text((arrow + 1, 1), text, font=f, fill=HALO, stroke_width=stroke, stroke_fill=HALO)
+            strip_draw.text((arrow + 1, 1), text, font=f, fill=color)
+            strip = Image.alpha_composite(strip_halo, strip).rotate(90 if label["edge"] == "west" else -90, expand=True)
+            px = margin if label["edge"] == "west" else size - strip.size[0] - margin
+            py = round(min(max(y - strip.size[1] / 2, margin), size - strip.size[1] - margin))
+            layer.alpha_composite(strip, (px, py))
+            boxes.append((px, py, px + strip.size[0], py + strip.size[1]))
+            continue
+
         if kind == "neighbor":
             edge = label["edge"]
             w, h = draw.textbbox((0, 0), text, font=f, stroke_width=stroke)[2:]
