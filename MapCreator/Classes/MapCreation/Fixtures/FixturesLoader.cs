@@ -55,6 +55,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             // Clear on call
             nifRows.Clear();
             FixtureRows.Clear();
+            NifSearchPaths.Clear();
             // Trees and TreeCluster are always the same, do not load on each progress
             //treeRows.Clear();
             //treeClusterRows.Clear();
