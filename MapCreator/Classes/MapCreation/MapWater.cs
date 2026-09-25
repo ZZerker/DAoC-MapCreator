@@ -54,7 +54,7 @@ namespace MapCreator.Classes.MapCreation
                 var riverIndexString = "river" + ((riverIndex < 10) ? "0" + riverIndex : riverIndex.ToString());
 
                 // Check if there is a section
-                var riverCheck = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "name");
+                var riverCheck = zoneConfiguration.SectorDat.Get(riverIndexString, "name");
                 if (string.IsNullOrEmpty(riverCheck))
                 {
                     riversFound = false;
@@ -63,17 +63,17 @@ namespace MapCreator.Classes.MapCreation
 
                 var waterConf = new WaterConfiguration(riverCheck)
                                 {
-		                                Texture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "texture"),
-		                                Multitexture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "multitexture"),
-		                                Flow = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "flow"),
-		                                Height = Convert.ToInt32(DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "height")),
-		                                Bankpoints = Convert.ToInt32(DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "bankpoints")),
-		                                ExtendPosX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_PosX"),
-		                                ExtendPosY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_PosY"),
-		                                ExtendNegX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_NegX"),
-		                                ExtendNegY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_NegY"),
-		                                Tesselation = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Tesselation"),
-		                                Type = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "type")
+		                                Texture = zoneConfiguration.SectorDat.Get(riverIndexString, "texture"),
+		                                Multitexture = zoneConfiguration.SectorDat.Get(riverIndexString, "multitexture"),
+		                                Flow = zoneConfiguration.SectorDat.Get(riverIndexString, "flow"),
+		                                Height = Convert.ToInt32(zoneConfiguration.SectorDat.Get(riverIndexString, "height")),
+		                                Bankpoints = Convert.ToInt32(zoneConfiguration.SectorDat.Get(riverIndexString, "bankpoints")),
+		                                ExtendPosX = zoneConfiguration.SectorDat.Get(riverIndexString, "Extend_PosX"),
+		                                ExtendPosY = zoneConfiguration.SectorDat.Get(riverIndexString, "Extend_PosY"),
+		                                ExtendNegX = zoneConfiguration.SectorDat.Get(riverIndexString, "Extend_NegX"),
+		                                ExtendNegY = zoneConfiguration.SectorDat.Get(riverIndexString, "Extend_NegY"),
+		                                Tesselation = zoneConfiguration.SectorDat.Get(riverIndexString, "Tesselation"),
+		                                Type = zoneConfiguration.SectorDat.Get(riverIndexString, "type")
                                 };
 
                 // Adjust some river heights
@@ -89,8 +89,8 @@ namespace MapCreator.Classes.MapCreation
                     continue;
                 }
 
-                var color = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "color");
-                var baseColor = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "base_color");
+                var color = zoneConfiguration.SectorDat.Get(riverIndexString, "color");
+                var baseColor = zoneConfiguration.SectorDat.Get(riverIndexString, "base_color");
                 if (color.Length >= 6)
                 {
                     waterConf.Color = ColorTranslator.FromWin32(Convert.ToInt32((string.IsNullOrEmpty(baseColor)) ? color : baseColor));
@@ -99,8 +99,8 @@ namespace MapCreator.Classes.MapCreation
                 for (var i = 0; i < waterConf.Bankpoints; i++)
                 {
                     var coordinatesIndexString = (i < 10) ? "0" + i : i.ToString();
-                    var left = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "left" + coordinatesIndexString);
-                    var right = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "right" + coordinatesIndexString);
+                    var left = zoneConfiguration.SectorDat.Get(riverIndexString, "left" + coordinatesIndexString);
+                    var right = zoneConfiguration.SectorDat.Get(riverIndexString, "right" + coordinatesIndexString);
 
                     if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right))
                     {

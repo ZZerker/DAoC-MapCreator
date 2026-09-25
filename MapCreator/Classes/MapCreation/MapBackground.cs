@@ -44,9 +44,9 @@ namespace MapCreator.Classes.MapCreation
             this.textureZoneId = zoneConfiguration.ZoneId;
             this.textureZoneDataDirectory = zoneConfiguration.ZoneDirectory;
 
-            var flipX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "flip_x");
-            var flipY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "flip_y");
-            var useTexture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "use_texture");
+            var flipX = zoneConfiguration.SectorDat.Get("terrain", "flip_x");
+            var flipY = zoneConfiguration.SectorDat.Get("terrain", "flip_y");
+            var useTexture = zoneConfiguration.SectorDat.Get("terrain", "use_texture");
 
             if (!string.IsNullOrEmpty(flipX)) this.flipX = (Convert.ToInt32(flipX) != 0) ? true : false;
             if (!string.IsNullOrEmpty(flipY)) this.flipY = (Convert.ToInt32(flipY) != 0) ? true : false;

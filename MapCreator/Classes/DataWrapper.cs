@@ -21,7 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using MapCreator.data;
@@ -197,64 +196,6 @@ namespace MapCreator.Classes
         #endregion
 
         #region Values from Dat-Files
-
-        /// <summary>
-        /// Gets a value from a sector.dat in an MPK file
-        /// </summary>
-        /// <param name="mpkFile"></param>
-        /// <param name="iniRegion"></param>
-        /// <param name="iniProperty"></param>
-        /// <returns></returns>
-        public static string GetSectorDatValue(string mpkFile, string iniRegion, string iniProperty)
-        {
-            var sectorDatFile = MpkWrapper.GetFileFromMpk(mpkFile, "sector.dat");
-            return GetDatFileProperty(sectorDatFile, iniRegion, iniProperty);
-        }
-
-        /// <summary>
-        /// Get the value from a property of a .dat file
-        /// </summary>
-        /// <param name="datFile"></param>
-        /// <param name="iniRegion"></param>
-        /// <param name="iniProperty"></param>
-        /// <returns></returns>
-        public static string GetDatFileProperty(StreamReader datFile, string iniRegion, string iniProperty)
-        {
-            // Seek the stream
-            datFile.BaseStream.Position = 0;
-
-            var regionRegex = new Regex(string.Format(@"\[{0}\]", iniRegion), RegexOptions.IgnoreCase);
-            var propertyRegex = new Regex(string.Format(@"{0}=(.*)", iniProperty), RegexOptions.IgnoreCase);
-
-            string row;
-            Match match;
-            var recording = false;
-
-            while ((row = datFile.ReadLine()) != null)
-            {
-                if (row.Trim().StartsWith(";")) continue;
-
-                if (regionRegex.IsMatch(row))
-                {
-                    recording = true;
-                    continue;
-                }
-
-                if (recording)
-                {
-                    if (propertyRegex.IsMatch(row))
-                    {
-                        match = propertyRegex.Match(row);
-                        return match.Groups[1].Value.Trim();
-                    }
-                }
-
-                // Record until the next [
-                if (row.StartsWith("[")) recording = false;
-            }
-
-            return "";
-        }
 
         public static List<string> GetFileContent(string mpkFile, string filename)
         {

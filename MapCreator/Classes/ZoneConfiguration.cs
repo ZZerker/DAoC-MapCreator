@@ -33,7 +33,7 @@ namespace MapCreator.Classes
 
         public string ZoneDirectory { get; }
 
-        public StreamReader SectorDatStreamReader { get; }
+        public DatFile SectorDat { get; }
 
         public int TargetMapSize { get; } = 1024;
 
@@ -44,8 +44,6 @@ namespace MapCreator.Classes
         public double LocsPerLixel { get; } = 1;
 
         public MapHeightmap Heightmap { get; }
-
-        public double[,] RiverHeights { get; set; }
 
         #region MPK files
         public string DatMpk { get; }
@@ -85,7 +83,7 @@ namespace MapCreator.Classes
             if (!File.Exists(this.TexMpk)) this.TexMpk = this.DatMpk;
 
             // Useful for everything, so open it
-            this.SectorDatStreamReader = MpkWrapper.GetFileFromMpk(this.DatMpk, "sector.dat");
+            this.SectorDat = DatFile.FromMpk(this.DatMpk, "sector.dat");
 
             // for math
             this.TargetMapSize = mapSize;
@@ -95,9 +93,6 @@ namespace MapCreator.Classes
 
             // Heightmap
             this.Heightmap = new MapHeightmap(this);
-
-            // Prepare river heights array
-            this.RiverHeights = new double[this.TargetMapSize, this.TargetMapSize];
         }
 
         public string GetZoneDirectory(string zoneId = null)
@@ -123,7 +118,7 @@ namespace MapCreator.Classes
             }
 
             // Special path for tutorial zones
-            if (zoneId == "027" || zoneId == "027" || zoneId == "027")
+            if (zoneId == "027")
             {
                 zoneDataDirectory = string.Format("{0}\\tutorial\\zones\\zone{1}", Properties.Settings.Default.game_path, zoneId);
             }
@@ -163,7 +158,6 @@ namespace MapCreator.Classes
 
         public void Dispose()
         {
-            if (this.SectorDatStreamReader != null) this.SectorDatStreamReader.Close();
             this.Heightmap.Dispose();
         }
     }
