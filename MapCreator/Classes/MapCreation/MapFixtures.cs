@@ -50,13 +50,13 @@ namespace MapCreator.Classes.MapCreation
         public int TreeTransparency { get; set; } = 20;
         #endregion
 
-        public MapFixtures(ZoneConfiguration zoneConfiguration, List<WaterConfiguration> rivers)
+        public MapFixtures(ZoneConfiguration zoneConfiguration, List<WaterConfiguration> rivers, FixturesLoader loader = null)
         {
             this.zoneConfiguration = zoneConfiguration;
             this.rivers = rivers;
 
             // Loads CSV files and polygons
-            this.loader = new FixturesLoader(zoneConfiguration);
+            this.loader = loader ?? new FixturesLoader(zoneConfiguration);
 
             // Prepare models
             this.fixtures = this.loader.GetDrawableFixtures();

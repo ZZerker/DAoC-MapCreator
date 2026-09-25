@@ -37,13 +37,28 @@ namespace MapCreator.Classes
 
         public int TargetMapSize { get; } = 1024;
 
-        public double LocScale { get; } = 1;
+        /// <summary>
+        /// Side of the square the map shows, in world units. 65536 for outdoor zones, the city frame for cities.
+        /// </summary>
+        public double ZoneSize { get; private set; } = ZONE_MAX_COORDINATE;
+
+        public double LocScale { get; private set; } = 1;
 
         public double MapScale { get; } = 1;
 
-        public double LocsPerLixel { get; } = 1;
+        public double LocsPerLixel { get; private set; } = 1;
 
+        /// <summary>
+        /// Null for zones without terrain
+        /// </summary>
         public MapHeightmap Heightmap { get; }
+
+        public bool HasTerrain { get; }
+
+        /// <summary>
+        /// Capital cities are built from the models in city.csv instead of terrain and fixtures
+        /// </summary>
+        public bool IsCity { get; }
 
         #region MPK files
         public string DatMpk { get; }
@@ -77,9 +92,11 @@ namespace MapCreator.Classes
             this.TerMpk = string.Format("{0}\\ter{1}.mpk", this.ZoneDirectory, this.ZoneId);
             this.TexMpk = string.Format("{0}\\tex{1}.mpk", this.ZoneDirectory, this.ZoneId);
 
-            if (!MpkWrapper.ContainsFile(this.DatMpk, "terrain.pcx") || !MpkWrapper.ContainsFile(this.DatMpk, "offset.pcx"))
+            this.HasTerrain = MpkWrapper.ContainsFile(this.DatMpk, "terrain.pcx") && MpkWrapper.ContainsFile(this.DatMpk, "offset.pcx");
+            this.IsCity = !this.HasTerrain && MpkWrapper.ContainsFile(this.DatMpk, "city.csv");
+            if (!this.HasTerrain && !this.IsCity)
             {
-                throw new NotSupportedException(string.Format("Zone {0} has no terrain (dungeon, city or indoor zone), not supported yet.", zoneId));
+                throw new NotSupportedException(string.Format("Zone {0} has no terrain (dungeon or indoor zone), not supported yet.", zoneId));
             }
 
             // Check if file exists, else map to datXXX.mpk
@@ -94,11 +111,19 @@ namespace MapCreator.Classes
             // for math
             this.TargetMapSize = mapSize;
             this.MapScale = this.TargetMapSize / 256.0;
-            this.LocsPerLixel = ZONE_MAX_COORDINATE / mapSize;
-            this.LocScale = this.TargetMapSize / ZONE_MAX_COORDINATE;
+            this.SetZoneSize(ZONE_MAX_COORDINATE);
 
-            // Heightmap
-            this.Heightmap = new MapHeightmap(this);
+            if (this.HasTerrain)
+            {
+                this.Heightmap = new MapHeightmap(this);
+            }
+        }
+
+        public void SetZoneSize(double zoneSize)
+        {
+            this.ZoneSize = zoneSize;
+            this.LocsPerLixel = zoneSize / this.TargetMapSize;
+            this.LocScale = this.TargetMapSize / zoneSize;
         }
 
         public string GetZoneDirectory(string zoneId = null)
@@ -139,12 +164,12 @@ namespace MapCreator.Classes
 
         public double ZoneCoordinateToMapCoordinate(double zoneCoordinate)
         {
-            return (this.TargetMapSize * zoneCoordinate) / ZONE_MAX_COORDINATE;
+            return (this.TargetMapSize * zoneCoordinate) / this.ZoneSize;
         }
 
         public double MapCoordinateToZoneCoordinate(double mapCoordinate)
         {
-            return (ZONE_MAX_COORDINATE * mapCoordinate) / this.TargetMapSize;
+            return (this.ZoneSize * mapCoordinate) / this.TargetMapSize;
         }
 
         public ImageMagick.MagickImage GetWaterMap()
@@ -169,7 +194,7 @@ namespace MapCreator.Classes
 
         public void Dispose()
         {
-            this.Heightmap.Dispose();
+            this.Heightmap?.Dispose();
         }
     }
 }

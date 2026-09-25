@@ -33,6 +33,13 @@ namespace MapCreator.Classes.Rendering
 
             using (var conf = new ZoneConfiguration(zone.Id, settings.MapSize, reporter))
             {
+                if (conf.IsCity)
+                {
+                    new CityRenderer(settings, reporter).Render(conf, mapFile);
+                    mapFile.Refresh();
+                    return mapFile;
+                }
+
                 var background = new MapBackground(conf)
                                  {
                                      DrawBackground = settings.DrawBackground

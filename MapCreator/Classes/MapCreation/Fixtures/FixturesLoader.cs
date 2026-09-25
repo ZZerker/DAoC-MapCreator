@@ -57,8 +57,80 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                                       Path.Combine(gamePath, "zones\\Dnifs")
                                   };
 
-            this.LoadCsvData();
-            this.LoadPolygons();
+            if (this.zoneConf.IsCity)
+            {
+                this.LoadCityData();
+                this.LoadPolygons();
+                this.PlaceCityPieces();
+            }
+            else
+            {
+                this.LoadCsvData();
+                this.LoadPolygons();
+            }
+        }
+
+        // Empty border around the city, as a share of its size
+        private const double CITY_MARGIN = 0.02;
+
+        /// <summary>
+        /// city.csv lists the city models; each one is placed once
+        /// </summary>
+        private void LoadCityData()
+        {
+            foreach (var row in DataWrapper.GetFileContent(this.zoneConf.DatMpk, "city.csv"))
+            {
+                var fields = row.Split(',');
+                if (fields.Length < 2 || !int.TryParse(fields[0], out var id) || string.IsNullOrWhiteSpace(fields[1]))
+                {
+                    continue;
+                }
+
+                var filename = fields[1].Trim();
+                this.NifRows.Add(new NifRow { NifId = id, TextualName = Path.GetFileNameWithoutExtension(filename), Filename = filename });
+                this.fixtureRows.Add(new FixtureRow { Id = id, NifId = id, TextualName = filename, Scale = 100 });
+            }
+        }
+
+        /// <summary>
+        /// City models share one coordinate system with the north up. The map frame is the square around all of them;
+        /// each model is centered on its own bounds so its canvas stays small.
+        /// </summary>
+        private void PlaceCityPieces()
+        {
+            var vectors = this.NifRows.Where(n => n.Polygons != null).SelectMany(n => n.Polygons).SelectMany(p => p.Vectors).ToList();
+            if (vectors.Count == 0)
+            {
+                return;
+            }
+
+            var minX = vectors.Min(v => v.X);
+            var maxX = vectors.Max(v => v.X);
+            var minY = vectors.Min(v => v.Y);
+            var maxY = vectors.Max(v => v.Y);
+            var side = Math.Max(maxX - minX, maxY - minY) * (1 + 2 * CITY_MARGIN);
+            var left = (minX + maxX) / 2d - side / 2d;
+            var top = (minY + maxY) / 2d + side / 2d;
+            this.zoneConf.SetZoneSize(side);
+            this.zoneConf.Reporter.Log(string.Format("City frame: x {0:F0} to {1:F0}, y {2:F0} to {3:F0}", left, left + side, top - side, top), LogLevel.Notice);
+
+            foreach (var fixtureRow in this.fixtureRows)
+            {
+                var nifRow = this.NifRows.First(n => n.NifId == fixtureRow.NifId);
+                if (nifRow.Polygons == null || nifRow.Polygons.Length == 0)
+                {
+                    continue;
+                }
+
+                var pieceVectors = nifRow.Polygons.SelectMany(p => p.Vectors).ToList();
+                var center = new SharpDX.Vector3((pieceVectors.Min(v => v.X) + pieceVectors.Max(v => v.X)) / 2f, (pieceVectors.Min(v => v.Y) + pieceVectors.Max(v => v.Y)) / 2f, 0);
+
+                // A copy, the cached polygons are shared with other zones. Turned by 180 degrees: on the client maps
+                // city x grows to the left and y downwards (checked against the Camelot, Jordheim and Tir na Nog maps).
+                nifRow.Polygons = nifRow.Polygons.Select(p => new Polygon(TurnAround(p.P1, center), TurnAround(p.P2, center), TurnAround(p.P3, center), p.Texture, p.Uvs) { MaterialColor = p.MaterialColor }).ToArray();
+                fixtureRow.X = left + side - center.X;
+                fixtureRow.Y = center.Y - (top - side);
+            }
         }
 
         /// <summary>
@@ -163,6 +235,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
 
             FixtureCache.LoadPolygons(models, this.zoneConf.Reporter);
+        }
+
+        private static SharpDX.Vector3 TurnAround(SharpDX.Vector3 vector, SharpDX.Vector3 center)
+        {
+            return new SharpDX.Vector3(center.X - vector.X, center.Y - vector.Y, vector.Z);
         }
 
         /// <summary>
