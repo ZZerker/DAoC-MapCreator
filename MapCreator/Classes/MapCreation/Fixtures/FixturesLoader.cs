@@ -228,6 +228,31 @@ namespace MapCreator.Fixtures
         {
             if (nifRows.Count() == 0 || fixtureRows.Count() == 0) return;
 
+            // Shared with parallel MapCreator processes
+            using (System.Threading.Mutex polysMutex = new System.Threading.Mutex(false, "MapCreatorPolysCache"))
+            {
+                try
+                {
+                    polysMutex.WaitOne();
+                }
+                catch (System.Threading.AbandonedMutexException)
+                {
+                }
+
+                try
+                {
+                    LoadPolygonsExclusive();
+                }
+                finally
+                {
+                    polysMutex.ReleaseMutex();
+                }
+            }
+        }
+
+        private static void LoadPolygonsExclusive()
+        {
+
             // MainForm progress
             MainForm.Log("Loading polygons ...", MainForm.LogLevel.notice);
             MainForm.ProgressStart("Loading polygons ...");
