@@ -123,6 +123,11 @@ namespace MapCreator.Classes
                 zoneDataDirectory = string.Format("{0}\\tutorial\\zones\\zone{1}", Properties.Settings.Default.game_path, zoneId);
             }
 
+            if (!File.Exists(Path.Combine(zoneDataDirectory, "dat" + zoneId + ".mpk")))
+            {
+                zoneDataDirectory = ZoneCatalog.FindZoneDirectory(Properties.Settings.Default.game_path, zoneId) ?? zoneDataDirectory;
+            }
+
             return zoneDataDirectory;
         }
 

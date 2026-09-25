@@ -44,6 +44,7 @@ namespace MapCreator.Classes
         {
             // Read Zones
             ZonesXml = XDocument.Load(string.Format("{0}\\data\\zones.xml", Application.StartupPath));
+            AddClientZones();
 
             // Create/Read data xml file
             PresetsDataFile = string.Format("{0}\\presets.xml", Application.StartupPath);
@@ -93,6 +94,34 @@ namespace MapCreator.Classes
         #endregion
 
         #region Zones.xml
+
+        /// <summary>
+        /// Adds the zones of the game client that zones.xml does not list
+        /// </summary>
+        private static void AddClientZones()
+        {
+            var gamePath = Properties.Settings.Default.game_path;
+            if (!GameFolderLocator.IsGameFolder(gamePath))
+            {
+                return;
+            }
+
+            var listed = ZonesXml.Descendants("zone").Select(z => z.Attribute("id").Value).ToHashSet();
+            var missing = ZoneCatalog.Load(gamePath)
+                .Where(z => !listed.Contains(z.Id) && ZoneCatalog.FindZoneDirectory(gamePath, z.Id) != null)
+                .ToList();
+            if (missing.Count == 0)
+            {
+                return;
+            }
+
+            var expansion = new XElement("expansion", new XAttribute("name", ZoneCatalog.EXPANSION_NAME));
+            foreach (var zone in missing)
+            {
+                expansion.Add(new XElement("zone", new XAttribute("id", zone.Id), new XAttribute("type", zone.Type), zone.Name));
+            }
+            ZonesXml.Root.Add(new XElement("realm", new XAttribute("name", ZoneCatalog.REALM_NAME), expansion));
+        }
 
         /// <summary>
         /// Gets all realms
@@ -169,9 +198,9 @@ namespace MapCreator.Classes
         {
             var results = ZonesXml.Descendants("zone").Where(z => z.Attribute("id").Value == zoneId).Select(e => e.Parent.Attribute("name").Value);
 
-            if (results.Any())
+            if (results.Any() && Enum.TryParse<GameExpansion>(results.First().Replace(" ", ""), true, out var expansion))
             {
-                return (GameExpansion)Enum.Parse(typeof(GameExpansion), results.First().Replace(" ", ""), true);
+                return expansion;
             }
 
             return GameExpansion.Unknown;

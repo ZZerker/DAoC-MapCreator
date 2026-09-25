@@ -45,6 +45,8 @@ namespace MapCreator.Classes
             }
         }
 
+        public IEnumerable<string> Sections => this.sections.Keys;
+
         public static DatFile FromMpk(string mpk, string filename)
         {
             using var reader = MpkWrapper.GetFileFromMpk(mpk, filename);
