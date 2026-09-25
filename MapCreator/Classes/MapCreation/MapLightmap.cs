@@ -86,11 +86,11 @@ namespace MapCreator
             // Get the heightmap
             MagickImage heightmap = zoneConfiguration.Heightmap.Heightmap;
 
-            using (MagickImage lightmap = new MagickImage(Color.Transparent, 256, 256))
+            using (MagickImage lightmap = MagickWrapper.NewImage(Color.Transparent, 256, 256))
             {
-                using (IPixelCollection heightmapPixels = heightmap.GetPixels())
+                using (IPixelCollection<ushort> heightmapPixels = heightmap.GetPixels())
                 {
-                    using (IPixelCollection lightmapPixels = lightmap.GetPixels())
+                    using (IPixelCollection<ushort> lightmapPixels = lightmap.GetPixels())
                     {
                         // z-component of surface normals
                         double nz = 512d / zScale;
@@ -144,7 +144,7 @@ namespace MapCreator
                                 lightmapPixels.SetPixel(x, y, new ushort[] { pixelValueDiff, pixelValueDiff, pixelValueDiff, alphaValue });
                             }
 
-                            int percent = 100 * y / lightmap.Height;
+                            int percent = 100 * y / (int)lightmap.Height;
                             MainForm.ProgressUpdate(percent);
                         }
                     }
@@ -155,7 +155,7 @@ namespace MapCreator
 
                 lightmap.VirtualPixelMethod = VirtualPixelMethod.Transparent;
                 lightmap.FilterType = FilterType.Gaussian;
-                lightmap.Resize(zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize);
+                lightmap.Resize((uint)(zoneConfiguration.TargetMapSize), (uint)(zoneConfiguration.TargetMapSize));
 
                 // Apply the bumpmap using ColorDodge
                 map.Composite(lightmap, 0, 0, CompositeOperator.ColorDodge);

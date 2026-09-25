@@ -17,13 +17,32 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+using System.Drawing;
+using ImageMagick;
+
 namespace MapCreator
 {
-
     static class MagickWrapper
     {
+        public static MagickColor ToMagickColor(this Color color)
+        {
+            // The MagickColor constructor expects 16 bit channels
+            return MagickColor.FromRgba(color.R, color.G, color.B, color.A);
+        }
 
+        public static Color ToSystemColor(this IMagickColor<ushort> color)
+        {
+            return Color.FromArgb(color.A / 257, color.R / 257, color.G / 257, color.B / 257);
+        }
 
+        public static MagickImage NewImage(IMagickColor<ushort> color, int width, int height)
+        {
+            return new MagickImage(color, (uint)width, (uint)height);
+        }
+
+        public static MagickImage NewImage(Color color, int width, int height)
+        {
+            return NewImage(color.ToMagickColor(), width, height);
+        }
     }
-
 }

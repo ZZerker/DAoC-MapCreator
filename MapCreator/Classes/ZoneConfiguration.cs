@@ -206,7 +206,7 @@ namespace MapCreator
         public ImageMagick.MagickImage GetWaterMap()
         {
             ImageMagick.MagickImage watermap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.m_datMpk, "water.pcx"));
-            watermap.Resize(this.m_targetMapSize, this.m_targetMapSize);
+            watermap.Resize((uint)(this.m_targetMapSize), (uint)(this.m_targetMapSize));
 
             return watermap;
         }

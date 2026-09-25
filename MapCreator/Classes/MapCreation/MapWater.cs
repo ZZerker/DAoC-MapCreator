@@ -23,6 +23,7 @@ using System.Linq;
 using System.Drawing;
 using System.IO;
 using ImageMagick;
+using ImageMagick.Drawing;
 
 namespace MapCreator
 {
@@ -157,9 +158,6 @@ namespace MapCreator
             tex.Evaluate(Channels.RGB, EvaluateOperator.Add, Quantum.Max * 0.7);
             // Back to RGB, otherwise the tint is lost
             tex.ColorSpace = ColorSpace.sRGB;
-            double texResize = (1 - 256.0 / zoneConfiguration.TargetMapSize) * (zoneConfiguration.TargetMapSize * 0.0001);
-            if (texResize < 0) texResize = 0.1;
-            tex.Resize(new Percentage(texResize));
 
             m_waterTexture = tex;
             return m_waterTexture;
@@ -173,8 +171,6 @@ namespace MapCreator
 
             MagickImage tex = new MagickImage(textureFile);
             //tex.ColorSpace = ColorSpace.GRAY;
-            double texResize = (1 - 256.0 / zoneConfiguration.TargetMapSize) * (zoneConfiguration.TargetMapSize * 0.0001);
-            tex.Resize(new Percentage(texResize));
 
             m_lavaTexture = tex;
             return m_lavaTexture;
@@ -185,9 +181,9 @@ namespace MapCreator
             MainForm.ProgressStart("Rendering water ...");
 
 
-            using (IPixelCollection heightmapPixels = zoneConfiguration.Heightmap.HeightmapScaled.GetPixelsUnsafe())
+            using (IPixelCollection<ushort> heightmapPixels = zoneConfiguration.Heightmap.HeightmapScaled.GetPixelsUnsafe())
             {
-                using (MagickImage water = new MagickImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+                using (MagickImage water = MagickWrapper.NewImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
                 {
                     int progressCounter = 0;
 
@@ -196,8 +192,8 @@ namespace MapCreator
                         MainForm.Log(river.Name + "...", MainForm.LogLevel.notice);
 
                         MagickColor fillColor;
-                        if (m_useClientColors) fillColor = river.Color;
-                        else fillColor = m_waterColor;
+                        if (m_useClientColors) fillColor = river.Color.ToMagickColor();
+                        else fillColor = m_waterColor.ToMagickColor();
                         //water.FillColor = fillColor;
 
                         // Get the river coordinates and scale them to the targets size
@@ -224,7 +220,7 @@ namespace MapCreator
                         int minY = Convert.ToInt32(riverCoordinates.Min(m => m.Y)) - 10;
                         int maxY = Convert.ToInt32(riverCoordinates.Max(m => m.Y)) + 10;
 
-                        using (IPixelCollection riverPixelCollection = water.GetPixelsUnsafe())
+                        using (IPixelCollection<ushort> riverPixelCollection = water.GetPixelsUnsafe())
                         {
                             for (int x = minX; x < maxX; x++)
                             {
@@ -285,9 +281,9 @@ namespace MapCreator
                 else di.Create();
             }
 
-            using (MagickImage debugRiver = new MagickImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+            using (MagickImage debugRiver = MagickWrapper.NewImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
             {
-                debugRiver.BackgroundColor = Color.White;
+                debugRiver.BackgroundColor = MagickColors.White;
                 debugRiver.Settings.FillColor = new MagickColor(0, 0, ushort.MaxValue, 256 * 128);
 
                 double resizeFactor = zoneConfiguration.TargetMapSize / zoneConfiguration.Heightmap.Heightmap.Width;
@@ -307,7 +303,7 @@ namespace MapCreator
                     else y = riverCoordinates[i].Y - 1;
 
                     debugRiver.Settings.FontPointsize = 14.0;
-                    debugRiver.Settings.FillColor = Color.Black;
+                    debugRiver.Settings.FillColor = MagickColors.Black;
                     DrawableText text = new DrawableText(x, y, string.Format("{0} ({1}/{2})", i, orginalCoords[i].X, orginalCoords[i].Y));
                     debugRiver.Draw(text);
                 }

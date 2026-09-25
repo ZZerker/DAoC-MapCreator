@@ -211,9 +211,9 @@ namespace MapCreator.Fixtures
                 using (ImageMagick.MagickImage texture = new ImageMagick.MagickImage(treeTextureFile))
                 {
                     texture.Resize(1, 1);
-                    ImageMagick.Pixel pixel = texture.GetPixels().First();
+                    ImageMagick.IPixel<ushort> pixel = texture.GetPixels().First();
 
-                    System.Drawing.Color color = pixel.ToColor();
+                    System.Drawing.Color color = pixel.ToColor().ToSystemColor();
                     treeColors.Add(treeRow.Name, color);
                     return color;
                 }

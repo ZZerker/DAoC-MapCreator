@@ -70,7 +70,7 @@ namespace MapCreator
 
             if(!this.drawBackground)
             {
-                return new MagickImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize);
+                return MagickWrapper.NewImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize);
             }
 
             // Check which terrain file is used
@@ -114,7 +114,7 @@ namespace MapCreator
             double orginalWidth = tileWidth * 8;
             double resizeFactor = (double)zoneConfiguration.TargetMapSize / (double)orginalWidth; // 0 - 1
 
-            MagickImage map = new MagickImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize);
+            MagickImage map = MagickWrapper.NewImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize);
 
             int lastWidth = 0;
             int x = 0;
@@ -128,13 +128,13 @@ namespace MapCreator
                     using (MagickImage mapTile = new MagickImage(mpak.GetFile(filename).Data))
                     {
                         int newSize = Convert.ToInt32(mapTile.Width * resizeFactor);
-                        mapTile.Resize(newSize, newSize);
+                        mapTile.Resize((uint)(newSize), (uint)(newSize));
 
                         map.Composite(mapTile, x, y, CompositeOperator.SrcOver);
                          
                         // Calculate new y
-                        y += mapTile.Height;
-                        lastWidth = mapTile.Height;
+                        y += (int)mapTile.Height;
+                        lastWidth = (int)mapTile.Height;
                     }
                 }
 

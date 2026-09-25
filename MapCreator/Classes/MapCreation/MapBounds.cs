@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ImageMagick;
+using ImageMagick.Drawing;
 using System.IO;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -345,15 +346,15 @@ namespace MapCreator
             MagickColor backgroundColor = MagickColors.Transparent;
             if (polygons.Count == 0) {
                 // There are no normal polygons, we need to fill the hole zone and substract negatedPolygons
-                backgroundColor = m_boundsColor;
+                backgroundColor = m_boundsColor.ToMagickColor();
             }
 
-            using (MagickImage boundMap = new MagickImage(backgroundColor, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+            using (MagickImage boundMap = MagickWrapper.NewImage(backgroundColor, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
             {
                 int progressCounter = 0;
 
                 boundMap.Alpha(AlphaOption.Set);
-                boundMap.Settings.FillColor = m_boundsColor;
+                boundMap.Settings.FillColor = m_boundsColor.ToMagickColor();
                 foreach (List<PointD> coords in polygons)
                 {
                     DrawablePolygon poly = new DrawablePolygon(coords);
@@ -366,9 +367,9 @@ namespace MapCreator
 
                 if (negatedPolygons.Count > 0)
                 {
-                    using (MagickImage negatedBoundMap = new MagickImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+                    using (MagickImage negatedBoundMap = MagickWrapper.NewImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
                     {
-                        negatedBoundMap.Settings.FillColor = m_boundsColor;
+                        negatedBoundMap.Settings.FillColor = m_boundsColor.ToMagickColor();
 
                         foreach (List<PointD> coords in negatedPolygons)
                         {
@@ -421,7 +422,7 @@ namespace MapCreator
             int boundIndex = 0;
             foreach (List<PointF> allCoords in m_bounds)
             {
-                using (MagickImage bound = new MagickImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+                using (MagickImage bound = MagickWrapper.NewImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
                 {
                     List<PointD> coords = allCoords.Select(c => new PointD(zoneConfiguration.ZoneCoordinateToMapCoordinate(c.X), zoneConfiguration.ZoneCoordinateToMapCoordinate(c.Y))).ToList();
 
@@ -441,11 +442,11 @@ namespace MapCreator
                         else y = coords[i].Y - 1;
 
                         bound.Settings.FontPointsize = 10.0;
-                        bound.Settings.FillColor = Color.Black;
+                        bound.Settings.FillColor = MagickColors.Black;
                         DrawableText text = new DrawableText(x, y, string.Format("{0} ({1}/{2})", i, zoneConfiguration.MapCoordinateToZoneCoordinate(coords[i].X), zoneConfiguration.MapCoordinateToZoneCoordinate(coords[i].Y)));
                         bound.Draw(text);
                         
-                        using (IPixelCollection pixels = bound.GetPixels())
+                        using (IPixelCollection<ushort> pixels = bound.GetPixels())
                         {
                             int x2, y2;
                             if (coords[i].X == zoneConfiguration.TargetMapSize) x2 = zoneConfiguration.TargetMapSize - 1;

@@ -818,7 +818,7 @@ namespace MapCreator
 
                         MainForm.Log(string.Format("Writing map image {0} ...", mapFile.Name));
                         ProgressStartMarquee("Writing map image ...");
-                        map.Quality = Convert.ToInt32(mapQualityTextBox.Value);
+                        map.Quality = Convert.ToUInt32(mapQualityTextBox.Value);
                         map.Write(mapFile.FullName);
                     }
                 }

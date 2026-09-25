@@ -71,12 +71,12 @@ namespace MapCreator
             {
                 using (MagickImage terrainmap = zoneConfiguration.GetTerrainMap())
                 {
-                    m_heightmap = new MagickImage(Color.Black, offsetmap.Width, offsetmap.Height);
+                    m_heightmap = MagickWrapper.NewImage(Color.Black, (int)offsetmap.Width, (int)offsetmap.Height);
 
-                    using (IPixelCollection heightmapPixels = m_heightmap.GetPixels())
+                    using (IPixelCollection<ushort> heightmapPixels = m_heightmap.GetPixels())
                     {
-                        IPixelCollection terrainPixels = terrainmap.GetPixels();
-                        IPixelCollection offsetPixels = offsetmap.GetPixels();
+                        IPixelCollection<ushort> terrainPixels = terrainmap.GetPixels();
+                        IPixelCollection<ushort> offsetPixels = offsetmap.GetPixels();
 
                         for (int x = 0; x < offsetmap.Width; x++)
                         {
@@ -89,7 +89,7 @@ namespace MapCreator
                                 heightmapPixels.SetPixel(x, y, new ushort[] { heightmapPixelValue, heightmapPixelValue, heightmapPixelValue });
                             }
 
-                            int percent = 100 * x / offsetmap.Width;
+                            int percent = 100 * x / (int)offsetmap.Width;
                             MainForm.ProgressUpdate(percent);
                         }
 
@@ -103,7 +103,7 @@ namespace MapCreator
 
                     // Scale to target size
                     m_heightmapScaled = new MagickImage(m_heightmap);
-                    m_heightmapScaled.Resize(zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize);
+                    m_heightmapScaled.Resize((uint)(zoneConfiguration.TargetMapSize), (uint)(zoneConfiguration.TargetMapSize));
                 }
             }
 
