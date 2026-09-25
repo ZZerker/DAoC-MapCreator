@@ -42,6 +42,21 @@ namespace MapCreator.Classes.MapCreation.Fixtures.Objects
         /// Folder of the .npk the model was loaded from, searched first for its textures
         /// </summary>
         public string ArchiveDirectory { get; set; }
+
+        /// <summary>
+        /// Model variant (keep realm and tier), part of the cache name; null for plain models
+        /// </summary>
+        public string Variant { get; set; }
+
+        /// <summary>
+        /// Additional node filter by node name
+        /// </summary>
+        public System.Func<string, bool> IsNodeDrawable { get; set; }
+
+        /// <summary>
+        /// Replaces base textures by material name and texture name
+        /// </summary>
+        public System.Func<string, string, string> ResolveTexture { get; set; }
         #endregion
 
         public NifRow()

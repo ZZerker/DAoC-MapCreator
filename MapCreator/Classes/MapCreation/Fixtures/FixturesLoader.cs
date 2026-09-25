@@ -1,4 +1,4 @@
-//
+﻿//
 // MapCreator
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
 //
@@ -77,7 +77,24 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 this.LoadCsvData();
                 this.ApplyModelProxies();
+                this.LoadKeepPieces();
                 this.LoadPolygons();
+            }
+        }
+
+        private void LoadKeepPieces()
+        {
+            foreach (var piece in KeepPieces.Load(this.zoneConf.ZoneId, this.zoneConf.Reporter))
+            {
+                if (!this.NifRows.Contains(piece.Nif))
+                {
+                    this.NifRows.Add(piece.Nif);
+                }
+
+                // Clockwise on the map; model y points north
+                this.placementRotations[piece.Fixture.Id] = SharpDX.Matrix.RotationZ(-(float)(piece.Heading * Math.PI / 180d));
+                this.placementHeights[piece.Fixture.Id] = piece.Fixture.Z;
+                this.fixtureRows.Add(piece.Fixture);
             }
         }
 

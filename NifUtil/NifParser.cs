@@ -44,6 +44,11 @@ namespace NifUtil
         public event IsNodeDrawableEventHandler IsNodeDrawable;
         #endregion
 
+        /// <summary>
+        /// Replaces the base texture of a mesh by its material name and texture name (keep pieces take their textures by realm and tier)
+        /// </summary>
+        public Func<string, string, string> ResolveTexture { get; set; }
+
         public NifParser()
         {
             // Language settings
@@ -120,7 +125,7 @@ namespace NifUtil
                     break;
                 case ConvertType.PolyText:
                 case ConvertType.Poly:
-                    var conv = new ConvertPoly(this.nifFile, this.nifData);
+                    var conv = new ConvertPoly(this.nifFile, this.nifData) { ResolveTexture = this.ResolveTexture };
                     if (this.IsNodeDrawable != null)
                     {
                         conv.IsNodeDrawable += delegate (NiAVObject node)

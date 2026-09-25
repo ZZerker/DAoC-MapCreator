@@ -33,6 +33,8 @@ namespace NifUtil.Classes
 
 	    internal List<Polygon> Polys { get; set; } = new List<Polygon>();
 
+	    internal Func<string, string, string> ResolveTexture { get; set; }
+
         public ConvertPoly(NiFile niFile, byte[] nifData)
             :base(niFile)
         {
@@ -85,7 +87,7 @@ namespace NifUtil.Classes
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
                 var transformationMatrix = this.ComputeWorldMatrix(shape);
-                var textures = this.GetTextures(shape);
+                var textures = this.ApplyTextureResolver(shape, this.GetTextures(shape));
                 this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetMaterialColor(shape));
             }
         }
@@ -132,7 +134,7 @@ namespace NifUtil.Classes
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
                 var transformationMatrix = this.ComputeWorldMatrix(strips);
-                var textures = this.GetTextures(strips);
+                var textures = this.ApplyTextureResolver(strips, this.GetTextures(strips));
                 this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetMaterialColor(strips));
             }
         }
@@ -177,6 +179,31 @@ namespace NifUtil.Classes
                 }
             }
             return new TextureLayers(null, null);
+        }
+
+        private TextureLayers ApplyTextureResolver(NiAVObject node, TextureLayers textures)
+        {
+            if (this.ResolveTexture == null || textures.Texture1 == null)
+            {
+                return textures;
+            }
+            var name = this.ResolveTexture(GetMaterialName(node), textures.Texture1.Name);
+            return textures with { Texture1 = textures.Texture1 with { Name = name } };
+        }
+
+        private static string GetMaterialName(NiAVObject node)
+        {
+            for (var current = node; current != null; current = current.Parent)
+            {
+                foreach (var property in current.Properties)
+                {
+                    if (property.IsValid() && property.Object is NiMaterialProperty material)
+                    {
+                        return material.Name?.Value;
+                    }
+                }
+            }
+            return null;
         }
 
         private BaseTexture Resolve(IEnumerable<ShaderTexture> maps, uint mapId)

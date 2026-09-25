@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -48,7 +48,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var missing = new List<(NifRow Row, string ArchivePath, string CacheName)>();
                 foreach (var (row, archivePath) in models)
                 {
-                    var cacheName = GetCacheName(archivePath);
+                    var cacheName = GetCacheName(archivePath, row.Variant);
                     if (Polygons.TryGetValue(cacheName, out var polygons))
                     {
                         row.Polygons = polygons;
@@ -133,6 +133,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     var modelPolySavePath = string.Format("{0}\\{1}", polysDirectory, modelPolyFileName);
                     var nifParser = new NifParser();
                     nifParser.IsNodeDrawable += node => IsNodeDrawable(nifRow, node);
+                    nifParser.ResolveTexture = nifRow.ResolveTexture;
 
                     try
                     {
@@ -178,13 +179,19 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         }
 
         // Zones ship their own variants of shared models, so the cache name contains the archive folder
-        private static string GetCacheName(string archivePath)
+        private static string GetCacheName(string archivePath, string variant)
         {
-            return Path.GetRelativePath(Properties.Settings.Default.game_path, Path.ChangeExtension(archivePath, ".poly")).Replace('\\', '_').ToLowerInvariant();
+            var name = Path.GetRelativePath(Properties.Settings.Default.game_path, Path.ChangeExtension(archivePath, null)).Replace('\\', '_').ToLowerInvariant();
+            return name + (variant == null ? "" : "_" + variant) + ".poly";
         }
 
         private static bool IsNodeDrawable(NifRow nifRow, Niflib.NiAVObject node)
         {
+            if (nifRow.IsNodeDrawable != null)
+            {
+                return nifRow.IsNodeDrawable(node.Name.Value);
+            }
+
             // Only draw the elements, sticking out of the ground. NifIds differ per zone, so match the file.
             if (string.Equals(nifRow.Filename, "agramonKeep01.nif", StringComparison.OrdinalIgnoreCase))
             {
