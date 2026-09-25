@@ -829,6 +829,7 @@ namespace MapCreator
                         MainForm.Log(string.Format("Writing map image {0} ...", mapFile.Name));
                         ProgressStartMarquee("Writing map image ...");
                         map.Quality = Convert.ToUInt32(this.mapQualityTextBox.Value);
+                        map.Depth = 8;
                         map.Write(mapFile.FullName);
                     }
                 }
