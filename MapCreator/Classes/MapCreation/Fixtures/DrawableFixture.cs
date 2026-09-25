@@ -55,6 +55,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// </summary>
         public (double Bottom, double Top)? HeightBand;
 
+        /// <summary>
+        /// Textures the zone replaces, by file name without extension
+        /// </summary>
+        public IReadOnlyDictionary<string, string> TextureProxies;
+
         public IEnumerable<Polygon> RawPolygons;
         public readonly List<Polygon> ProcessedPolygons = new List<Polygon>();
         public IEnumerable<DrawableElement> DrawableElements = new List<DrawableElement>();
@@ -161,12 +166,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 // We want to draw the vectors in z-order
                 double maxZ = poly.Vectors.Max(p => p.Z);
                 var textureMode = this.RendererConf.Texture;
-                var textureColor = textureMode != TextureMode.None ? TextureColors.Get(poly.Texture, this.TextureDirectory) : null;
+                var textureName = poly.Texture != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.Texture), out var proxy) ? proxy : poly.Texture;
+                var textureColor = textureMode != TextureMode.None ? TextureColors.Get(textureName, this.TextureDirectory) : null;
                 if (textureColor == null && poly.MaterialColor >= 0)
                 {
                     textureColor = System.Drawing.Color.FromArgb(255, (poly.MaterialColor >> 16) & 0xFF, (poly.MaterialColor >> 8) & 0xFF, poly.MaterialColor & 0xFF);
                 }
-                var texture = textureMode == TextureMode.Map && poly.Uvs != null ? TextureCache.Get(poly.Texture, this.TextureDirectory) : null;
+                var texture = textureMode == TextureMode.Map && poly.Uvs != null ? TextureCache.Get(textureName, this.TextureDirectory) : null;
                 drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs));
             }
 

@@ -57,22 +57,65 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                                       Path.Combine(gamePath, "zones\\Dnifs")
                                   };
 
+            this.textureProxies = LoadProxies(this.zoneConf.DatMpk, "TEXPROXY.csv");
+
             if (this.zoneConf.IsCity)
             {
                 this.LoadCityData();
+                this.ApplyModelProxies();
                 this.LoadPolygons();
                 this.PlaceCityPieces();
             }
             else if (this.zoneConf.IsDungeon)
             {
                 this.LoadDungeonData();
+                this.ApplyModelProxies();
                 this.LoadPolygons();
                 this.PlaceDungeonPieces();
             }
             else
             {
                 this.LoadCsvData();
+                this.ApplyModelProxies();
                 this.LoadPolygons();
+            }
+        }
+
+        // Textures the client loads in place of others in this zone, by file name without extension
+        private readonly Dictionary<string, string> textureProxies;
+
+        /// <summary>
+        /// NIFPROXY.csv and TEXPROXY.csv in the dat archive name replacements the client loads instead:
+        /// original, replacement, flag (Caer Sidi only ships the ALTSTONEHall models of its STONEHall rooms)
+        /// </summary>
+        private static Dictionary<string, string> LoadProxies(string mpk, string filename)
+        {
+            var proxies = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (!MpkWrapper.ContainsFile(mpk, filename))
+            {
+                return proxies;
+            }
+
+            foreach (var row in DataWrapper.GetFileContent(mpk, filename))
+            {
+                var fields = row.Split(',').Select(f => f.Trim()).ToArray();
+                if (fields.Length >= 2 && fields[0].Length > 0 && fields[1].Length > 0)
+                {
+                    proxies[Path.GetFileNameWithoutExtension(fields[0])] = fields[1];
+                }
+            }
+            return proxies;
+        }
+
+        private void ApplyModelProxies()
+        {
+            var modelProxies = LoadProxies(this.zoneConf.DatMpk, "NIFPROXY.csv");
+            foreach (var nifRow in this.NifRows)
+            {
+                if (nifRow.Filename != null && modelProxies.TryGetValue(Path.GetFileNameWithoutExtension(nifRow.Filename), out var replacement))
+                {
+                    nifRow.Filename = replacement;
+                }
             }
         }
 
@@ -110,11 +153,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         }
 
         /// <summary>
-        /// Placement heights a level shows
+        /// Placement heights a level shows. The lowest level also takes everything below it and the highest
+        /// everything above, as on the client maps (Trollheim's top halls, the high halls of Darkness Falls).
         /// </summary>
         private (double Bottom, double Top) GetHeightBand(MapLevel level)
         {
-            return (level.Z - DUNGEON_Z_OFFSET, level.Z + level.Depth - DUNGEON_Z_OFFSET);
+            var bottom = level.Z == this.zoneConf.Levels.Min(l => l.Z) ? double.MinValue : level.Z - DUNGEON_Z_OFFSET;
+            var top = level.Z + level.Depth == this.zoneConf.Levels.Max(l => l.Z + l.Depth) ? double.MaxValue : level.Z + level.Depth - DUNGEON_Z_OFFSET;
+            return (bottom, top);
         }
 
         // On the client maps city and dungeon x grows to the left and y downwards
@@ -419,7 +465,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 		                                  NifName = nifRow.Filename,
 		                                  TextureDirectory = nifRow.ArchiveDirectory,
 		                                  FixtureRow = fixtureRow,
-		                                  ZoneConf = this.zoneConf
+		                                  ZoneConf = this.zoneConf,
+		                                  TextureProxies = this.textureProxies
                                   };
 
                     if (this.Level != null)
