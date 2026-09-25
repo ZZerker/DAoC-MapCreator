@@ -82,8 +82,8 @@ namespace MapCreator.Classes.MapCreation
                     waterConf.Height += 30;
                 }
 
-                // Ignore some definitions
-                if(zoneConfiguration.ZoneId == "163" && riverIndexString == "river14")
+                // Ignore some definitions; the water under Knoc Meayll, Manannan's Room (275) is a copy of Ellan Vannin
+                if ((zoneConfiguration.ZoneId == "163" || zoneConfiguration.ZoneId == "275") && riverIndexString == "river14")
                 {
                     riverIndex++;
                     continue;
