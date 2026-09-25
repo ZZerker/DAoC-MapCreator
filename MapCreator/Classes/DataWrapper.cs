@@ -196,11 +196,14 @@ namespace MapCreator.Classes
         /// <returns></returns>
         public static GameExpansion GetExpansionByZone(string zoneId)
         {
-            var results = ZonesXml.Descendants("zone").Where(z => z.Attribute("id").Value == zoneId).Select(e => e.Parent.Attribute("name").Value);
-
-            if (results.Any() && Enum.TryParse<GameExpansion>(results.First().Replace(" ", ""), true, out var expansion))
+            // Called from render threads, LINQ to XML makes no thread safety promise
+            lock (ZonesXml)
             {
-                return expansion;
+                var expansionName = ZonesXml.Descendants("zone").Where(z => z.Attribute("id").Value == zoneId).Select(e => e.Parent.Attribute("name").Value).FirstOrDefault();
+                if (expansionName != null && Enum.TryParse<GameExpansion>(expansionName.Replace(" ", ""), true, out var expansion))
+                {
+                    return expansion;
+                }
             }
 
             return GameExpansion.Unknown;

@@ -9,6 +9,9 @@ namespace MapCreator.Classes.Rendering
     {
         public int MapSize { get; init; }
 
+        // Zones rendered at the same time
+        public int Parallel { get; init; } = 1;
+
         // Output
         public string TargetPath { get; init; }
         public string DirectoryPattern { get; init; }

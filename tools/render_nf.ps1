@@ -24,29 +24,15 @@ if (-not $targetMapPath) {
 $renderDir = Join-Path $targetMapPath "nf_$Size"
 $ddsDir = Join-Path $targetMapPath "nf_$Size`_dds"
 
-# Round-robin so the big ocean zones do not all land in one process
-$Parallel = [Math]::Max(1, [Math]::Min($Parallel, $Zones.Count))
-$groups = @(for ($i = 0; $i -lt $Parallel; $i++) { , @() })
-for ($i = 0; $i -lt $Zones.Count; $i++) {
-    $groups[$i % $Parallel] += $Zones[$i]
-}
+$zoneList = $Zones -join ','
+$log = Join-Path $targetMapPath 'render.log'
+Write-Host "Rendering $zoneList at $Size px, $Parallel zones at a time"
 
 $started = Get-Date
-$processes = @()
-$logs = @()
-for ($i = 0; $i -lt $Parallel; $i++) {
-    $zoneList = $groups[$i] -join ','
-    $logName = "render_$i.log"
-    $logs += Join-Path $targetMapPath $logName
-    Write-Host "Process $i renders $zoneList at $Size px"
-    $processes += Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -ArgumentList '--render', $zoneList, '--size', $Size, '--dir', "nf_$Size", '--log', $logName -PassThru
-}
-$processes | ForEach-Object { $_.WaitForExit() }
+Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -ArgumentList '--render', $zoneList, '--size', $Size, '--dir', "nf_$Size", '--log', 'render.log', '--parallel', $Parallel -Wait
 Write-Host ("Rendering took {0:mm\:ss}" -f ((Get-Date) - $started))
 
-foreach ($log in $logs) {
-    Select-String -Path $log -Pattern '^\S+ error' | ForEach-Object { Write-Warning "$(Split-Path $log -Leaf): $($_.Line)" }
-}
+Select-String -Path $log -Pattern '^\S+ error' | ForEach-Object { Write-Warning $_.Line }
 
 $pythonArgs = @((Join-Path $PSScriptRoot 'png_to_dds.py'), $renderDir, $ddsDir)
 if ($DdsSize -gt 0) {

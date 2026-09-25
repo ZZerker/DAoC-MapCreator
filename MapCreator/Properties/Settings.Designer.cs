@@ -325,6 +325,18 @@ namespace MapCreator.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("4")]
+        public decimal renderParallel {
+            get {
+                return ((decimal)(this["renderParallel"]));
+            }
+            set {
+                this["renderParallel"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("zone{id}_{size}")]
         public string mapFilePattern {
             get {

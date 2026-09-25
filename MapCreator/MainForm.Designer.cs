@@ -97,7 +97,6 @@
             this.generateRiversCheckBox = new System.Windows.Forms.CheckBox();
             this.logListBox = new System.Windows.Forms.ListBox();
             this.label7 = new System.Windows.Forms.Label();
-            this.drawMapBackgroundWorker = new System.ComponentModel.BackgroundWorker();
             this.riversColorColorDialog = new System.Windows.Forms.ColorDialog();
             this.boundsColorDialog = new System.Windows.Forms.ColorDialog();
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
@@ -125,6 +124,8 @@
             this.label6 = new System.Windows.Forms.Label();
             this.mapQualityTextBox = new System.Windows.Forms.NumericUpDown();
             this.label5 = new System.Windows.Forms.Label();
+            this.parallelZonesUpDown = new System.Windows.Forms.NumericUpDown();
+            this.parallelZonesLabel = new System.Windows.Forms.Label();
             this.fileTypeComboBox = new System.Windows.Forms.ComboBox();
             this.label4 = new System.Windows.Forms.Label();
             this.flowLayoutSizerPanel = new System.Windows.Forms.Panel();
@@ -155,6 +156,7 @@
             this.panel1.SuspendLayout();
             this.groupBox7.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mapQualityTextBox)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.parallelZonesUpDown)).BeginInit();
             this.panel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mapPreview)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -915,11 +917,6 @@
             this.label7.TabIndex = 4;
             this.label7.Text = "Result image";
             // 
-            // drawMapBackgroundWorker
-            // 
-            this.drawMapBackgroundWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.drawMapBackgroundWorker_DoWork);
-            this.drawMapBackgroundWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.drawMapBackgroundWorker_RunWorkerCompleted);
-            // 
             // riversColorColorDialog
             // 
             this.riversColorColorDialog.Color = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
@@ -1115,6 +1112,8 @@
             this.groupBox7.Controls.Add(this.label6);
             this.groupBox7.Controls.Add(this.mapQualityTextBox);
             this.groupBox7.Controls.Add(this.label5);
+            this.groupBox7.Controls.Add(this.parallelZonesUpDown);
+            this.groupBox7.Controls.Add(this.parallelZonesLabel);
             this.groupBox7.Controls.Add(this.fileTypeComboBox);
             this.groupBox7.Controls.Add(this.label4);
             this.groupBox7.Location = new System.Drawing.Point(0, 0);
@@ -1236,6 +1235,34 @@
             this.label5.Size = new System.Drawing.Size(39, 13);
             this.label5.TabIndex = 2;
             this.label5.Text = "Quality";
+            //
+            // parallelZonesUpDown
+            //
+            this.parallelZonesUpDown.DataBindings.Add(new System.Windows.Forms.Binding("Value", global::MapCreator.Properties.Settings.Default, "renderParallel", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.parallelZonesUpDown.Location = new System.Drawing.Point(276, 46);
+            this.parallelZonesUpDown.Maximum = new decimal(new int[] {
+            16,
+            0,
+            0,
+            0});
+            this.parallelZonesUpDown.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.parallelZonesUpDown.Name = "parallelZonesUpDown";
+            this.parallelZonesUpDown.Size = new System.Drawing.Size(68, 20);
+            this.parallelZonesUpDown.TabIndex = 16;
+            this.parallelZonesUpDown.Value = global::MapCreator.Properties.Settings.Default.renderParallel;
+            //
+            // parallelZonesLabel
+            //
+            this.parallelZonesLabel.AutoSize = true;
+            this.parallelZonesLabel.Location = new System.Drawing.Point(160, 48);
+            this.parallelZonesLabel.Name = "parallelZonesLabel";
+            this.parallelZonesLabel.Size = new System.Drawing.Size(74, 13);
+            this.parallelZonesLabel.TabIndex = 3;
+            this.parallelZonesLabel.Text = "Parallel zones";
             // 
             // fileTypeComboBox
             // 
@@ -1391,6 +1418,7 @@
             this.groupBox7.ResumeLayout(false);
             this.groupBox7.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mapQualityTextBox)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.parallelZonesUpDown)).EndInit();
             this.panel2.ResumeLayout(false);
             this.panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mapPreview)).EndInit();
@@ -1422,7 +1450,6 @@
         private System.Windows.Forms.ToolStripProgressBar statusProgressBar;
         private System.Windows.Forms.ToolStripStatusLabel statusLabel;
         private System.Windows.Forms.Label label7;
-        private System.ComponentModel.BackgroundWorker drawMapBackgroundWorker;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.NumericUpDown heightmapLightMinTextBox;
         private System.Windows.Forms.GroupBox groupBox2;
@@ -1482,6 +1509,8 @@
         private System.Windows.Forms.GroupBox groupBox7;
         private System.Windows.Forms.NumericUpDown mapQualityTextBox;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.NumericUpDown parallelZonesUpDown;
+        private System.Windows.Forms.Label parallelZonesLabel;
         private System.Windows.Forms.ComboBox fileTypeComboBox;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label23;

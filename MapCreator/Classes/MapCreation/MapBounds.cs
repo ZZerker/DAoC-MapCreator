@@ -325,23 +325,27 @@ namespace MapCreator.Classes.MapCreation
 
         private static PointF? GetNearestBorderPoint(PointF point)
         {
-            if (NorthTriangle.IsVisible(point))
+            // GDI+ objects must not be used by several threads at once
+            lock (NorthTriangle)
             {
-                return new PointF(point.X, 0);
+                if (NorthTriangle.IsVisible(point))
+                {
+                    return new PointF(point.X, 0);
+                }
+                if (EastTriangle.IsVisible(point))
+                {
+                    return new PointF(65535, point.Y);
+                }
+                if (SouthTriangle.IsVisible(point))
+                {
+                    return new PointF(point.X, 65535);
+                }
+                if (WestTriangle.IsVisible(point))
+                {
+                    return new PointF(0, point.Y);
+                }
+                return null;
             }
-            if (EastTriangle.IsVisible(point))
-            {
-                return new PointF(65535, point.Y);
-            }
-            if (SouthTriangle.IsVisible(point))
-            {
-                return new PointF(point.X, 65535);
-            }
-            if (WestTriangle.IsVisible(point))
-            {
-                return new PointF(0, point.Y);
-            }
-            return null;
         }
 
         /// <summary>

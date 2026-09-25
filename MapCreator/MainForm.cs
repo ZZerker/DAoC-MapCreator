@@ -24,6 +24,9 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using ImageMagick;
 using MapCreator.Classes;
 using MapCreator.Classes.MapCreation;
 using MapCreator.Classes.Rendering;
@@ -104,7 +107,7 @@ namespace MapCreator
         }
 
         /// <summary>
-        /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log]
+        /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4]
         /// </summary>
         private readonly bool batchMode = false;
 
@@ -116,6 +119,7 @@ namespace MapCreator
             var batchSize = 0;
             string batchDirectory = null;
             var batchLogName = "render.log";
+            var batchParallel = 0;
             for (var i = 0; i < args.Length - 1; i++)
             {
                 switch (args[i].ToLower())
@@ -131,6 +135,9 @@ namespace MapCreator
                         break;
                     case "--log":
                         batchLogName = args[i + 1];
+                        break;
+                    case "--parallel":
+                        batchParallel = Convert.ToInt32(args[i + 1]);
                         break;
                 }
             }
@@ -150,11 +157,15 @@ namespace MapCreator
             File.WriteAllText(this.batchLogFile, "");
 
             // Settings bindings overwrite control values on load
-            this.Shown += (sender, e) =>
+            this.Shown += async (sender, e) =>
             {
                 if (batchSize > 0)
                 {
 	                this.TargetMapSize = batchSize;
+                }
+                if (batchParallel > 0)
+                {
+                    this.parallelZonesUpDown.Value = Math.Clamp(batchParallel, (int)this.parallelZonesUpDown.Minimum, (int)this.parallelZonesUpDown.Maximum);
                 }
                 if (batchDirectory != null)
                 {
@@ -166,7 +177,7 @@ namespace MapCreator
                 this.enableLogCheckBox.Checked = true;
                 this.enableResultPreview.Checked = false;
 
-                this.renderButton_Click(null, null);
+                await this.RenderSelectedZonesAsync();
                 this.Close();
             };
         }
@@ -256,9 +267,10 @@ namespace MapCreator
         /// <param name="logLevel"></param>
         public void LogText(string text, LogLevel logLevel = LogLevel.Normal)
         {
+            // Queued, not blocking: render threads must not wait for the UI
             if (this.InvokeRequired)
             {
-                this.Invoke(new LogDelegate(this.LogText), text, logLevel);
+                this.BeginInvoke(new LogDelegate(this.LogText), text, logLevel);
                 return;
             }
 
@@ -559,47 +571,115 @@ namespace MapCreator
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void renderButton_Click(object sender, EventArgs e)
+        private async void renderButton_Click(object sender, EventArgs e)
         {
-            if (MpkWrapper.CheckGamePath())
-            {
-                Log("Game found...", LogLevel.Notice);
+            await this.RenderSelectedZonesAsync();
+        }
 
-                if (this.SelectedZones.Count == 0)
+        private async Task RenderSelectedZonesAsync()
+        {
+            if (!MpkWrapper.CheckGamePath())
+            {
+                return;
+            }
+
+            this.Log("Game found...", LogLevel.Notice);
+
+            if (this.SelectedZones.Count == 0)
+            {
+                this.Log("Please select at least one Zone to render.", LogLevel.Error);
+                return;
+            }
+
+            this.HandleRenderButton(false);
+
+            var settings = this.CaptureRenderSettings();
+            var zones = this.SelectedZones.ToList();
+            var parallel = Math.Clamp(settings.Parallel, 1, zones.Count);
+
+            // ImageMagick threads every operation itself, split the cores between the zones
+            var previousThreadLimit = ResourceLimits.Thread;
+            ResourceLimits.Thread = (ulong)Math.Max(1, Environment.ProcessorCount / parallel);
+
+            var started = 0;
+            var finished = 0;
+            try
+            {
+                if (parallel == 1)
                 {
-                    Log("Please select at least one Zone to render.", LogLevel.Error);
+                    await Task.Run(() =>
+                    {
+                        foreach (var zone in zones)
+                        {
+                            this.ShowCurrentZone(zone, Interlocked.Increment(ref started));
+                            this.RenderZone(zone, settings, this);
+                        }
+                    });
                 }
                 else
                 {
-	                this.HandleRenderButton(false);
-
-                    var settings = this.CaptureRenderSettings();
-                    var counter = 1;
-                    foreach (var zone in this.SelectedZones)
+                    this.ProgressStart(string.Format("Rendering {0} zones, {1} at a time ...", zones.Count, parallel));
+                    await Task.Run(() => Parallel.ForEach(zones, new ParallelOptions { MaxDegreeOfParallelism = parallel }, zone =>
                     {
-                        Log(string.Format("Rendering {0} ({1})...", zone.Name, zone.Id), LogLevel.Notice);
-                        this.currentMapLabel.Text = string.Format("| {0} ({1}) |", zone.Name, zone.Id);
-                        this.queueProcessedLabel.Text = counter.ToString();
-                        this.drawMapBackgroundWorker.RunWorkerAsync((zone, settings));
-
-                        while (this.drawMapBackgroundWorker.IsBusy)
-                        {
-                            Application.DoEvents();
-                        }
-
-                        counter++;
-                    }
-
-                    this.HandleRenderButton(true);
+                        this.ShowCurrentZone(zone, Interlocked.Increment(ref started));
+                        this.RenderZone(zone, settings, new ZoneReporter(this, zone.Id));
+                        this.ProgressUpdate(100 * Interlocked.Increment(ref finished) / zones.Count);
+                    }));
+                    this.ProgressReset();
                 }
             }
+            finally
+            {
+                ResourceLimits.Thread = previousThreadLimit;
+                this.HandleRenderButton(true);
+            }
         }
+
+        private void ShowCurrentZone(ZoneSelection zone, int number)
+        {
+            this.BeginInvoke(() =>
+            {
+                this.currentMapLabel.Text = string.Format("| {0} ({1}) |", zone.Name, zone.Id);
+                this.queueProcessedLabel.Text = number.ToString();
+            });
+        }
+
+        private void RenderZone(ZoneSelection zone, RenderSettings settings, IRenderReporter reporter)
+        {
+            reporter.Log(string.Format("Rendering {0} ({1})...", zone.Name, zone.Id), LogLevel.Notice);
+            try
+            {
+                var mapFile = new ZoneRenderer(settings, reporter).Render(zone);
+                if (mapFile != null)
+                {
+                    if (mapFile.Exists)
+                    {
+                        this.LoadImage(mapFile.FullName);
+                        reporter.ProgressReset();
+                    }
+                    else
+                    {
+                        reporter.Log("Errors during progress!", LogLevel.Error);
+                    }
+                }
+
+                reporter.Log("Finished without errors!", LogLevel.Success);
+            }
+            catch (Exception ex)
+            {
+                reporter.Log("Unhandled Exception thrown!", LogLevel.Error);
+                reporter.Log(ex.Message, LogLevel.Error);
+                reporter.Log(ex.StackTrace, LogLevel.Error);
+            }
+        }
+
         private RenderSettings CaptureRenderSettings()
         {
             var settings = Properties.Settings.Default;
             return new RenderSettings
             {
                 MapSize = this.TargetMapSize,
+                Parallel = Convert.ToInt32(this.parallelZonesUpDown.Value),
                 TargetPath = !string.IsNullOrEmpty(settings.targetMapPath) ? settings.targetMapPath : Application.StartupPath,
                 DirectoryPattern = this.directoryPatternTextBox.Text,
                 FilePattern = this.filePatternTextBox.Text,
@@ -652,46 +732,6 @@ namespace MapCreator
             }
 
             this.mapPreview.ImageLocation = filename;
-        }
-
-        /// <summary>
-        /// Render selected Zones as Background Worker
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void drawMapBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            var (zone, settings) = ((ZoneSelection, RenderSettings))e.Argument;
-
-            var mapFile = new ZoneRenderer(settings, this).Render(zone);
-            if (mapFile == null)
-            {
-                return;
-            }
-
-            if (mapFile.Exists)
-            {
-                this.LoadImage(mapFile.FullName);
-                this.ProgressReset();
-            }
-            else
-            {
-                this.Log("Errors during progress!", LogLevel.Error);
-            }
-        }
-
-        private void drawMapBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
-        {
-            if (e.Error != null)
-            {
-                this.Log("Unhandled Exception thrown!", LogLevel.Error);
-                this.Log(e.Error.Message, LogLevel.Error);
-                this.Log(e.Error.StackTrace, LogLevel.Error);    
-            }
-            else
-            {
-                Log("Finished without errors!", LogLevel.Success);
-            }
         }
 
         private void MainForm_Resize(object sender, EventArgs e)

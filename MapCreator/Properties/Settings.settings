@@ -77,6 +77,9 @@
     <Setting Name="mapQuality" Type="System.Decimal" Scope="User">
       <Value Profile="(Default)">90</Value>
     </Setting>
+    <Setting Name="renderParallel" Type="System.Decimal" Scope="User">
+      <Value Profile="(Default)">4</Value>
+    </Setting>
     <Setting Name="mapFilePattern" Type="System.String" Scope="User">
       <Value Profile="(Default)">zone{id}_{size}</Value>
     </Setting>
