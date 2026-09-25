@@ -26,7 +26,6 @@ using System.Windows.Forms;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using ImageMagick;
 using MapCreator.Classes;
 using MapCreator.Classes.MapCreation;
 using MapCreator.Classes.Rendering;
@@ -597,10 +596,6 @@ namespace MapCreator
             var zones = this.SelectedZones.ToList();
             var parallel = Math.Clamp(settings.Parallel, 1, zones.Count);
 
-            // ImageMagick threads every operation itself, split the cores between the zones
-            var previousThreadLimit = ResourceLimits.Thread;
-            ResourceLimits.Thread = (ulong)Math.Max(1, Environment.ProcessorCount / parallel);
-
             var started = 0;
             var finished = 0;
             try
@@ -630,7 +625,6 @@ namespace MapCreator
             }
             finally
             {
-                ResourceLimits.Thread = previousThreadLimit;
                 this.HandleRenderButton(true);
             }
         }
