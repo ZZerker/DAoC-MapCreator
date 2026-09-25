@@ -209,6 +209,11 @@ namespace MapCreator.Classes
             return GameExpansion.Unknown;
         }
 
+        public static bool IsKnownZone(string zoneId)
+        {
+            return ZonesXml.Descendants("zone").Any(z => z.Attribute("id").Value == zoneId);
+        }
+
         public static ZoneSelection GetZoneSelectionByZoneId(string zoneId)
         {
             var results = ZonesXml.Descendants("zone").Where(z => z.Attribute("id").Value == zoneId);

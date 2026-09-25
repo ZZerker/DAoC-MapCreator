@@ -80,7 +80,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
             foreach (var row in nifsCsvRows)
             {
-                if (row.StartsWith("Grid") || row.StartsWith("NIF")) continue;
+                if (string.IsNullOrWhiteSpace(row) || row.StartsWith("Grid") || row.StartsWith("NIF")) continue;
 
                 var fields = row.Split(',');
 
@@ -97,7 +97,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             // Read fixtures.csv
             foreach (var row in fixturesRows)
             {
-                if (row.StartsWith("Fixtures") || row.StartsWith("ID")) continue;
+                if (string.IsNullOrWhiteSpace(row) || row.StartsWith("Fixtures") || row.StartsWith("ID")) continue;
 
                 var fields = row.Split(',');
                 var fixtureRow = new FixtureRow

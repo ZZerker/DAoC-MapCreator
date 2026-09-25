@@ -147,13 +147,19 @@ namespace MapCreator
             }
 
             this.batchMode = true;
-            this.SelectedZones = batchZoneIds.Select(z => DataWrapper.GetZoneSelectionByZoneId(z)).ToList();
-            this.UpdateSelectedZoneListBox();
-
             var logDirectory = !string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath) ? Properties.Settings.Default.targetMapPath : Application.StartupPath;
             Directory.CreateDirectory(logDirectory);
             this.batchLogFile = Path.Combine(logDirectory, batchLogName);
             File.WriteAllText(this.batchLogFile, "");
+
+            var knownZoneIds = batchZoneIds.Where(DataWrapper.IsKnownZone).ToList();
+            foreach (var zoneId in batchZoneIds.Except(knownZoneIds))
+            {
+                this.Log(string.Format("Skipped: zone {0} is not in the zone list.", zoneId), LogLevel.Warning);
+            }
+
+            this.SelectedZones = knownZoneIds.Select(DataWrapper.GetZoneSelectionByZoneId).ToList();
+            this.UpdateSelectedZoneListBox();
 
             // Settings bindings overwrite control values on load
             this.Shown += async (sender, e) =>
