@@ -142,8 +142,8 @@ namespace MapCreator.Classes.MapCreation
             if (this.flipX) map.Flop();
             if (this.flipY) map.Flip();
 
-            // Sharpen (tested a lot, seems to be the best values)
-            map.Sharpen(4, 3);
+            // Light sharpening after the downscale; a strong one turns the ground textures into noise
+            map.Sharpen(0, 1.0);
 
             this.zoneConfiguration.Reporter.ProgressReset();
 

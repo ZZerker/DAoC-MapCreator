@@ -18,7 +18,6 @@
 //
 
 using System;
-using System.Drawing;
 using ImageMagick;
 
 namespace MapCreator.Classes.MapCreation
@@ -33,14 +32,16 @@ namespace MapCreator.Classes.MapCreation
 
         public double ZScale { get; set; } = 20.0;
 
+        // Blur of the 256 px heightmap before scaling, in heightmap pixels
+        private const double HEIGHT_SMOOTHING = 1.0;
+
+        private const double RELIEF_DIVISOR = 10.0;
+
         public double LightMin { get; set; } = 0.5;
 
         public double LightMax { get; set; } = 1.5;
 
         public double[] ZVector { get; set; } = new double[] { -1.0, 1, -1.0 };
-
-        private double lightBase;
-        private double lightScale;
 
         public MapLightmap(ZoneConfiguration zoneConfiguration)
         {
@@ -50,100 +51,79 @@ namespace MapCreator.Classes.MapCreation
 
         public void RecalculateLights()
         {
-            // Set vector and lights
             this.ZVector = Tools.NormalizeVector(this.ZVector);
-
-            var lminScaled = this.LightMin / this.LightMax;
-            var baseLight = 255 * lminScaled;
-            this.lightBase = baseLight + (255 - baseLight) / 2;
-            this.lightScale = 255 - this.lightBase;
         }
 
+        /// <summary>
+        /// Hillshade at full map size: slopes facing the light get brighter, slopes facing away darker,
+        /// flat ground keeps its color. The factor is limited to LightMin and LightMax.
+        /// </summary>
         public void Draw(MagickImage map)
         {
             this.zoneConfiguration.Reporter.ProgressStart("Drawing lightmap ...");
 
-            // Get the heightmap
-            var heightmap = this.zoneConfiguration.Heightmap.Heightmap;
+            var size = (int)map.Width;
+            ushort[] heights;
+            int heightChannels;
 
-            using (var lightmap = MagickWrapper.NewImage(Color.Transparent, 256, 256))
+            // The heightmap has 8 bit steps; smoothed before scaling so they do not show as terraces
+            using (var heightmap = (MagickImage)this.zoneConfiguration.Heightmap.Heightmap.Clone())
             {
-                using (var heightmapPixels = heightmap.GetPixels())
+                heightmap.Blur(0, HEIGHT_SMOOTHING);
+                heightmap.FilterType = FilterType.Catrom;
+                heightmap.Resize(new MagickGeometry((uint)size, (uint)size) { IgnoreAspectRatio = true });
+                heightmap.Blur(0, size / 256d);
+                heightChannels = (int)heightmap.ChannelCount;
+                heights = heightmap.GetPixels().ToArray();
+            }
+
+            // The light travels along ZVector, so the sun lies the other way
+            var sunX = -this.ZVector[0];
+            var sunY = -this.ZVector[1];
+            var sunZ = -this.ZVector[2];
+
+            // Heightmap pixels are 256 units apart, differences span two of them. ZScale exaggerates the relief;
+            // it was tuned for the old lightmap, a tenth of it gives a similar look (35: about 3.5 times)
+            var nz = 512d / (this.ZScale / RELIEF_DIVISOR);
+            var heightmapPixelsPerMapPixel = 256d / size;
+
+            using (var pixels = map.GetPixels())
+            {
+                var channels = (int)map.ChannelCount;
+                var values = pixels.ToArray();
+
+                System.Threading.Tasks.Parallel.For(0, size, y =>
                 {
-                    using (var lightmapPixels = lightmap.GetPixels())
+                    var up = Math.Max(y - 1, 0);
+                    var down = Math.Min(y + 1, size - 1);
+                    for (var x = 0; x < size; x++)
                     {
-                        // z-component of surface normals
-                        var nz = 512d / this.ZScale;
-                        var nz2 = nz * nz;
-                        var nzlz = nz * this.ZVector[2];
+                        var left = Math.Max(x - 1, 0);
+                        var right = Math.Min(x + 1, size - 1);
 
-                        for (var y = 0; y < lightmap.Height; y++)
+                        var nx = (Height(heights, heightChannels, size, left, y) - Height(heights, heightChannels, size, right, y)) / (heightmapPixelsPerMapPixel * (right - left));
+                        var ny = (Height(heights, heightChannels, size, x, up) - Height(heights, heightChannels, size, x, down)) / (heightmapPixelsPerMapPixel * (down - up));
+                        var length = Math.Sqrt(nx * nx + ny * ny + nz * nz);
+                        var light = (nx * sunX + ny * sunY + nz * sunZ) / length / sunZ;
+                        var factor = Math.Clamp(light, this.LightMin, this.LightMax);
+
+                        var index = (y * size + x) * channels;
+                        for (var c = 0; c < Math.Min(channels, 3); c++)
                         {
-	                        var y1 = 0;
-	                        if (y == 0) y1 = 0;
-                            else y1 = y - 1;
-                            var y2 = 0;
-                            if (y == 255) y2 = 255;
-                            else y2 = y + 1;
-
-                            for (var x = 0; x < lightmap.Width; x++)
-                            {
-	                            var x1 = 0;
-	                            if (x == 0) x1 = 0;
-                                else x1 = x - 1;
-	                            var x2 = 0;
-	                            if (x == 255) x2 = 255;
-                                else x2 = x + 1;
-
-                                double l = heightmapPixels.GetPixel(x1, y).GetChannel(0);
-                                double r = heightmapPixels.GetPixel(x2, y).GetChannel(0);
-                                double u = heightmapPixels.GetPixel(x, y1).GetChannel(0);
-                                double d = heightmapPixels.GetPixel(x, y2).GetChannel(0);
-
-                                var nx = l - r;
-                                var ny = u - d;
-
-                                var normal = Math.Sqrt(nx * nx + ny * ny + nz2);
-                                var ndotl = (nx * this.ZVector[0] + ny * this.ZVector[1] + nzlz) / normal;
-
-                                var pixelValue = this.lightBase - ndotl * this.lightScale * 256d;
-
-                                ushort pixelValueDiff = 0;
-                                var alphaValue = ushort.MaxValue;
-                                if(pixelValue < 0)
-                                {
-                                    pixelValueDiff = 0;
-                                    alphaValue = (ushort)pixelValue;
-                                }
-                                else
-                                {
-                                    pixelValueDiff = (ushort)pixelValue;
-                                }
-
-                                // ColorDodge map
-                                // white lightens areas where black does nothing
-                                // alpha darkens areas
-                                lightmapPixels.SetPixel(x, y, new ushort[] { pixelValueDiff, pixelValueDiff, pixelValueDiff, alphaValue });
-                            }
-
-                            var percent = 100 * y / (int)lightmap.Height;
-                            this.zoneConfiguration.Reporter.ProgressUpdate(percent);
+                            values[index + c] = (ushort)Math.Min(values[index + c] * factor, ushort.MaxValue);
                         }
                     }
-                }
+                });
 
-                this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging...");
-                lightmap.Blur(0.0, 0.5);
-
-                lightmap.VirtualPixelMethod = VirtualPixelMethod.Transparent;
-                lightmap.FilterType = FilterType.Gaussian;
-                lightmap.Resize((uint)(this.zoneConfiguration.TargetMapSize), (uint)(this.zoneConfiguration.TargetMapSize));
-
-                // Apply the bumpmap using ColorDodge
-                map.Composite(lightmap, 0, 0, CompositeOperator.ColorDodge);
-
-                this.zoneConfiguration.Reporter.ProgressReset();
+                pixels.SetPixels(values);
             }
+
+            this.zoneConfiguration.Reporter.ProgressReset();
+        }
+
+        private static double Height(ushort[] heights, int channels, int size, int x, int y)
+        {
+            return heights[(y * size + x) * channels];
         }
     }
 }
