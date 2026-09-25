@@ -45,6 +45,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         public double Scale;
 
+        /// <summary>
+        /// Full rotation of a placed model (dungeon pieces), replaces the fixture angle
+        /// </summary>
+        public Matrix? PlacementRotation;
+
         public IEnumerable<Polygon> RawPolygons;
         public readonly List<Polygon> ProcessedPolygons = new List<Polygon>();
         public IEnumerable<DrawableElement> DrawableElements = new List<DrawableElement>();
@@ -173,7 +178,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
 
             var rotation = Matrix.Identity;
-            if (angle != 0)
+            if (this.PlacementRotation != null)
+            {
+                rotation = this.PlacementRotation.Value;
+            }
+            else if (angle != 0)
             {
                 rotation *= Matrix.RotationZ(Convert.ToSingle(angle * Math.PI / 180.0));
             }

@@ -7,24 +7,25 @@ using MapCreator.Classes.MapCreation.Fixtures;
 namespace MapCreator.Classes.Rendering
 {
     /// <summary>
-    /// Renders a capital city from its city.csv models. Cities have no terrain, water or bounds.
+    /// Renders zones built only from placed models: capital cities (city.csv) and dungeons (dungeon.place).
+    /// They have no terrain, water or bounds.
     /// </summary>
-    internal sealed class CityRenderer(RenderSettings settings, IRenderReporter reporter)
+    internal sealed class ModelZoneRenderer(RenderSettings settings, IRenderReporter reporter)
     {
         private static readonly MagickColor BackgroundColor = MagickColor.FromRgb(30, 30, 30);
 
         public void Render(ZoneConfiguration conf, FileInfo mapFile)
         {
-            reporter.Log("Loading city models ...", LogLevel.Notice);
+            reporter.Log("Loading models ...", LogLevel.Notice);
             var loader = new FixturesLoader(conf);
 
             using (var map = MagickWrapper.NewImage(BackgroundColor, settings.MapSize, settings.MapSize))
-            using (var cityModels = new MapFixtures(conf, new List<WaterConfiguration>(), loader))
+            using (var models = new MapFixtures(conf, new List<WaterConfiguration>(), loader))
             {
-                cityModels.Start();
+                models.Start();
 
-                reporter.Log("Rendering city ...", LogLevel.Notice);
-                cityModels.Draw(map, false);
+                reporter.Log("Rendering models ...", LogLevel.Notice);
+                models.Draw(map, false);
 
                 reporter.Log(string.Format("Writing map image {0} ...", mapFile.Name));
                 reporter.ProgressStartMarquee("Writing map image ...");

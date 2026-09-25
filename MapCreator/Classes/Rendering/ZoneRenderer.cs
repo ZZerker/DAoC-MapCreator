@@ -33,9 +33,9 @@ namespace MapCreator.Classes.Rendering
 
             using (var conf = new ZoneConfiguration(zone.Id, settings.MapSize, reporter))
             {
-                if (conf.IsCity)
+                if (conf.IsCity || conf.IsDungeon)
                 {
-                    new CityRenderer(settings, reporter).Render(conf, mapFile);
+                    new ModelZoneRenderer(settings, reporter).Render(conf, mapFile);
                     mapFile.Refresh();
                     return mapFile;
                 }

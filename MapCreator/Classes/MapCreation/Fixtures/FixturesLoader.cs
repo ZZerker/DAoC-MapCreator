@@ -63,6 +63,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 this.LoadPolygons();
                 this.PlaceCityPieces();
             }
+            else if (this.zoneConf.IsDungeon)
+            {
+                this.LoadDungeonData();
+                this.LoadPolygons();
+                this.PlaceDungeonPieces();
+            }
             else
             {
                 this.LoadCsvData();
@@ -72,6 +78,91 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         // Empty border around the city, as a share of its size
         private const double CITY_MARGIN = 0.02;
+
+        // Rotation of each dungeon placement by fixture row id
+        private readonly Dictionary<int, SharpDX.Matrix> placementRotations = new Dictionary<int, SharpDX.Matrix>();
+
+        // On the client maps city and dungeon x grows to the left and y downwards
+        private static readonly SharpDX.Matrix TurnAroundMatrix = SharpDX.Matrix.RotationZ((float)Math.PI);
+
+        /// <summary>
+        /// dungeon.chunk lists the room models by index, dungeon.place places them:
+        /// chunk, x, y, z, angle in radians, rotation axis x, y, z, flags
+        /// </summary>
+        private void LoadDungeonData()
+        {
+            var chunks = DataWrapper.GetFileContent(this.zoneConf.DatMpk, "dungeon.chunk").Select(c => c.Trim()).ToList();
+            for (var i = 0; i < chunks.Count; i++)
+            {
+                if (!string.IsNullOrEmpty(chunks[i]))
+                {
+                    this.NifRows.Add(new NifRow { NifId = i, TextualName = Path.GetFileNameWithoutExtension(chunks[i]), Filename = chunks[i] });
+                }
+            }
+
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            var id = 0;
+            foreach (var row in DataWrapper.GetFileContent(this.zoneConf.DatMpk, "dungeon.place"))
+            {
+                var fields = row.Split(',').Select(f => f.Trim()).ToArray();
+                if (fields.Length < 8 || !int.TryParse(fields[0], out var chunk))
+                {
+                    continue;
+                }
+
+                var values = fields.Skip(1).Take(7).Select(f => double.Parse(f, culture)).ToArray();
+                var axis = new SharpDX.Vector3((float)values[4], (float)values[5], (float)values[6]);
+                // The angle turns the other way than SharpDX (checked on the curved halls of Keltoi Fogou)
+                var rotation = values[3] == 0 || axis.LengthSquared() == 0 ? SharpDX.Matrix.Identity : SharpDX.Matrix.RotationAxis(SharpDX.Vector3.Normalize(axis), -(float)values[3]);
+
+                this.placementRotations[id] = rotation;
+                this.fixtureRows.Add(new FixtureRow { Id = id, NifId = chunk, TextualName = chunks.ElementAtOrDefault(chunk), X = values[0], Y = values[1], Z = values[2], Scale = 100 });
+                id++;
+            }
+        }
+
+        /// <summary>
+        /// Frames the dungeon by the bounds of all placed rooms and converts the placements into map positions
+        /// </summary>
+        private void PlaceDungeonPieces()
+        {
+            double minX = double.MaxValue, maxX = double.MinValue, minY = double.MaxValue, maxY = double.MinValue;
+            foreach (var fixtureRow in this.fixtureRows)
+            {
+                var nifRow = this.NifRows.FirstOrDefault(n => n.NifId == fixtureRow.NifId);
+                if (nifRow?.Polygons == null || nifRow.Polygons.Length == 0)
+                {
+                    continue;
+                }
+
+                foreach (var vector in nifRow.Polygons.SelectMany(p => p.Vectors))
+                {
+                    var placed = SharpDX.Vector3.TransformCoordinate(vector, this.placementRotations[fixtureRow.Id]);
+                    minX = Math.Min(minX, placed.X + fixtureRow.X);
+                    maxX = Math.Max(maxX, placed.X + fixtureRow.X);
+                    minY = Math.Min(minY, placed.Y + fixtureRow.Y);
+                    maxY = Math.Max(maxY, placed.Y + fixtureRow.Y);
+                }
+            }
+
+            if (minX > maxX)
+            {
+                return;
+            }
+
+            var side = Math.Max(maxX - minX, maxY - minY) * (1 + 2 * CITY_MARGIN);
+            var left = (minX + maxX) / 2d - side / 2d;
+            var bottom = (minY + maxY) / 2d - side / 2d;
+            this.zoneConf.SetZoneSize(side);
+            this.zoneConf.Reporter.Log(string.Format("Dungeon frame: x {0:F0} to {1:F0}, y {2:F0} to {3:F0}", left, left + side, bottom, bottom + side), LogLevel.Notice);
+
+            foreach (var fixtureRow in this.fixtureRows)
+            {
+                this.placementRotations[fixtureRow.Id] *= TurnAroundMatrix;
+                fixtureRow.X = left + side - fixtureRow.X;
+                fixtureRow.Y = fixtureRow.Y - bottom;
+            }
+        }
 
         /// <summary>
         /// city.csv lists the city models; each one is placed once
@@ -276,6 +367,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                     var fixture = new DrawableFixture
                                   {
+                                      PlacementRotation = this.placementRotations.TryGetValue(fixtureRow.Id, out var placementRotation) ? placementRotation : null,
 		                                  // Set default values
 		                                  Name = fixtureRow.TextualName,
 		                                  NifName = nifRow.Filename,

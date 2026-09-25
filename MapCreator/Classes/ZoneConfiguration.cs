@@ -60,6 +60,11 @@ namespace MapCreator.Classes
         /// </summary>
         public bool IsCity { get; }
 
+        /// <summary>
+        /// Dungeons place room models from dungeon.chunk by dungeon.place
+        /// </summary>
+        public bool IsDungeon { get; }
+
         #region MPK files
         public string DatMpk { get; }
 
@@ -94,9 +99,10 @@ namespace MapCreator.Classes
 
             this.HasTerrain = MpkWrapper.ContainsFile(this.DatMpk, "terrain.pcx") && MpkWrapper.ContainsFile(this.DatMpk, "offset.pcx");
             this.IsCity = !this.HasTerrain && MpkWrapper.ContainsFile(this.DatMpk, "city.csv");
-            if (!this.HasTerrain && !this.IsCity)
+            this.IsDungeon = !this.HasTerrain && !this.IsCity && MpkWrapper.ContainsFile(this.DatMpk, "dungeon.place");
+            if (!this.HasTerrain && !this.IsCity && !this.IsDungeon)
             {
-                throw new NotSupportedException(string.Format("Zone {0} has no terrain (dungeon or indoor zone), not supported yet.", zoneId));
+                throw new NotSupportedException(string.Format("Zone {0} has no terrain, city or dungeon data, not supported yet.", zoneId));
             }
 
             // Check if file exists, else map to datXXX.mpk
