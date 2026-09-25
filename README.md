@@ -5,21 +5,26 @@ This is a fork of [Merec/DAoC-MapCreator](https://github.com/Merec/DAoC-MapCreat
 
 ## Changes in this fork
 - Runs on .NET 10 (was .NET Framework 4.0) with Magick.NET 14 and SharpDX 4.2
+- Buildings and objects are drawn with their real textures (own triangle rasterizer), untextured parts with their material color
+- Capital city maps (Camelot, Jordheim, Tir na Nog) built from the city models
+- Dungeon maps built from the placed rooms, with one extra map per level for dungeons listed in the client's `areas.dat` (`zNNN_LL`, e.g. the six levels of Darkness Falls)
+- City and dungeon maps use the same frame as the client and bestiary maps (`data\MapFrames.csv`), so a position lines up at `(zone coordinate - offset) / width`
+- All client zones are available, the ones missing in the curated list come from the client's `zones.dat`
 - Rivers and water render again, in the configured color
 - Leafless trees (burnt trees, reeds) get their color from the bark texture
-- Command line batch mode for unattended rendering
-- Render script that runs several zones in parallel and converts the result to DDS
+- Command line batch mode for unattended rendering, several zones in parallel in one process
+- Render script that converts the result to DDS for the UI
 - Finds the game folder on first start (Eden and Blackthorn launcher, default install paths)
-- Faster rendering and smaller output (8 bit PNG, sector.dat parsed once)
+- Much faster rendering and smaller output (8 bit PNG)
+- `fixtures.xml` only holds overrides now (texture mode, size limits), everything else is read from the models
 - Code cleanup: naming rules enforced by `.editorconfig`, no build warnings
 
 ## Roadmap
-- Zone list read from the client's `zones.dat`, so all zones are available, including Eden's own zones
+- Dungeons without level data: split into levels by floor height
+- Brighter rendering of dark dungeon textures, correct overlap of ramps and bridges within a level
+- Names, points of interest and mods on the maps
 - Check which zones Eden has patched and need a new render
-- Textured buildings instead of plain white shapes
-- City maps
-- Dungeon maps, including separate maps per level
-- Later: towers and keeps
+- Later: towers and keeps, replace the old .NET Framework libraries (Niflib, MPKLib)
 
 ## Requirements
 - Windows x64
@@ -35,9 +40,9 @@ The program is written to `Releases\MapCreator.exe`.
 ## Usage
 Start `MapCreator.exe`, select the zones and click create. Settings (map size, water color, trees, bounds, output folder) are in the main window and the preferences.
 
-Batch mode renders without user input and closes when done:
+Batch mode renders without user input, starts minimized and closes when done:
 ```
-MapCreator.exe --render 163,171 [--size 2048] [--dir nf_2048] [--log render.log]
+MapCreator.exe --render 163,171 [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4]
 ```
 
 `tools\render_nf.ps1` renders all New Frontiers zones in parallel and converts them to DXT1 DDS files (`zNNN.dds`) with `tools\png_to_dds.py` (needs Python with Pillow):
