@@ -370,8 +370,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static bool NifParser_IsNodeDrawable(NifRow nifRow, Niflib.NiAVObject node)
         {
-            // Only draw the elements, sticking out of the ground
-            if(nifRow.NifId == 408)
+            // Only draw the elements, sticking out of the ground. NifIds differ per zone, so match the file.
+            if (string.Equals(nifRow.Filename, "agramonKeep01.nif", StringComparison.OrdinalIgnoreCase))
             {
                 var validNodes = new List<string>
                                  {
