@@ -1,6 +1,6 @@
 ﻿namespace MapCreator
 {
-    partial class SelectMapsForm
+	internal partial class SelectMapsForm
     {
         /// <summary>
         /// Required designer variable.

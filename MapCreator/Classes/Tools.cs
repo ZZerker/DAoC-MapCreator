@@ -19,12 +19,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Drawing;
+using System.Linq;
 
-namespace MapCreator
+namespace MapCreator.Classes
 {
-    static class Tools
+	internal static class Tools
     {
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace MapCreator
         /// <returns></returns>
         public static double[] NormalizeVector(double[] vector)
         {
-            double modulus = Math.Sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
+            var modulus = Math.Sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
             if (modulus == 0) modulus = 1e-50;
 
             return new double[] { vector[0] / modulus, vector[1] / modulus, vector[2] / modulus };
@@ -77,16 +77,16 @@ namespace MapCreator
 
         public static string MakeValidFileName(string name)
         {
-            string invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars()));
-            string invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
+            var invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars()));
+            var invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
 
             return System.Text.RegularExpressions.Regex.Replace(name, invalidRegStr, "_");
         }
 
         public static string MakeValidDirectoryName(string name)
         {
-            string invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidPathChars()));
-            string invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
+            var invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidPathChars()));
+            var invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
 
             return System.Text.RegularExpressions.Regex.Replace(name, invalidRegStr, "_");
         }
@@ -114,17 +114,17 @@ namespace MapCreator
             return points;
         }
 
-        private static int SortCornersClockwise(PointF A, PointF B)
+        private static int SortCornersClockwise(PointF a, PointF b)
         {
             //  Variables to Store the atans
             double aTanA, aTanB;
 
             //  Reference Point
-            PointF centroid = centerHolder;
+            var centroid = centerHolder;
 
             //  Fetch the atans
-            aTanA = Math.Atan2(A.Y - centroid.Y, A.X - centroid.X);
-            aTanB = Math.Atan2(B.Y - centroid.Y, B.X - centroid.X);
+            aTanA = Math.Atan2(a.Y - centroid.Y, a.X - centroid.X);
+            aTanB = Math.Atan2(b.Y - centroid.Y, b.X - centroid.X);
 
             //  Determine next point in Clockwise rotation
             if (aTanA < aTanB) return -1;
@@ -140,15 +140,15 @@ namespace MapCreator
         public static bool PolygonHasClockwiseOrder(IEnumerable<PointF> points)
         {
             // Add the first point to the end.
-            int num_points = points.Count();
+            var numPoints = points.Count();
 
-            PointF[] pts = new PointF[num_points + 1];
+            var pts = new PointF[numPoints + 1];
             points.ToArray().CopyTo(pts, 0);
-            pts[num_points] = points.First();
+            pts[numPoints] = points.First();
 
             // Get the areas.
             float area = 0;
-            for (int i = 0; i < num_points; i++)
+            for (var i = 0; i < numPoints; i++)
             {
                 area +=
                     (pts[i + 1].X - pts[i].X) *

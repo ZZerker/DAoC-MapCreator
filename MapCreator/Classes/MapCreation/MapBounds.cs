@@ -19,51 +19,51 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using ImageMagick;
 using ImageMagick.Drawing;
-using System.IO;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 
-namespace MapCreator
+namespace MapCreator.Classes.MapCreation
 {
-    class MapBounds
+	internal class MapBounds
     {
         /// <summary>
         /// The current zoneConfiguration
         /// </summary>
-        private ZoneConfiguration zoneConfiguration;
+        private readonly ZoneConfiguration zoneConfiguration;
 
         /// <summary>
         /// If true, each shape will be drawn with its coordinates in data/debug/zoneXXX
         /// </summary>
-        private bool debug = false;
+        private readonly bool debug = false;
 
         /// <summary>
         /// The final shapes
         /// </summary>
-        private List<List<PointF>> m_bounds = new List<List<PointF>>();
+        private readonly List<List<PointF>> bounds = new List<List<PointF>>();
 
         /// <summary>
         /// Substraction bounds
         /// </summary>
-        private List<List<int[]>> m_boundsSubstraction = new List<List<int[]>>();
+        private List<List<int[]>> boundsSubstraction = new List<List<int[]>>();
 
         /// <summary>
         /// Background Color
         /// </summary>
-        private Color m_boundsColor = Color.Black;
+        private Color boundsColor = Color.Black;
 
         /// <summary>
         /// Opacity
         /// </summary>
-        private int m_transparency = 30;
+        private int transparency = 30;
 
         /// <summary>
         /// Removes the area of the bounds from the final image
         /// </summary>
-        private bool m_excludeFromMap = false;
+        private bool excludeFromMap = false;
 
         #region Settings
 
@@ -72,8 +72,8 @@ namespace MapCreator
         /// </summary>
         public bool ExcludeFromMap
         {
-            get { return m_excludeFromMap; }
-            set { m_excludeFromMap = value; }
+            get => this.excludeFromMap;
+            set => this.excludeFromMap = value;
         }
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace MapCreator
         /// </summary>
         public int Transparency
         {
-            set { m_transparency = value; }
+            set => this.transparency = value;
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace MapCreator
         /// </summary>
         public Color BoundsColor
         {
-            set { m_boundsColor = value; }
+            set => this.boundsColor = value;
         }
 
         #endregion
@@ -101,7 +101,7 @@ namespace MapCreator
         public MapBounds(ZoneConfiguration zoneConfiguration)
         {
             this.zoneConfiguration = zoneConfiguration;
-            ParseBounds();
+            this.ParseBounds();
         }
 
         /// <summary>
@@ -110,9 +110,9 @@ namespace MapCreator
         /// <returns></returns>
         private List<string> GetCoordinateLines()
         {
-            List<string> lines = new List<string>();
+            var lines = new List<string>();
 
-            using (StreamReader csv = MpkWrapper.GetFileFromMpk(zoneConfiguration.DatMpk, "bound.csv"))
+            using (var csv = MpkWrapper.GetFileFromMpk(this.zoneConfiguration.DatMpk, "bound.csv"))
             {
                 string row;
                 while ((row = csv.ReadLine()) != null)
@@ -126,25 +126,25 @@ namespace MapCreator
 
         private void ParseBounds()
         {
-            List<string> lines = GetCoordinateLines();
-            List<List<PointF>> polygons = new List<List<PointF>>();
+            var lines = this.GetCoordinateLines();
+            var polygons = new List<List<PointF>>();
 
-            foreach (string line in lines)
+            foreach (var line in lines)
             {
-                List<PointF> polygon = new List<PointF>();
+                var polygon = new List<PointF>();
 
-                string[] coordsRaw = line.Split(',');
+                var coordsRaw = line.Split(',');
 
                 // The first is 0?; the second the number of points
-                int unknown1 = Convert.ToInt32(coordsRaw[0]);
-                int count = Convert.ToInt32(coordsRaw[1]);
+                var unknown1 = Convert.ToInt32(coordsRaw[0]);
+                var count = Convert.ToInt32(coordsRaw[1]);
 
-                for (int i = 1; i <= count; i++)
+                for (var i = 1; i <= count; i++)
                 {
-                    int x = Convert.ToInt32(coordsRaw[i * 2]);
+                    var x = Convert.ToInt32(coordsRaw[i * 2]);
                     if (x == 65536) x = 65535;
 
-                    int y = Convert.ToInt32(coordsRaw[i * 2 + 1]);
+                    var y = Convert.ToInt32(coordsRaw[i * 2 + 1]);
                     if (y == 65536) y = 65535;
 
                     polygon.Add(new PointF(x, y));
@@ -156,7 +156,7 @@ namespace MapCreator
             // Correct some zones here
             
             // 028
-            if (zoneConfiguration.ZoneId == "028")
+            if (this.zoneConfiguration.ZoneId == "028")
             {
                 // The last point is too close to the first
                 polygons.First().RemoveAt(polygons.First().Count - 1);
@@ -164,63 +164,63 @@ namespace MapCreator
             }
 
             // Housing, some shapes have clockwise order but must be counter clockwise
-            if (zoneConfiguration.ZoneId == "064") polygons[0].Reverse();
-            if (zoneConfiguration.ZoneId == "117") polygons[2].Reverse();
-            if (zoneConfiguration.ZoneId == "122") polygons[1].Reverse();
-            if (zoneConfiguration.ZoneId == "218") polygons[1].Reverse();
-            if (zoneConfiguration.ZoneId == "262") polygons[0].Reverse();
+            if (this.zoneConfiguration.ZoneId == "064") polygons[0].Reverse();
+            if (this.zoneConfiguration.ZoneId == "117") polygons[2].Reverse();
+            if (this.zoneConfiguration.ZoneId == "122") polygons[1].Reverse();
+            if (this.zoneConfiguration.ZoneId == "218") polygons[1].Reverse();
+            if (this.zoneConfiguration.ZoneId == "262") polygons[0].Reverse();
 
             //polygons = CombinePolygons(polygons);
 
             // 015 old hadrians wall
-            if (zoneConfiguration.ZoneId == "015")
+            if (this.zoneConfiguration.ZoneId == "015")
             {
                 // The last point is too close to the first
                 polygons.RemoveRange(1, 3);
             }
             // Oceanus Notots, the first must be counter clockwise, it must be negated
-            if (zoneConfiguration.ZoneId == "076")
+            if (this.zoneConfiguration.ZoneId == "076")
             {
                 polygons[0].Reverse();
             }
             // DR, the outland zone have one shape in wrong direction which breaks the parser
-            if (zoneConfiguration.ZoneId == "330") polygons[1].Reverse();
-            if (zoneConfiguration.ZoneId == "334") polygons[1].Reverse();
-            if (zoneConfiguration.ZoneId == "335") polygons[1].Reverse();
+            if (this.zoneConfiguration.ZoneId == "330") polygons[1].Reverse();
+            if (this.zoneConfiguration.ZoneId == "334") polygons[1].Reverse();
+            if (this.zoneConfiguration.ZoneId == "335") polygons[1].Reverse();
 
-            foreach (List<PointF> polygon in polygons)
+            foreach (var polygon in polygons)
             {
                 if (polygon.Count < 4) continue;
                 //if (zoneConfiguration.Expansion == GameExpansion.NewFrontiers && polygon.Count <= 6) continue;
 
-                FillPolygon(polygon);
-                m_bounds.Add(polygon);
+                this.FillPolygon(polygon);
+                this.bounds.Add(polygon);
             }
 
         }
 
         private List<List<PointF>> CombinePolygons(List<List<PointF>> polygons)
         {
-            for (int i = 0; i < polygons.Count; i++)
+            for (var i = 0; i < polygons.Count; i++)
             {
-                PointF last = polygons[i].Last();
+                var last = polygons[i].Last();
 
-                for (int n = 0; n < polygons.Count; n++)
+                for (var n = 0; n < polygons.Count; n++)
                 {
                     if (i == n) continue;
-                    PointF first = polygons[n].First();
+                    var first = polygons[n].First();
 
-                    bool connect = false;
+                    var connect = false;
                     if (last.X == first.X && last.Y == first.Y) connect = true;
-                    else if (isNextTo(last, first, 20)) connect = true;
-                    else if (isNextTo(first, last, 20)) connect = true;
+                    else if (this.IsNextTo(last, first, 20)) connect = true;
+                    else if (this.IsNextTo(first, last, 20)) connect = true;
 
                     if (connect)
                     {
                         // found a connection
                         polygons[i].AddRange(polygons[n]);
                         polygons.RemoveAt(n);
-                        return CombinePolygons(polygons);
+                        return this.CombinePolygons(polygons);
                     }
                 }
             }
@@ -228,10 +228,10 @@ namespace MapCreator
             return polygons;
         }
 
-        private bool isNextTo(PointF p1, PointF p2, int distance = 50)
+        private bool IsNextTo(PointF p1, PointF p2, int distance = 50)
         {
-            float diffX = Math.Abs(p1.X - p2.X);
-            float diffY = Math.Abs(p1.Y - p2.Y);
+            var diffX = Math.Abs(p1.X - p2.X);
+            var diffY = Math.Abs(p1.Y - p2.Y);
             return diffX <= distance && diffY <= distance;
         }
 
@@ -250,24 +250,24 @@ namespace MapCreator
             // |  /   \  |
             // | /  s  \ |
             // -----------
-            GraphicsPath northTriangle = new GraphicsPath();
+            var northTriangle = new GraphicsPath();
             northTriangle.AddLines(new PointF[] { new PointF(0, 0), new PointF(65536, 0), new PointF(32768, 32768) }); // the north triangle; Note: we use 65536 else 65535 will not be visible
-            GraphicsPath eastTriangle = new GraphicsPath();
+            var eastTriangle = new GraphicsPath();
             eastTriangle.AddLines(new PointF[] { new PointF(65536, 0), new PointF(65536, 65536), new PointF(32768, 32768) }); // the east triangle
-            GraphicsPath southTriangle = new GraphicsPath();
+            var southTriangle = new GraphicsPath();
             southTriangle.AddLines(new PointF[] { new PointF(65536, 65536), new PointF(0, 65536), new PointF(32768, 32768) }); // the south triangle
-            GraphicsPath westTriangle = new GraphicsPath();
+            var westTriangle = new GraphicsPath();
             westTriangle.AddLines(new PointF[] { new PointF(0, 65536), new PointF(0, 0), new PointF(32768, 32768) }); // the west triangle
 
-            PointF first = new PointF((float)points.First().X, (float)points.First().Y); // there are some shapes wich use 65536 as max X or Y
-            PointF last = new PointF((float)points.Last().X, (float)points.Last().Y); // there are some shapes wich use 65536 as max X or Y
+            var first = new PointF((float)points.First().X, (float)points.First().Y); // there are some shapes wich use 65536 as max X or Y
+            var last = new PointF((float)points.Last().X, (float)points.Last().Y); // there are some shapes wich use 65536 as max X or Y
 
             // If its a complete polygon where the last equals the first point, don't do anything
             if (first.X == last.X && first.Y == last.Y) return;
 
             // Avoid flood fills
             // This happens if the start AND end of the shape are on the same side (see dartmoor, llyn bafog).
-            bool avoidFloodFill = false;
+            var avoidFloodFill = false;
             if (first.Y == 0 && last.Y == 0 && first.X > last.X) avoidFloodFill = true; // north
             else if (first.X == 65535 && last.X == 65535 && first.Y > last.Y) avoidFloodFill = true; // east
             else if (first.Y == 65535 && last.Y == 65535 && first.X < last.X) avoidFloodFill = true; // south
@@ -275,26 +275,26 @@ namespace MapCreator
 
             // Fill the shape in a clockwise order, maximum 6 required steps
             // But first check if the distance last-point <--> first-point is lower
-            double firstLastDistance = Tools.GetPointDistance(first, last);
+            var firstLastDistance = Tools.GetPointDistance(first, last);
 
             // Go the next map border at n, e, s, w
-            PointF pointToPrepend = PointF.Empty;
+            var pointToPrepend = PointF.Empty;
             if (northTriangle.IsVisible(first)) pointToPrepend = new PointF(first.X, 0); // to north border
             else if (eastTriangle.IsVisible(first)) pointToPrepend = new PointF(65535, first.Y); // to east border
             else if (southTriangle.IsVisible(first)) pointToPrepend = new PointF(first.X, 65535); // to south border
             else if (westTriangle.IsVisible(first)) pointToPrepend = new PointF(0, first.Y); // to west border
 
-            double newFirstDistance = Tools.GetPointDistance(pointToPrepend, first);
+            var newFirstDistance = Tools.GetPointDistance(pointToPrepend, first);
             if (pointToPrepend != null && firstLastDistance < newFirstDistance) return;
 
             // Do the same for last point
-            PointF pointToAppend = PointF.Empty;
+            var pointToAppend = PointF.Empty;
             if (northTriangle.IsVisible(last)) pointToAppend = new PointF(last.X, 0); // to north border
             else if (eastTriangle.IsVisible(last)) pointToAppend = new PointF(65535, last.Y); // to east border
             else if (southTriangle.IsVisible(last)) pointToAppend = new PointF(last.X, 65535); // to south border
             else if (westTriangle.IsVisible(last)) pointToAppend = new PointF(0, last.Y); // to west border
 
-            double newLastDistance = Tools.GetPointDistance(last, pointToAppend);
+            var newLastDistance = Tools.GetPointDistance(last, pointToAppend);
             if (pointToAppend != null && firstLastDistance < newLastDistance) return;
 
             // Okay, we need to fill
@@ -326,58 +326,58 @@ namespace MapCreator
         /// <param name="map"></param>
         public void Draw(MagickImage map)
         {
-            if (m_bounds.Count == 0) return;
+            if (this.bounds.Count == 0) return;
             MainForm.ProgressStart("Drawing zone bounds ...");
 
             // Sort the polygons
-            List<List<PointD>> polygons = new List<List<PointD>>();
-            List<List<PointD>> negatedPolygons = new List<List<PointD>>();
+            var polygons = new List<List<PointD>>();
+            var negatedPolygons = new List<List<PointD>>();
 
-            foreach (List<PointF> polygon in m_bounds)
+            foreach (var polygon in this.bounds)
             {
-                bool isClockwise = Tools.PolygonHasClockwiseOrder(polygon);
-                var polygonConverted = polygon.Select(c => new PointD(zoneConfiguration.ZoneCoordinateToMapCoordinate(c.X), zoneConfiguration.ZoneCoordinateToMapCoordinate(c.Y))).ToList();
+                var isClockwise = Tools.PolygonHasClockwiseOrder(polygon);
+                var polygonConverted = polygon.Select(c => new PointD(this.zoneConfiguration.ZoneCoordinateToMapCoordinate(c.X), this.zoneConfiguration.ZoneCoordinateToMapCoordinate(c.Y))).ToList();
 
                 // polygons in clockwise order needs to be negated
                 if (isClockwise) negatedPolygons.Add(polygonConverted);
                 else polygons.Add(polygonConverted);
             }
 
-            MagickColor backgroundColor = MagickColors.Transparent;
+            var backgroundColor = MagickColors.Transparent;
             if (polygons.Count == 0) {
                 // There are no normal polygons, we need to fill the hole zone and substract negatedPolygons
-                backgroundColor = m_boundsColor.ToMagickColor();
+                backgroundColor = this.boundsColor.ToMagickColor();
             }
 
-            using (MagickImage boundMap = MagickWrapper.NewImage(backgroundColor, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+            using (var boundMap = MagickWrapper.NewImage(backgroundColor, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
             {
-                int progressCounter = 0;
+                var progressCounter = 0;
 
                 boundMap.Alpha(AlphaOption.Set);
-                boundMap.Settings.FillColor = m_boundsColor.ToMagickColor();
-                foreach (List<PointD> coords in polygons)
+                boundMap.Settings.FillColor = this.boundsColor.ToMagickColor();
+                foreach (var coords in polygons)
                 {
-                    DrawablePolygon poly = new DrawablePolygon(coords);
+                    var poly = new DrawablePolygon(coords);
                     boundMap.Draw(poly);
 
                     progressCounter++;
-                    int percent = 100 * progressCounter / m_bounds.Count();
+                    var percent = 100 * progressCounter / this.bounds.Count();
                     MainForm.ProgressUpdate(percent);
                 }
 
                 if (negatedPolygons.Count > 0)
                 {
-                    using (MagickImage negatedBoundMap = MagickWrapper.NewImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+                    using (var negatedBoundMap = MagickWrapper.NewImage(Color.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
                     {
-                        negatedBoundMap.Settings.FillColor = m_boundsColor.ToMagickColor();
+                        negatedBoundMap.Settings.FillColor = this.boundsColor.ToMagickColor();
 
-                        foreach (List<PointD> coords in negatedPolygons)
+                        foreach (var coords in negatedPolygons)
                         {
-                            DrawablePolygon poly = new DrawablePolygon(coords);
+                            var poly = new DrawablePolygon(coords);
                             negatedBoundMap.Draw(poly);
 
                             progressCounter++;
-                            int percent = 100 * progressCounter / m_bounds.Count();
+                            var percent = 100 * progressCounter / this.bounds.Count();
                             MainForm.ProgressUpdate(percent);
                         }
                         boundMap.Composite(negatedBoundMap, 0, 0, CompositeOperator.DstOut);
@@ -385,16 +385,16 @@ namespace MapCreator
                 }
 
                 MainForm.ProgressStartMarquee("Merging ...");
-                if (ExcludeFromMap)
+                if (this.ExcludeFromMap)
                 {
                     map.Composite(boundMap, 0, 0, CompositeOperator.DstOut);
                 }
                 else
                 {
-                    if (m_transparency != 0)
+                    if (this.transparency != 0)
                     {
                         boundMap.Alpha(AlphaOption.Set);
-                        double divideValue = 100.0 / (100.0 - m_transparency);
+                        var divideValue = 100.0 / (100.0 - this.transparency);
                         boundMap.Evaluate(Channels.Alpha, EvaluateOperator.Divide, divideValue);
                     }
 
@@ -402,9 +402,9 @@ namespace MapCreator
                 }
             }
 
-            if (debug)
+            if (this.debug)
             {
-                DebugMaps();
+                this.DebugMaps();
             }
 
             MainForm.ProgressReset();
@@ -412,46 +412,46 @@ namespace MapCreator
 
         private void DebugMaps()
         {
-            MainForm.Log("Drawing debug bound images ...", MainForm.LogLevel.warning);
+            MainForm.Log("Drawing debug bound images ...", MainForm.LogLevel.Warning);
             MainForm.ProgressStartMarquee("Debug bound images ...");
 
-            DirectoryInfo debugDir = new DirectoryInfo(string.Format("{0}\\debug\\bound\\{1}", System.Windows.Forms.Application.StartupPath, zoneConfiguration.ZoneId));
+            var debugDir = new DirectoryInfo(string.Format("{0}\\debug\\bound\\{1}", System.Windows.Forms.Application.StartupPath, this.zoneConfiguration.ZoneId));
             if (!debugDir.Exists) debugDir.Create();
             debugDir.GetFiles().ToList().ForEach(f => f.Delete());
 
-            int boundIndex = 0;
-            foreach (List<PointF> allCoords in m_bounds)
+            var boundIndex = 0;
+            foreach (var allCoords in this.bounds)
             {
-                using (MagickImage bound = MagickWrapper.NewImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+                using (var bound = MagickWrapper.NewImage(MagickColors.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
                 {
-                    List<PointD> coords = allCoords.Select(c => new PointD(zoneConfiguration.ZoneCoordinateToMapCoordinate(c.X), zoneConfiguration.ZoneCoordinateToMapCoordinate(c.Y))).ToList();
+                    var coords = allCoords.Select(c => new PointD(this.zoneConfiguration.ZoneCoordinateToMapCoordinate(c.X), this.zoneConfiguration.ZoneCoordinateToMapCoordinate(c.Y))).ToList();
 
-                    DrawablePolygon poly = new DrawablePolygon(coords);
+                    var poly = new DrawablePolygon(coords);
                     bound.Settings.FillColor = new MagickColor(0, 0, 0, 256 * 128);
                     bound.Draw(poly);
                     
                     // Print Text
-                    for (int i = 0; i < coords.Count; i++)
+                    for (var i = 0; i < coords.Count; i++)
                     {
                         double x, y;
 
-                        if (coords[i].X > zoneConfiguration.TargetMapSize / 2) x = coords[i].X - 15;
+                        if (coords[i].X > this.zoneConfiguration.TargetMapSize / 2) x = coords[i].X - 15;
                         else x = coords[i].X + 1;
 
-                        if (coords[i].Y < zoneConfiguration.TargetMapSize / 2) y = coords[i].Y + 15;
+                        if (coords[i].Y < this.zoneConfiguration.TargetMapSize / 2) y = coords[i].Y + 15;
                         else y = coords[i].Y - 1;
 
                         bound.Settings.FontPointsize = 10.0;
                         bound.Settings.FillColor = MagickColors.Black;
-                        DrawableText text = new DrawableText(x, y, string.Format("{0} ({1}/{2})", i, zoneConfiguration.MapCoordinateToZoneCoordinate(coords[i].X), zoneConfiguration.MapCoordinateToZoneCoordinate(coords[i].Y)));
+                        var text = new DrawableText(x, y, string.Format("{0} ({1}/{2})", i, this.zoneConfiguration.MapCoordinateToZoneCoordinate(coords[i].X), this.zoneConfiguration.MapCoordinateToZoneCoordinate(coords[i].Y)));
                         bound.Draw(text);
                         
-                        using (IPixelCollection<ushort> pixels = bound.GetPixels())
+                        using (var pixels = bound.GetPixels())
                         {
                             int x2, y2;
-                            if (coords[i].X == zoneConfiguration.TargetMapSize) x2 = zoneConfiguration.TargetMapSize - 1;
+                            if (coords[i].X == this.zoneConfiguration.TargetMapSize) x2 = this.zoneConfiguration.TargetMapSize - 1;
                             else x2 = (int)coords[i].X;
-                            if (coords[i].Y == zoneConfiguration.TargetMapSize) y2 = zoneConfiguration.TargetMapSize - 1;
+                            if (coords[i].Y == this.zoneConfiguration.TargetMapSize) y2 = this.zoneConfiguration.TargetMapSize - 1;
                             else y2 = (int)coords[i].Y;
 
                             pixels.SetPixel(x2, y2, new ushort[] { 0, 0, 65535, 0 });

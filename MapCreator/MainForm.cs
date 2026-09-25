@@ -20,13 +20,12 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 using System.IO;
-using ImageMagick;
+using MapCreator.Classes;
+using MapCreator.Classes.MapCreation;
 
 namespace MapCreator
 {
@@ -36,34 +35,34 @@ namespace MapCreator
         /// <summary>
         /// Self reference
         /// </summary>
-        private static MainForm _self = null;
+        private static MainForm self = null;
 
         /// <summary>
         /// The Zones to draw
         /// </summary>
-        private List<ZoneSelection> m_selectedZones = new List<ZoneSelection>();
+        private List<ZoneSelection> selectedZones = new List<ZoneSelection>();
 
         /// <summary>
         /// The Zones to draw
         /// </summary>
         public List<ZoneSelection> SelectedZones
         {
-            get { return m_selectedZones; }
-            set { m_selectedZones = value; }
+            get => this.selectedZones;
+            set => this.selectedZones = value;
         }
 
         /// <summary>
         /// Current Game Expansion
         /// </summary>
-        private GameExpansion m_expansion = GameExpansion.Classic;
+        private GameExpansion expansion = GameExpansion.Classic;
 
         /// <summary>
         /// Current Game Expansion
         /// </summary>
         public GameExpansion Expansion
         {
-            get { return m_expansion; }
-            set { m_expansion = value; }
+            get => this.expansion;
+            set => this.expansion = value;
         }
 
         /// <summary>
@@ -71,12 +70,8 @@ namespace MapCreator
         /// </summary>
         public int TargetMapSize
         {
-            get {
-                return Convert.ToInt32(this.widthTextBox.Value);
-            }
-            set {
-                this.widthTextBox.Value = Convert.ToDecimal(value);
-            }
+            get => Convert.ToInt32(this.widthTextBox.Value);
+            set => this.widthTextBox.Value = Convert.ToDecimal(value);
         }
 
         /// <summary>
@@ -85,43 +80,44 @@ namespace MapCreator
         public MainForm()
         {
             // Language settings
-            System.Globalization.CultureInfo ci = new System.Globalization.CultureInfo("en-US");
+            var ci = new System.Globalization.CultureInfo("en-US");
             System.Threading.Thread.CurrentThread.CurrentCulture = ci;
             System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
 
-            InitializeComponent();
-            _self = this;
-            Initialize();
+            this.InitializeComponent();
+            self = this;
+            this.Initialize();
 
             // Load last selected zones
             if (!string.IsNullOrEmpty(Properties.Settings.Default.lastCreatedMaps))
             {
-                foreach (string zoneId in Properties.Settings.Default.lastCreatedMaps.Split(','))
+                foreach (var zoneId in Properties.Settings.Default.lastCreatedMaps.Split(','))
                 {
                     try
                     {
-                        SelectedZones.Add(DataWrapper.GetZoneSelectionByZoneId(zoneId));
+	                    this.SelectedZones.Add(DataWrapper.GetZoneSelectionByZoneId(zoneId));
                     }
                     catch { }
                 }
-                UpdateSelectedZoneListBox();
+
+                this.UpdateSelectedZoneListBox();
             }
         }
 
         /// <summary>
         /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log]
         /// </summary>
-        private bool batchMode = false;
+        private readonly bool batchMode = false;
 
-        private string batchLogFile = null;
+        private readonly string batchLogFile = null;
 
         public MainForm(string[] args) : this()
         {
-            List<string> batchZoneIds = new List<string>();
-            int batchSize = 0;
+            var batchZoneIds = new List<string>();
+            var batchSize = 0;
             string batchDirectory = null;
-            string batchLogName = "render.log";
-            for (int i = 0; i < args.Length - 1; i++)
+            var batchLogName = "render.log";
+            for (var i = 0; i < args.Length - 1; i++)
             {
                 switch (args[i].ToLower())
                 {
@@ -145,54 +141,55 @@ namespace MapCreator
                 return;
             }
 
-            batchMode = true;
-            SelectedZones = batchZoneIds.Select(z => DataWrapper.GetZoneSelectionByZoneId(z)).ToList();
-            UpdateSelectedZoneListBox();
+            this.batchMode = true;
+            this.SelectedZones = batchZoneIds.Select(z => DataWrapper.GetZoneSelectionByZoneId(z)).ToList();
+            this.UpdateSelectedZoneListBox();
 
-            string logDirectory = !string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath) ? Properties.Settings.Default.targetMapPath : Application.StartupPath;
+            var logDirectory = !string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath) ? Properties.Settings.Default.targetMapPath : Application.StartupPath;
             Directory.CreateDirectory(logDirectory);
-            batchLogFile = Path.Combine(logDirectory, batchLogName);
-            File.WriteAllText(batchLogFile, "");
+            this.batchLogFile = Path.Combine(logDirectory, batchLogName);
+            File.WriteAllText(this.batchLogFile, "");
 
             // Settings bindings overwrite control values on load
             this.Shown += (sender, e) =>
             {
                 if (batchSize > 0)
                 {
-                    TargetMapSize = batchSize;
+	                this.TargetMapSize = batchSize;
                 }
                 if (batchDirectory != null)
                 {
-                    directoryPatternTextBox.Text = batchDirectory;
+	                this.directoryPatternTextBox.Text = batchDirectory;
                 }
-                fileTypeComboBox.Text = "PNG";
-                filePatternTextBox.Text = "z{id}";
-                enableLogCheckBox.Checked = true;
-                enableResultPreview.Checked = false;
 
-                renderButton_Click(null, null);
-                Close();
+                this.fileTypeComboBox.Text = "PNG";
+                this.filePatternTextBox.Text = "z{id}";
+                this.enableLogCheckBox.Checked = true;
+                this.enableResultPreview.Checked = false;
+
+                this.renderButton_Click(null, null);
+                this.Close();
             };
         }
 
         public void Initialize()
         {
             // Set river color
-            Color mapRiversColor = Properties.Settings.Default.mapRiverColor;
-            mapRiversColorTextBox.Text = string.Format("{0}{1}{2}", mapRiversColor.R.ToString("X2"), mapRiversColor.G.ToString("X2"), mapRiversColor.B.ToString("X2"));
+            var mapRiversColor = Properties.Settings.Default.mapRiverColor;
+            this.mapRiversColorTextBox.Text = string.Format("{0}{1}{2}", mapRiversColor.R.ToString("X2"), mapRiversColor.G.ToString("X2"), mapRiversColor.B.ToString("X2"));
 
-            Color mapBoundsColor = Properties.Settings.Default.mapBoundsColor;
-            mapBoundsColorTextBox.Text = string.Format("{0}{1}{2}", mapBoundsColor.R.ToString("X2"), mapBoundsColor.G.ToString("X2"), mapBoundsColor.B.ToString("X2"));
+            var mapBoundsColor = Properties.Settings.Default.mapBoundsColor;
+            this.mapBoundsColorTextBox.Text = string.Format("{0}{1}{2}", mapBoundsColor.R.ToString("X2"), mapBoundsColor.G.ToString("X2"), mapBoundsColor.B.ToString("X2"));
         }
 
         private void UpdateSelectedZoneListBox()
         {
-            selectedMapsListBox.DataSource = null;
-            selectedMapsListBox.DataSource = SelectedZones.OrderBy(z => z.Id).ToList();
-            selectedMapsCounterLabel.Text = SelectedZones.Count.ToString();
-            queueTotalLabel.Text = selectedMapsCounterLabel.Text;
-            queueProcessedLabel.Text = "0";
-            currentMapLabel.Text = "| - |";
+	        this.selectedMapsListBox.DataSource = null;
+	        this.selectedMapsListBox.DataSource = this.SelectedZones.OrderBy(z => z.Id).ToList();
+	        this.selectedMapsCounterLabel.Text = this.SelectedZones.Count.ToString();
+	        this.queueTotalLabel.Text = this.selectedMapsCounterLabel.Text;
+	        this.queueProcessedLabel.Text = "0";
+	        this.currentMapLabel.Text = "| - |";
         }
 
         /// <summary>
@@ -202,15 +199,15 @@ namespace MapCreator
         /// <param name="e"></param>
         private void selectMapsButton_Click(object sender, EventArgs e)
         {
-            SelectMapsForm form = new SelectMapsForm();
-            form.Preselect(m_selectedZones);
+            var form = new SelectMapsForm();
+            form.Preselect(this.selectedZones);
 
             if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                SelectedZones = form.SelectedZones;
-                UpdateSelectedZoneListBox();
+	            this.SelectedZones = form.SelectedZones;
+	            this.UpdateSelectedZoneListBox();
 
-                Properties.Settings.Default.lastCreatedMaps = string.Join(",", SelectedZones.Select(z => z.Id));
+                Properties.Settings.Default.lastCreatedMaps = string.Join(",", this.SelectedZones.Select(z => z.Id));
                 Properties.Settings.Default.Save();
             }
         }
@@ -222,8 +219,8 @@ namespace MapCreator
         /// <param name="e"></param>
         private void selecetedMapsResetButton_Click(object sender, EventArgs e)
         {
-            SelectedZones.Clear();
-            UpdateSelectedZoneListBox();
+	        this.SelectedZones.Clear();
+	        this.UpdateSelectedZoneListBox();
             //selectedMapsListBox.DataSource = null;
             //selectedMapsListBox.DataSource = SelectedZones;
             //selectedMapsCounterLabel.Text = SelectedZones.Count.ToString();
@@ -236,11 +233,11 @@ namespace MapCreator
         /// </summary>
         public enum LogLevel
         {
-            normal = 1,
-            success = 2,
-            notice = 3,
-            warning = 4,
-            error = 5
+            Normal = 1,
+            Success = 2,
+            Notice = 3,
+            Warning = 4,
+            Error = 5
         }
 
         /// <summary>
@@ -248,15 +245,15 @@ namespace MapCreator
         /// </summary>
         /// <param name="text"></param>
         /// <param name="logLevel"></param>
-        public static void Log(string text, LogLevel logLevel = LogLevel.normal)
+        public static void Log(string text, LogLevel logLevel = LogLevel.Normal)
         {
-            _self.LogText(text, logLevel);
+            self.LogText(text, logLevel);
         }
 
         /// <summary>
         /// LogLevels per line for drawing
         /// </summary>
-        public List<LogLevel> logListBoxLogLevels = new List<LogLevel>();
+        public List<LogLevel> LogListBoxLogLevels = new List<LogLevel>();
 
         /// <summary>
         /// LogText delegate
@@ -270,35 +267,35 @@ namespace MapCreator
         /// </summary>
         /// <param name="text"></param>
         /// <param name="logLevel"></param>
-        public void LogText(string text, LogLevel logLevel = LogLevel.normal)
+        public void LogText(string text, LogLevel logLevel = LogLevel.Normal)
         {
-            if (!enableLogCheckBox.Checked)
+            if (!this.enableLogCheckBox.Checked)
             {
                 return;
             }
 
-            if (InvokeRequired)
+            if (this.InvokeRequired)
             {
-                this.Invoke(new LogDelegate(LogText), text, logLevel);
+                this.Invoke(new LogDelegate(this.LogText), text, logLevel);
                 return;
             }
 
-            if (batchLogFile != null)
+            if (this.batchLogFile != null)
             {
-                File.AppendAllText(batchLogFile, string.Format("{0:HH:mm:ss} {1,-7} {2}{3}", DateTime.Now, logLevel, text, Environment.NewLine));
+                File.AppendAllText(this.batchLogFile, string.Format("{0:HH:mm:ss} {1,-7} {2}{3}", DateTime.Now, logLevel, text, Environment.NewLine));
             }
 
             // Cut on 3000 rows
-            if (logListBox.Items.Count == 3000)
+            if (this.logListBox.Items.Count == 3000)
             {
-                logListBox.Items.Clear();
-                logListBoxLogLevels.Clear();
+	            this.logListBox.Items.Clear();
+	            this.LogListBoxLogLevels.Clear();
             }
 
-            logListBox.Items.Add(string.Format("{0}:{1}:{2}  {3}", DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second, text));
-            logListBoxLogLevels.Add(logLevel);
-            logListBox.SelectedIndex = logListBox.Items.Count - 1;
-            logListBox.SelectedIndex = -1;
+            this.logListBox.Items.Add(string.Format("{0}:{1}:{2}  {3}", DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second, text));
+            this.LogListBoxLogLevels.Add(logLevel);
+            this.logListBox.SelectedIndex = this.logListBox.Items.Count - 1;
+            this.logListBox.SelectedIndex = -1;
         }
 
         /// <summary>
@@ -308,29 +305,29 @@ namespace MapCreator
         /// <param name="e"></param>
         private void logListBox_DrawItem(object sender, DrawItemEventArgs e)
         {
-            if (!enableLogCheckBox.Checked)
+            if (!this.enableLogCheckBox.Checked)
             {
                 return;
             }
 
-            ListBox listBox = sender as ListBox;
+            var listBox = sender as ListBox;
             if (listBox == null || listBox.Items.Count == 0) return;
 
             e.DrawBackground();
 
             Brush newBrush;
-            switch (logListBoxLogLevels[e.Index])
+            switch (this.LogListBoxLogLevels[e.Index])
             {
-                case LogLevel.success:
+                case LogLevel.Success:
                     newBrush = Brushes.LimeGreen;
                     break;
-                case LogLevel.notice:
+                case LogLevel.Notice:
                     newBrush = Brushes.CornflowerBlue;
                     break;
-                case LogLevel.warning:
+                case LogLevel.Warning:
                     newBrush = Brushes.Orange;
                     break;
-                case LogLevel.error:
+                case LogLevel.Error:
                     newBrush = Brushes.Red;
                     break;
                 default:
@@ -359,13 +356,14 @@ namespace MapCreator
         /// <param name="label"></param>
         private void InitProgressBar(string label)
         {
-            if (!InvokeRequired)
+            if (!this.InvokeRequired)
             {
-                statusLabel.Text = label;
-                statusProgressBar.Style = ProgressBarStyle.Blocks;
-                statusProgressBar.Value = 0;
+	            this.statusLabel.Text = label;
+	            this.statusProgressBar.Style = ProgressBarStyle.Blocks;
+	            this.statusProgressBar.Value = 0;
             }
-            else Invoke(new InitProgressBarDelegate(InitProgressBar), label);
+            else
+	            this.Invoke(new InitProgressBarDelegate(this.InitProgressBar), label);
         }
 
         /// <summary>
@@ -381,12 +379,13 @@ namespace MapCreator
         /// <param name="label"></param>
         private void InitProgressBarMarquee(string label)
         {
-            if (!InvokeRequired)
+            if (!this.InvokeRequired)
             {
-                statusLabel.Text = label;
-                statusProgressBar.Style = ProgressBarStyle.Marquee;
+	            this.statusLabel.Text = label;
+	            this.statusProgressBar.Style = ProgressBarStyle.Marquee;
             }
-            else Invoke(new InitProgressBarMarqueeDelegate(InitProgressBarMarquee), label);
+            else
+	            this.Invoke(new InitProgressBarMarqueeDelegate(this.InitProgressBarMarquee), label);
         }
 
         /// <summary>
@@ -402,11 +401,12 @@ namespace MapCreator
         /// <param name="percentValue"></param>
         private void SetProgressBarValue(int percentValue)
         {
-            if (!InvokeRequired)
+            if (!this.InvokeRequired)
             {
-                statusProgressBar.Value = percentValue;
+	            this.statusProgressBar.Value = percentValue;
             }
-            else Invoke(new SetProgressBarValueDelegate(SetProgressBarValue), percentValue);
+            else
+	            this.Invoke(new SetProgressBarValueDelegate(this.SetProgressBarValue), percentValue);
         }
 
         /// <summary>
@@ -420,35 +420,36 @@ namespace MapCreator
         /// </summary>
         private void ResetProgressBar()
         {
-            if (!InvokeRequired)
+            if (!this.InvokeRequired)
             {
-                statusLabel.Text = "Ready";
-                statusProgressBar.Style = ProgressBarStyle.Blocks;
-                statusProgressBar.Value = 0;
+	            this.statusLabel.Text = "Ready";
+	            this.statusProgressBar.Style = ProgressBarStyle.Blocks;
+	            this.statusProgressBar.Value = 0;
             }
-            else Invoke(new ResetProgressBarDelegate(ResetProgressBar));
+            else
+	            this.Invoke(new ResetProgressBarDelegate(this.ResetProgressBar));
         }
 
         public static void ProgressReset()
         {
-            _self.ResetProgressBar();
+            self.ResetProgressBar();
         }
 
         public static void ProgressStartMarquee(string label)
         {
-            _self.InitProgressBarMarquee(label);
+            self.InitProgressBarMarquee(label);
         }
 
         public static void ProgressStart(string label)
         {
-            _self.InitProgressBar(label);
+            self.InitProgressBar(label);
         }
 
         public static void ProgressUpdate(int percent)
         {
             if (percent < 0) percent = 0;
             if (percent > 100) percent = 100;
-            _self.SetProgressBarValue(percent);
+            self.SetProgressBarValue(percent);
         }
 
         #endregion
@@ -457,16 +458,16 @@ namespace MapCreator
 
         private void preferencesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            PreferencesForm form = new PreferencesForm();
+            var form = new PreferencesForm();
             if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                Initialize();
+	            this.Initialize();
             }
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (batchMode)
+            if (this.batchMode)
             {
                 Properties.Settings.Default.Reload();
                 return;
@@ -486,7 +487,7 @@ namespace MapCreator
         {
             if (this.InvokeRequired)
             {
-                this.Invoke(new HandleRenderButtonDelegate(HandleRenderButton), enabled);
+                this.Invoke(new HandleRenderButtonDelegate(this.HandleRenderButton), enabled);
                 return;
             }
 
@@ -497,28 +498,28 @@ namespace MapCreator
 
         private void riverColorSelectButton_Click(object sender, EventArgs e)
         {
-            if (riversColorColorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if (this.riversColorColorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                mapRiversColorTextBox.Text = string.Format("{0}{1}{2}", riversColorColorDialog.Color.R.ToString("X2"), riversColorColorDialog.Color.G.ToString("X2"), riversColorColorDialog.Color.B.ToString("X2"));
-                Properties.Settings.Default.mapRiverColor = riversColorColorDialog.Color;
+	            this.mapRiversColorTextBox.Text = string.Format("{0}{1}{2}", this.riversColorColorDialog.Color.R.ToString("X2"), this.riversColorColorDialog.Color.G.ToString("X2"), this.riversColorColorDialog.Color.B.ToString("X2"));
+                Properties.Settings.Default.mapRiverColor = this.riversColorColorDialog.Color;
                 Properties.Settings.Default.Save();
             }
         }
 
         private void riverUseColorDefault_CheckedChanged(object sender, EventArgs e)
         {
-            mapRiversColorTextBox.Enabled = !riversUseDefaultColorCheckBox.Checked;
-            riversColorSelectButton.Enabled = !riversUseDefaultColorCheckBox.Checked;
+	        this.mapRiversColorTextBox.Enabled = !this.riversUseDefaultColorCheckBox.Checked;
+	        this.riversColorSelectButton.Enabled = !this.riversUseDefaultColorCheckBox.Checked;
         }
 
         private void riversColorTextBox_TextChanged(object sender, EventArgs e)
         {
-            if (mapRiversColorTextBox.Text.Length == 6)
+            if (this.mapRiversColorTextBox.Text.Length == 6)
             {
                 try
                 {
-                    riversColorPreview.BackColor = ColorTranslator.FromHtml("#" + mapRiversColorTextBox.Text);
-                    Properties.Settings.Default.mapRiverColor = ColorTranslator.FromHtml("#" + mapRiversColorTextBox.Text);
+	                this.riversColorPreview.BackColor = ColorTranslator.FromHtml("#" + this.mapRiversColorTextBox.Text);
+                    Properties.Settings.Default.mapRiverColor = ColorTranslator.FromHtml("#" + this.mapRiversColorTextBox.Text);
                     Properties.Settings.Default.Save();
                 }
                 catch { }
@@ -527,7 +528,7 @@ namespace MapCreator
 
         private void riversColorTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            riversColorTextBox_TextChanged(null, null);
+	        this.riversColorTextBox_TextChanged(null, null);
         }
 
         #endregion
@@ -536,23 +537,23 @@ namespace MapCreator
 
         private void boundsColorSelectButton_Click(object sender, EventArgs e)
         {
-            boundsColorDialog.Color = Properties.Settings.Default.mapBoundsColor;
-            if (boundsColorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+	        this.boundsColorDialog.Color = Properties.Settings.Default.mapBoundsColor;
+            if (this.boundsColorDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                mapBoundsColorTextBox.Text = string.Format("{0}{1}{2}", boundsColorDialog.Color.R.ToString("X2"), boundsColorDialog.Color.G.ToString("X2"), boundsColorDialog.Color.B.ToString("X2"));
-                Properties.Settings.Default.mapBoundsColor = boundsColorDialog.Color;
+	            this.mapBoundsColorTextBox.Text = string.Format("{0}{1}{2}", this.boundsColorDialog.Color.R.ToString("X2"), this.boundsColorDialog.Color.G.ToString("X2"), this.boundsColorDialog.Color.B.ToString("X2"));
+                Properties.Settings.Default.mapBoundsColor = this.boundsColorDialog.Color;
                 Properties.Settings.Default.Save();
             }
         }
 
         private void mapBoundsColorTextBox_TextChanged(object sender, EventArgs e)
         {
-            if (mapRiversColorTextBox.Text.Length == 6)
+            if (this.mapRiversColorTextBox.Text.Length == 6)
             {
                 try
                 {
-                    mapBoundsColorPreview.BackColor = ColorTranslator.FromHtml("#" + mapBoundsColorTextBox.Text);
-                    Properties.Settings.Default.mapBoundsColor = ColorTranslator.FromHtml("#" + mapBoundsColorTextBox.Text);
+	                this.mapBoundsColorPreview.BackColor = ColorTranslator.FromHtml("#" + this.mapBoundsColorTextBox.Text);
+                    Properties.Settings.Default.mapBoundsColor = ColorTranslator.FromHtml("#" + this.mapBoundsColorTextBox.Text);
                     Properties.Settings.Default.Save();
                 }
                 catch { }
@@ -561,7 +562,7 @@ namespace MapCreator
 
         private void mapBoundsColorTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            mapBoundsColorTextBox_TextChanged(null, null);
+	        this.mapBoundsColorTextBox_TextChanged(null, null);
         }
 
         #endregion
@@ -577,25 +578,25 @@ namespace MapCreator
         {
             if (MpkWrapper.CheckGamePath())
             {
-                Log("Game found...", LogLevel.notice);
+                Log("Game found...", LogLevel.Notice);
 
-                if (SelectedZones.Count == 0)
+                if (this.SelectedZones.Count == 0)
                 {
-                    Log("Please select at least one Zone to render.", LogLevel.error);
+                    Log("Please select at least one Zone to render.", LogLevel.Error);
                 }
                 else
                 {
-                    HandleRenderButton(false);
+	                this.HandleRenderButton(false);
 
-                    int counter = 1;
-                    foreach (ZoneSelection zone in SelectedZones)
+                    var counter = 1;
+                    foreach (var zone in this.SelectedZones)
                     {
-                        Log(string.Format("Rendering {0} ({1})...", zone.Name, zone.Id), LogLevel.notice);
-                        currentMapLabel.Text = string.Format("| {0} ({1}) |", zone.Name, zone.Id);
-                        queueProcessedLabel.Text = counter.ToString();
-                        drawMapBackgroundWorker.RunWorkerAsync(zone);
+                        Log(string.Format("Rendering {0} ({1})...", zone.Name, zone.Id), LogLevel.Notice);
+                        this.currentMapLabel.Text = string.Format("| {0} ({1}) |", zone.Name, zone.Id);
+                        this.queueProcessedLabel.Text = counter.ToString();
+                        this.drawMapBackgroundWorker.RunWorkerAsync(zone);
 
-                        while (drawMapBackgroundWorker.IsBusy)
+                        while (this.drawMapBackgroundWorker.IsBusy)
                         {
                             Application.DoEvents();
                         }
@@ -603,7 +604,7 @@ namespace MapCreator
                         counter++;
                     }
 
-                    HandleRenderButton(true);
+                    this.HandleRenderButton(true);
                 }
             }
         }
@@ -619,18 +620,18 @@ namespace MapCreator
         /// <param name="filename"></param>
         private void LoadImage(string filename)
         {
-            if(!enableResultPreview.Checked)
+            if(!this.enableResultPreview.Checked)
             {
                 return;
             }
 
             if (this.InvokeRequired)
             {
-                this.Invoke(new LoadImageDelegate(LoadImage), filename);
+                this.Invoke(new LoadImageDelegate(this.LoadImage), filename);
                 return;
             }
 
-            mapPreview.ImageLocation = filename;
+            this.mapPreview.ImageLocation = filename;
         }
 
         /// <summary>
@@ -644,13 +645,13 @@ namespace MapCreator
             try
             {
             */
-            ZoneSelection zone = (ZoneSelection)e.Argument;
+            var zone = (ZoneSelection)e.Argument;
 
             // Start BackgroundWorker
-            Log(string.Format("Start creating map for zone {0} ...", zone.Id), LogLevel.notice);
+            Log(string.Format("Start creating map for zone {0} ...", zone.Id), LogLevel.Notice);
 
             // The filename
-            string targetFileDirectory = directoryPatternTextBox.Text;
+            var targetFileDirectory = this.directoryPatternTextBox.Text;
             if (string.IsNullOrEmpty(targetFileDirectory)) targetFileDirectory = "maps";
 
             targetFileDirectory = targetFileDirectory.Replace("{id}", zone.Id);
@@ -658,10 +659,10 @@ namespace MapCreator
             targetFileDirectory = targetFileDirectory.Replace("{realm}", zone.Realm);
             targetFileDirectory = targetFileDirectory.Replace("{expansion}", zone.Expansion);
             targetFileDirectory = targetFileDirectory.Replace("{type}", zone.Type);
-            targetFileDirectory = targetFileDirectory.Replace("{size}", TargetMapSize.ToString());
+            targetFileDirectory = targetFileDirectory.Replace("{size}", this.TargetMapSize.ToString());
             targetFileDirectory = Tools.MakeValidDirectoryName(targetFileDirectory);
 
-            string targetFileName = filePatternTextBox.Text;
+            var targetFileName = this.filePatternTextBox.Text;
             if (string.IsNullOrEmpty(targetFileName)) targetFileName = "zone{id}_{size}";
 
             // Replace some values
@@ -670,15 +671,15 @@ namespace MapCreator
             targetFileName = targetFileName.Replace("{realm}", zone.Realm);
             targetFileName = targetFileName.Replace("{expansion}", zone.Expansion);
             targetFileName = targetFileName.Replace("{type}", zone.Type);
-            targetFileName = targetFileName.Replace("{size}", TargetMapSize.ToString());
+            targetFileName = targetFileName.Replace("{size}", this.TargetMapSize.ToString());
             targetFileName = Tools.MakeValidFileName(targetFileName);
 
             // File extension
-            string fileExtension = "jpg";
-            string selectedFileExtension = "JPEG";
+            var fileExtension = "jpg";
+            var selectedFileExtension = "JPEG";
             this.Invoke((MethodInvoker)delegate ()
             {
-                selectedFileExtension = fileTypeComboBox.Text;
+                selectedFileExtension = this.fileTypeComboBox.Text;
             });
             switch (selectedFileExtension)
             {
@@ -692,111 +693,115 @@ namespace MapCreator
             }
 
             // The Target File
-            string targetFilePath = string.Format("{0}", (!string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath)) ? Properties.Settings.Default.targetMapPath : Application.StartupPath);
-            FileInfo mapFile = new FileInfo(string.Format("{0}\\{3}\\{1}.{2}", targetFilePath, targetFileName, fileExtension, targetFileDirectory));
+            var targetFilePath = string.Format("{0}", (!string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath)) ? Properties.Settings.Default.targetMapPath : Application.StartupPath);
+            var mapFile = new FileInfo(string.Format("{0}\\{3}\\{1}.{2}", targetFilePath, targetFileName, fileExtension, targetFileDirectory));
             if (!Directory.Exists(mapFile.DirectoryName))
             {
                 Directory.CreateDirectory(mapFile.DirectoryName);
             }
 
-            if (skipIfFileExistsCheckbox.Checked && mapFile.Exists)
+            if (this.skipIfFileExistsCheckbox.Checked && mapFile.Exists)
             {
                 Log(string.Format("The target file \"{0}/{1}.{2}\" already exists. Skipping.", targetFileDirectory, targetFileName, fileExtension));
                 return;
             }
 
 
-            bool lightmap = generateLightmapCheckBox.Checked;
-            double lightmapZScale = Convert.ToDouble(heightmapZScaleTextBox.Value);
-            double lightmapLightMin = Convert.ToDouble(heightmapLightMinTextBox.Value);
-            double lightmapLightMax = Convert.ToDouble(heightmapLightMaxTextBox.Value);
-            double[] lightmapZVector = new double[] { Convert.ToDouble(heightmapZVector1TextBox.Value), Convert.ToDouble(heightmapZVector2TextBox.Value), Convert.ToDouble(heightmapZVector3TextBox.Value) };
+            var lightmap = this.generateLightmapCheckBox.Checked;
+            var lightmapZScale = Convert.ToDouble(this.heightmapZScaleTextBox.Value);
+            var lightmapLightMin = Convert.ToDouble(this.heightmapLightMinTextBox.Value);
+            var lightmapLightMax = Convert.ToDouble(this.heightmapLightMaxTextBox.Value);
+            var lightmapZVector = new double[] { Convert.ToDouble(this.heightmapZVector1TextBox.Value), Convert.ToDouble(this.heightmapZVector2TextBox.Value), Convert.ToDouble(this.heightmapZVector3TextBox.Value) };
 
-            bool rivers = generateRiversCheckBox.Checked;
-            bool riversUseDefaultColor = riversUseDefaultColorCheckBox.Checked;
-            Color riversColor = Properties.Settings.Default.mapRiverColor;
-            int riverOpacity = Convert.ToInt32(mapRiversOpacityTextBox.Value);
+            var rivers = this.generateRiversCheckBox.Checked;
+            var riversUseDefaultColor = this.riversUseDefaultColorCheckBox.Checked;
+            var riversColor = Properties.Settings.Default.mapRiverColor;
+            var riverOpacity = Convert.ToInt32(this.mapRiversOpacityTextBox.Value);
 
-            bool bounds = generateBoundsCheckBox.Checked;
-            Color boundsColor = Properties.Settings.Default.mapBoundsColor;
-            int boundsOpacity = Convert.ToInt32(mapBoundsOpacityTextBox.Text);
-            bool excludeBoundsFromMap = excludeBoundsFromMapCheckbox.Checked;
+            var bounds = this.generateBoundsCheckBox.Checked;
+            var boundsColor = Properties.Settings.Default.mapBoundsColor;
+            var boundsOpacity = Convert.ToInt32(this.mapBoundsOpacityTextBox.Text);
+            var excludeBoundsFromMap = this.excludeBoundsFromMapCheckbox.Checked;
 
-            bool drawFixtures = drawFixturesCheckBox.Checked;
-            bool drawFixturesBelowWater = drawFixturesBelowWaterCheckBox.Checked;
-            bool drawTrees = drawTreesCheckBox.Checked;
+            var drawFixtures = this.drawFixturesCheckBox.Checked;
+            var drawFixturesBelowWater = this.drawFixturesBelowWaterCheckBox.Checked;
+            var drawTrees = this.drawTreesCheckBox.Checked;
 
             // Generate the map
-            using (ZoneConfiguration conf = new ZoneConfiguration(zone.Id, TargetMapSize))
+            using (var conf = new ZoneConfiguration(zone.Id, this.TargetMapSize))
             {
                 // Create Background
-                MapBackground background = new MapBackground(conf);
-                background.DrawBackground = createBackgroundCheckBox.Checked;
+                var background = new MapBackground(conf)
+                                 {
+		                                 DrawBackground = this.createBackgroundCheckBox.Checked
+                                 };
 
-                MainForm.Log("Rendering background ...", LogLevel.notice);
-                using (MagickImage map = background.Draw())
+                MainForm.Log("Rendering background ...", LogLevel.Notice);
+                using (var map = background.Draw())
                 {
                     if (map != null)
                     {
-                        MainForm.Log("Finished background rendering!", LogLevel.success);
+                        MainForm.Log("Finished background rendering!", LogLevel.Success);
 
                         // Create lightmap
                         if (lightmap)
                         {
-                            MainForm.Log("Rendering lightmap ...", LogLevel.notice);
-                            MapLightmap lightmapGenerator = new MapLightmap(conf);
-                            lightmapGenerator.ZScale = lightmapZScale;
-                            lightmapGenerator.LightMin = lightmapLightMin;
-                            lightmapGenerator.LightMax = lightmapLightMax;
-                            lightmapGenerator.ZVector = lightmapZVector;
+                            MainForm.Log("Rendering lightmap ...", LogLevel.Notice);
+                            var lightmapGenerator = new MapLightmap(conf)
+                                                    {
+		                                                    ZScale = lightmapZScale,
+		                                                    LightMin = lightmapLightMin,
+		                                                    LightMax = lightmapLightMax,
+		                                                    ZVector = lightmapZVector
+                                                    };
                             lightmapGenerator.RecalculateLights();
                             lightmapGenerator.Draw(map);
-                            MainForm.Log("Finished lightmap rendering!", LogLevel.success);
+                            MainForm.Log("Finished lightmap rendering!", LogLevel.Success);
                         }
 
                         // We need this for fixtures
-                        MainForm.Log("Loading water configurations ...", LogLevel.notice);
-                        MapWater river = new MapWater(conf);
-                        MainForm.Log("Finished loading water configurations!", LogLevel.success);
+                        MainForm.Log("Loading water configurations ...", LogLevel.Notice);
+                        var river = new MapWater(conf);
+                        MainForm.Log("Finished loading water configurations!", LogLevel.Success);
 
                         MapFixtures fixturesGenerator = null;
                         if (drawFixtures || drawFixturesBelowWater || drawTrees)
                         {
-                            MainForm.Log("Loading fixtures ...", LogLevel.notice);
+                            MainForm.Log("Loading fixtures ...", LogLevel.Notice);
                             fixturesGenerator = new MapFixtures(conf, river.WaterAreas);
-                            fixturesGenerator.DrawFixtures = drawFixturesCheckBox.Checked || drawFixturesBelowWaterCheckBox.Checked;
-                            fixturesGenerator.DrawTrees = drawTreesCheckBox.Checked;
-                            fixturesGenerator.DrawTreesAsImages = treesAsImages.Checked;
-                            fixturesGenerator.TreeTransparency = Convert.ToInt32(mapTreeTransparencyTextBox.Value);
+                            fixturesGenerator.DrawFixtures = this.drawFixturesCheckBox.Checked ||this.drawFixturesBelowWaterCheckBox.Checked;
+                            fixturesGenerator.DrawTrees = this.drawTreesCheckBox.Checked;
+                            fixturesGenerator.DrawTreesAsImages = this.treesAsImages.Checked;
+                            fixturesGenerator.TreeTransparency = Convert.ToInt32(this.mapTreeTransparencyTextBox.Value);
                             fixturesGenerator.Start();
-                            MainForm.Log("Finished loading fixtures!", LogLevel.success);
+                            MainForm.Log("Finished loading fixtures!", LogLevel.Success);
                         }
 
                         // Draw Fixtures below water
                         if (drawFixturesBelowWater)
                         {
-                            MainForm.Log("Rendering fixtures below water level ...", LogLevel.notice);
+                            MainForm.Log("Rendering fixtures below water level ...", LogLevel.Notice);
                             fixturesGenerator.Draw(map, true);
-                            MainForm.Log("Finished rendering fixtures below water level!", LogLevel.success);
+                            MainForm.Log("Finished rendering fixtures below water level!", LogLevel.Success);
                         }
 
                         // Create Rivers
                         if (rivers)
                         {
-                            MainForm.Log("Rendering water ...", LogLevel.notice);
+                            MainForm.Log("Rendering water ...", LogLevel.Notice);
                             river.WaterColor = riversColor;
                             river.WaterTransparency = riverOpacity;
                             river.UseClientColors = riversUseDefaultColor;
                             river.Draw(map);
-                            MainForm.Log("Finished water rendering!", LogLevel.success);
+                            MainForm.Log("Finished water rendering!", LogLevel.Success);
                         }
 
                         // Draw Fixtures above water
                         if (drawFixtures || drawTrees)
                         {
-                            MainForm.Log("Rendering fixtures above water level ...", LogLevel.notice);
+                            MainForm.Log("Rendering fixtures above water level ...", LogLevel.Notice);
                             fixturesGenerator.Draw(map, false);
-                            MainForm.Log("Finished rendering fixtures above water level!", LogLevel.success);
+                            MainForm.Log("Finished rendering fixtures above water level!", LogLevel.Success);
                         }
 
                         if (fixturesGenerator != null)
@@ -807,18 +812,20 @@ namespace MapCreator
                         // Create bounds
                         if (bounds)
                         {
-                            MainForm.Log("Adding zone bounds ...", LogLevel.notice);
-                            MapBounds mapBounds = new MapBounds(conf);
-                            mapBounds.BoundsColor = boundsColor;
-                            mapBounds.Transparency = boundsOpacity;
-                            mapBounds.ExcludeFromMap = excludeBoundsFromMap;
+                            MainForm.Log("Adding zone bounds ...", LogLevel.Notice);
+                            var mapBounds = new MapBounds(conf)
+                                            {
+		                                            BoundsColor = boundsColor,
+		                                            Transparency = boundsOpacity,
+		                                            ExcludeFromMap = excludeBoundsFromMap
+                                            };
                             mapBounds.Draw(map);
-                            MainForm.Log("Finished zone bunds!", LogLevel.success);
+                            MainForm.Log("Finished zone bunds!", LogLevel.Success);
                         }
 
                         MainForm.Log(string.Format("Writing map image {0} ...", mapFile.Name));
                         ProgressStartMarquee("Writing map image ...");
-                        map.Quality = Convert.ToUInt32(mapQualityTextBox.Value);
+                        map.Quality = Convert.ToUInt32(this.mapQualityTextBox.Value);
                         map.Write(mapFile.FullName);
                     }
                 }
@@ -826,12 +833,12 @@ namespace MapCreator
 
             if (File.Exists(mapFile.FullName))
             {
-                LoadImage(mapFile.FullName);
+	            this.LoadImage(mapFile.FullName);
                 ProgressReset();
             }
             else
             {
-                Log("Errors during progress!", LogLevel.error);
+                Log("Errors during progress!", LogLevel.Error);
             }
             /*
             }
@@ -848,35 +855,35 @@ namespace MapCreator
         {
             if (e.Error != null)
             {
-                MainForm.Log("Unhandled Exception thrown!", LogLevel.error);
-                MainForm.Log(e.Error.Message, LogLevel.error);
-                MainForm.Log(e.Error.StackTrace, LogLevel.error);    
+                MainForm.Log("Unhandled Exception thrown!", LogLevel.Error);
+                MainForm.Log(e.Error.Message, LogLevel.Error);
+                MainForm.Log(e.Error.StackTrace, LogLevel.Error);    
             }
             else
             {
-                Log("Finished without errors!", LogLevel.success);
+                Log("Finished without errors!", LogLevel.Success);
             }
         }
 
         private void MainForm_Resize(object sender, EventArgs e)
         {
-            splitContainer1.SplitterDistance = flowLayoutSizerPanel.Location.X + flowLayoutSizerPanel.Width;
+	        this.splitContainer1.SplitterDistance = this.flowLayoutSizerPanel.Location.X + this.flowLayoutSizerPanel.Width;
         }
 
         private void treesAsShadedModel_CheckedChanged(object sender, EventArgs e)
         {
-            treesAsImages.Checked = !treesAsShadedModel.Checked;
+	        this.treesAsImages.Checked = !this.treesAsShadedModel.Checked;
         }
 
         private void treesAsImages_CheckedChanged(object sender, EventArgs e)
         {
-            treesAsShadedModel.Checked = !treesAsImages.Checked;
+	        this.treesAsShadedModel.Checked = !this.treesAsImages.Checked;
         }
 
         private void drawTreesCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-            treesAsImages.Enabled = drawTreesCheckBox.Checked;
-            treesAsShadedModel.Enabled = drawTreesCheckBox.Checked;
+	        this.treesAsImages.Enabled = this.drawTreesCheckBox.Checked;
+	        this.treesAsShadedModel.Enabled = this.drawTreesCheckBox.Checked;
         }
 
         private void dawnOfLightToolStripMenuItem_Click(object sender, EventArgs e)
@@ -903,7 +910,7 @@ namespace MapCreator
         {
             if(MessageBox.Show("Do you really want to delete the fixture polygon cache?", "Delete fixture polygons", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                FileInfo fixturesCache = new FileInfo(Application.StartupPath + Path.DirectorySeparatorChar + "data" + Path.DirectorySeparatorChar + "polys.mpk");
+                var fixturesCache = new FileInfo(Application.StartupPath + Path.DirectorySeparatorChar + "data" + Path.DirectorySeparatorChar + "polys.mpk");
                 if (fixturesCache.Exists)
                 {
                     fixturesCache.Delete();
@@ -915,7 +922,7 @@ namespace MapCreator
         {
             if (MessageBox.Show("Do you really want to delete all prerendered heightmaps?", "Delete heightmaps", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                DirectoryInfo heightmapsCache = new DirectoryInfo(Application.StartupPath + Path.DirectorySeparatorChar + "data" + Path.DirectorySeparatorChar + "heightmaps");
+                var heightmapsCache = new DirectoryInfo(Application.StartupPath + Path.DirectorySeparatorChar + "data" + Path.DirectorySeparatorChar + "heightmaps");
                 if (heightmapsCache.Exists)
                 {
                     heightmapsCache.Delete(true);
@@ -925,10 +932,10 @@ namespace MapCreator
 
         private void widthTextBox_ValueChanged(object sender, EventArgs e)
         {
-            int[] steps = new int[] { 256, 512, 1024, 2048, 4096, 8192, 16384, 32768 };
-            int newValue = 256;
+            var steps = new int[] { 256, 512, 1024, 2048, 4096, 8192, 16384, 32768 };
+            var newValue = 256;
 
-            int currentValue = (int)widthTextBox.Value;
+            var currentValue = (int)this.widthTextBox.Value;
             if (currentValue < steps.First())
             {
                 newValue = steps.First();
@@ -939,8 +946,8 @@ namespace MapCreator
             }
             else
             {
-                int closestValue = steps.Aggregate((current, next) => Math.Abs((long)current - widthTextBox.Value) < Math.Abs((long)next - widthTextBox.Value) ? current : next);
-                int closestIndex = Array.IndexOf(steps, closestValue);
+                var closestValue = steps.Aggregate((current, next) => Math.Abs((long)current - this.widthTextBox.Value) < Math.Abs((long)next - this.widthTextBox.Value) ? current : next);
+                var closestIndex = Array.IndexOf(steps, closestValue);
 
                 if (currentValue > closestValue)
                 {
@@ -956,7 +963,7 @@ namespace MapCreator
                 }
             }
 
-            widthTextBox.Value = newValue;
+            this.widthTextBox.Value = newValue;
         }
     }
 }

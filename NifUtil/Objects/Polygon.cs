@@ -19,39 +19,24 @@
 
 using SharpDX;
 
-namespace NifUtil
+namespace NifUtil.Objects
 {
     public struct Polygon
     {
-        public Vector3 P1
-        {
-            get { return m_vectors[0]; }
-        }
+        public Vector3 P1 => this.Vectors[0];
 
-        public Vector3 P2
-        {
-            get { return m_vectors[1]; }
-        }
+        public Vector3 P2 => this.Vectors[1];
 
-        public Vector3 P3
-        {
-            get { return m_vectors[2]; }
-        }
+        public Vector3 P3 => this.Vectors[2];
 
-        private Vector3[] m_vectors;
-
-        public Vector3[] Vectors
-        {
-            get { return m_vectors; }
-            set { m_vectors = value; }
-        }
+        public Vector3[] Vectors { get; set; }
 
         public Polygon(Vector3 p1, Vector3 p2, Vector3 p3)
         {
-            m_vectors = new Vector3[3];
-            m_vectors.SetValue(p1, 0);
-            m_vectors.SetValue(p2, 1);
-            m_vectors.SetValue(p3, 2);
+            this.Vectors = new Vector3[3];
+            this.Vectors.SetValue(p1, 0);
+            this.Vectors.SetValue(p2, 1);
+            this.Vectors.SetValue(p3, 2);
         }
     }
 }

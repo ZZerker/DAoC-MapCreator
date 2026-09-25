@@ -19,154 +19,92 @@
 
 using System;
 using System.IO;
+using MapCreator.Classes.MapCreation;
 
-namespace MapCreator
+namespace MapCreator.Classes
 {
     public class ZoneConfiguration : IDisposable
     {
-        const double zoneMaxCoordinate = 65536.0;
+        const double ZONE_MAX_COORDINATE = 65536.0;
 
-        private string m_zoneId;
-        public string ZoneId
-        {
-            get { return m_zoneId; }
-        }
+        public string ZoneId { get; }
 
-        private GameExpansion m_expansion;
-        public GameExpansion Expansion
-        {
-            get { return m_expansion; }
-        }
+        public GameExpansion Expansion { get; }
 
-        private string m_zoneDirectory;
-        public string ZoneDirectory
-        {
-            get { return m_zoneDirectory; }
-        }
+        public string ZoneDirectory { get; }
 
-        private StreamReader m_sectorDatStreamReader;
-        public StreamReader SectorDatStreamReader
-        {
-            get { return m_sectorDatStreamReader; }
-        }
+        public StreamReader SectorDatStreamReader { get; }
 
-        private int m_targetMapSize = 1024;
-        public int TargetMapSize
-        {
-            get { return m_targetMapSize; }
-        }
+        public int TargetMapSize { get; } = 1024;
 
-        private double m_locScale = 1;
-        public double LocScale
-        {
-            get { return m_locScale; }
-        }
+        public double LocScale { get; } = 1;
 
-        private double m_mapScale = 1;
-        public double MapScale
-        {
-            get { return m_mapScale; }
-        }
+        public double MapScale { get; } = 1;
 
-        private double m_locsPerPixel = 1;
-        public double LocsPerLixel
-        {
-            get { return m_locsPerPixel; }
-        }
+        public double LocsPerLixel { get; } = 1;
 
-        private MapHeightmap m_heightmap;
-        public MapHeightmap Heightmap
-        {
-            get { return m_heightmap; }
-        }
+        public MapHeightmap Heightmap { get; }
 
-        private double[,] m_riverHeights;
-        public double[,] RiverHeights
-        {
-            get { return m_riverHeights; }
-            set { m_riverHeights = value; }
-        } 
+        public double[,] RiverHeights { get; set; }
 
         #region MPK files
+        public string DatMpk { get; }
 
-        private string m_datMpk;
-        public string DatMpk
-        {
-            get { return m_datMpk; }
-        }
+        public string CvsMpk { get; }
 
-        private string m_cvsMpk;
-        public string CvsMpk
-        {
-            get { return m_cvsMpk; }
-        }
+        public string LodMpk { get; }
 
-        private string m_lodMpk;
-        public string LodMpk
-        {
-            get { return m_lodMpk; }
-        }
+        public string TerMpk { get; }
 
-        private string m_terMpk;
-        public string TerMpk
-        {
-            get { return m_terMpk; }
-        }
-
-        private string m_texMpk;
-        public string TexMpk
-        {
-            get { return m_texMpk; }
-        }
-
+        public string TexMpk { get; }
         #endregion
 
         public ZoneConfiguration(string zoneId, int mapSize)
         {
-            m_zoneId = zoneId;
+            this.ZoneId = zoneId;
 
             // Get expansion from zones.xml
-            m_expansion = DataWrapper.GetExpansionByZone(zoneId);
+            this.Expansion = DataWrapper.GetExpansionByZone(zoneId);
 
             // Zone Directory
-            m_zoneDirectory = this.GetZoneDirectory();
+            this.ZoneDirectory = this.GetZoneDirectory();
 
             // Some mpk files
-            m_datMpk = string.Format("{0}\\dat{1}.mpk", m_zoneDirectory, m_zoneId);
-            m_cvsMpk = string.Format("{0}\\csv{1}.mpk", m_zoneDirectory, m_zoneId);
-            m_lodMpk = string.Format("{0}\\lod{1}.mpk", m_zoneDirectory, m_zoneId);
-            m_terMpk = string.Format("{0}\\ter{1}.mpk", m_zoneDirectory, m_zoneId);
-            m_texMpk = string.Format("{0}\\tex{1}.mpk", m_zoneDirectory, m_zoneId);
+            this.DatMpk = string.Format("{0}\\dat{1}.mpk", this.ZoneDirectory, this.ZoneId);
+            this.CvsMpk = string.Format("{0}\\csv{1}.mpk", this.ZoneDirectory, this.ZoneId);
+            this.LodMpk = string.Format("{0}\\lod{1}.mpk", this.ZoneDirectory, this.ZoneId);
+            this.TerMpk = string.Format("{0}\\ter{1}.mpk", this.ZoneDirectory, this.ZoneId);
+            this.TexMpk = string.Format("{0}\\tex{1}.mpk", this.ZoneDirectory, this.ZoneId);
 
             // Check if the zone gets its data from an other zone
 
             // Check if file exists, else map to datXXX.mpk
-            if (!File.Exists(m_cvsMpk)) m_cvsMpk = m_datMpk;
-            if (!File.Exists(m_lodMpk)) m_lodMpk = m_datMpk;
-            if (!File.Exists(m_terMpk)) m_terMpk = m_datMpk;
-            if (!File.Exists(m_texMpk)) m_texMpk = m_datMpk;
+            if (!File.Exists(this.CvsMpk)) this.CvsMpk = this.DatMpk;
+            if (!File.Exists(this.LodMpk)) this.LodMpk = this.DatMpk;
+            if (!File.Exists(this.TerMpk)) this.TerMpk = this.DatMpk;
+            if (!File.Exists(this.TexMpk)) this.TexMpk = this.DatMpk;
 
             // Useful for everything, so open it
-            m_sectorDatStreamReader = MpkWrapper.GetFileFromMpk(m_datMpk, "sector.dat");
+            this.SectorDatStreamReader = MpkWrapper.GetFileFromMpk(this.DatMpk, "sector.dat");
 
             // for math
-            m_targetMapSize = mapSize;
-            m_mapScale = m_targetMapSize / 256.0;
-            m_locsPerPixel = zoneMaxCoordinate / mapSize;
-            m_locScale = m_targetMapSize / zoneMaxCoordinate;
+            this.TargetMapSize = mapSize;
+            this.MapScale = this.TargetMapSize / 256.0;
+            this.LocsPerLixel = ZONE_MAX_COORDINATE / mapSize;
+            this.LocScale = this.TargetMapSize / ZONE_MAX_COORDINATE;
 
             // Heightmap
-            this.m_heightmap = new MapHeightmap(this);
+            this.Heightmap = new MapHeightmap(this);
 
             // Prepare river heights array
-            m_riverHeights = new double[m_targetMapSize, m_targetMapSize];
+            this.RiverHeights = new double[this.TargetMapSize, this.TargetMapSize];
         }
 
         public string GetZoneDirectory(string zoneId = null)
         {
-            if (string.IsNullOrEmpty(zoneId)) zoneId = m_zoneId;
-            GameExpansion expansion = DataWrapper.GetExpansionByZone(zoneId);
-            string zoneDataDirectory = "";
+            if (string.IsNullOrEmpty(zoneId)) zoneId = this.ZoneId;
+            var expansion = DataWrapper.GetExpansionByZone(zoneId);
+            var zoneDataDirectory = "";
 
             switch (expansion)
             {
@@ -195,38 +133,38 @@ namespace MapCreator
 
         public double ZoneCoordinateToMapCoordinate(double zoneCoordinate)
         {
-            return (m_targetMapSize * zoneCoordinate) / zoneMaxCoordinate;
+            return (this.TargetMapSize * zoneCoordinate) / ZONE_MAX_COORDINATE;
         }
 
         public double MapCoordinateToZoneCoordinate(double mapCoordinate)
         {
-            return (zoneMaxCoordinate * mapCoordinate) / m_targetMapSize;
+            return (ZONE_MAX_COORDINATE * mapCoordinate) / this.TargetMapSize;
         }
 
         public ImageMagick.MagickImage GetWaterMap()
         {
-            ImageMagick.MagickImage watermap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.m_datMpk, "water.pcx"));
-            watermap.Resize((uint)(this.m_targetMapSize), (uint)(this.m_targetMapSize));
+            var watermap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.DatMpk, "water.pcx"));
+            watermap.Resize((uint)(this.TargetMapSize), (uint)(this.TargetMapSize));
 
             return watermap;
         }
 
         public ImageMagick.MagickImage GetTerrainMap()
         {
-            ImageMagick.MagickImage terrainmap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.m_datMpk, "terrain.pcx"));
+            var terrainmap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.DatMpk, "terrain.pcx"));
             return terrainmap;
         }
 
         public ImageMagick.MagickImage GetOffsetMap()
         {
-            ImageMagick.MagickImage offsetmap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.m_datMpk, "offset.pcx"));
+            var offsetmap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.DatMpk, "offset.pcx"));
             return offsetmap;
         }
 
         public void Dispose()
         {
-            if (m_sectorDatStreamReader != null) m_sectorDatStreamReader.Close();
-            m_heightmap.Dispose();
+            if (this.SectorDatStreamReader != null) this.SectorDatStreamReader.Close();
+            this.Heightmap.Dispose();
         }
     }
 }

@@ -20,34 +20,17 @@
 using System.Collections.Generic;
 using SharpDX;
 
-namespace MapCreator
+namespace MapCreator.Classes.MapCreation.Fixtures.Objects
 {
-    class TreeClusterRow
+	internal class TreeClusterRow
     {
-        private string m_name;
-        private string m_tree;
-        private List<Vector3> m_treeInstances;
+	    #region Getter/Setter
 
-        #region Getter/Setter
+        public string Name { get; set; }
 
-        public string Name
-        {
-            get { return m_name; }
-            set { m_name = value; }
-        }
+        public string Tree { get; set; }
 
-        public string Tree
-        {
-            get { return m_tree; }
-            set { m_tree = value; }
-        }
-
-        public List<Vector3> TreeInstances
-        {
-            get { return m_treeInstances; }
-            set { m_treeInstances = value; }
-        }
-
+        public List<Vector3> TreeInstances { get; set; }
         #endregion
 
         public TreeClusterRow()

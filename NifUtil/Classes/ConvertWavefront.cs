@@ -1,4 +1,5 @@
-﻿//
+﻿
+//
 // MapCreator NifUtil Library
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
 //
@@ -19,19 +20,19 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using Niflib;
 using System.IO;
-using SharpDX;
+using System.Linq;
 using ImageMagick;
+using Niflib;
+using SharpDX;
 
-namespace NifUtil
+namespace NifUtil.Classes
 {
-    class ConvertWavefront : Convert
+	internal class ConvertWavefront : Convert
     {
-        private int m_triangleCounter = 1;
-        private List<string> mtlExport = new List<string>();
-        private List<string> textures = new List<string>();
+        private int triangleCounter = 1;
+        private readonly List<string> mtlExport = new List<string>();
+        private readonly List<string> textures = new List<string>();
 
         public ConvertWavefront(NiFile file)
             : base(file)
@@ -40,45 +41,49 @@ namespace NifUtil
 
         public void Start()
         {
-            Export.Add("# Build with NifParser by Merec");
-            Export.Add("# special thanks to Schaf");
-            Export.Add("");
+            this.Export.Add("# Build with NifParser by Merec");
+            this.Export.Add("# special thanks to Schaf");
+            this.Export.Add("");
 
-            WalkNodes(File.FindRoot());
+            this.WalkNodes(this.File.FindRoot());
         }
 
         private void WalkNodes(NiAVObject node)
         {
             // Ignore some node names
-            if (!IsValidNode(node)) return;
+            if (!this.IsValidNode(node)) return;
 
             // Render Children
-            if (node is NiTriShape)
+            if (node is NiTriShape shape)
             {
-                Export.Add("");
-                Export.Add(ParseShape((NiTriShape)node));
-                Export.Add("");
+                this.Export.Add("");
+                this.Export.Add(this.ParseShape(shape));
+                this.Export.Add("");
             }
-            else if (node is NiTriStrips)
+            else if (node is NiTriStrips strips)
             {
-                Export.Add("");
-                Export.Add(ParseStrips((NiTriStrips)node));
-                Export.Add("");
+                this.Export.Add("");
+                this.Export.Add(this.ParseStrips(strips));
+                this.Export.Add("");
             }
 
-            NiNode currentNode = node as NiNode;
-            if (currentNode != null)
+            var currentNode = node as NiNode;
+            if(currentNode == null)
             {
-                 if (currentNode.Children.Length > 0)
-                 {
-                     foreach (var child in currentNode.Children)
-                     {
-                         if (child.IsValid())
-                         {
-                             WalkNodes(child.Object);
-                         }
-                     }
-                 }
+	            return;
+            }
+
+            if(currentNode.Children.Length <= 0)
+            {
+	            return;
+            }
+
+            foreach (var child in currentNode.Children)
+            {
+	            if (child.IsValid())
+	            {
+		            this.WalkNodes(child.Object);
+	            }
             }
         }
 
@@ -86,12 +91,12 @@ namespace NifUtil
         {
             if (!strips.Data.IsValid()) return "";
 
-            NiTriStripsData geometry = (NiTriStripsData)strips.Data.Object;
+            var geometry = (NiTriStripsData)strips.Data.Object;
 
-            Matrix transformationMatrix = ComputeWorldMatrix(strips);
+            var transformationMatrix = this.ComputeWorldMatrix(strips);
 
             // The final text
-            List<string> export = new List<string>();
+            var export = new List<string>();
 
             // Set Object name
             export.Add("g Strip " + strips.Name + Environment.NewLine);
@@ -99,58 +104,53 @@ namespace NifUtil
             // Verticles (v)
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
-                export.Add(printVertices(geometry.Vertices, transformationMatrix));
+                export.Add(this.PrintVertices(geometry.Vertices, transformationMatrix));
             }
 
             // Texture coordinates (vt)
             if (geometry.UVSets.Length > 0)
             {
-                export.Add(printUvSets(geometry.UVSets));
+                export.Add(this.PrintUvSets(geometry.UVSets));
             }
 
             // Normals (vn)
             if (geometry.HasNormals)
             {
-                export.Add(printNormals(geometry.Normals, transformationMatrix));
+                export.Add(this.PrintNormals(geometry.Normals, transformationMatrix));
             }
 
-            if (geometry.Points.Length > 0)
+            if(geometry.Points.Length <= 0)
             {
-                List<Triangle> triangles = new List<Triangle>();
-
-                foreach (ushort[] points in geometry.Points)
-                {
-                    bool t = false;
-                    int j = 1;
-
-                    ushort p1 = points[0];
-                    ushort p2 = points[1];
-
-                    while (j < points.Length - 1)
-                    {
-                        ushort p3 = points[j+1];
-
-                        if (p1 != p2 && p1 != p3 && p2 != p3)
-                        {
-                            if (t)
-                            {
-                                triangles.Add(new Triangle(p1, p3, p2));
-                            }
-                            else
-                            {
-                                triangles.Add(new Triangle(p1, p2, p3));
-                            }
-                        }
-
-                        j = j + 1;
-                        p1 = p2;
-                        p2 = p3;
-                        t = !t;
-                    }
-                }
-
-                export.Add(printTriangles(triangles.ToArray(), (geometry.UVSets.Length > 0)));
+	            return string.Join(Environment.NewLine, export);
             }
+
+            var triangles = new List<Triangle>();
+
+            foreach (var points in geometry.Points)
+            {
+	            var t = false;
+	            var j = 1;
+
+	            var p1 = points[0];
+	            var p2 = points[1];
+
+	            while (j < points.Length - 1)
+	            {
+		            var p3 = points[j+1];
+
+		            if (p1 != p2 && p1 != p3 && p2 != p3)
+		            {
+			            triangles.Add(t?new Triangle(p1, p3, p2):new Triangle(p1, p2, p3));
+		            }
+
+		            j = j + 1;
+		            p1 = p2;
+		            p2 = p3;
+		            t = !t;
+	            }
+            }
+
+            export.Add(this.PrintTriangles(triangles.ToArray(), (geometry.UVSets.Length > 0)));
 
             return string.Join(Environment.NewLine, export);
         }
@@ -159,124 +159,121 @@ namespace NifUtil
         {
             if (!shape.Data.IsValid()) return "";
 
-            NiTriShapeData geometry = (NiTriShapeData)shape.Data.Object;
+            var geometry = (NiTriShapeData)shape.Data.Object;
 
             // The final text
-            List<string> export = new List<string>();
+            var export = new List<string>();
 
-            Matrix transformationMatrix = ComputeWorldMatrix(shape);
+            var transformationMatrix = this.ComputeWorldMatrix(shape);
 
             // Set Object name
             export.Add("g Shape " + shape.Name + Environment.NewLine);
 
             NiMaterialProperty material = null;
             NiTexturingProperty texture = null;
-            foreach (NiRef<NiProperty> property in shape.Properties)
+            foreach (var property in shape.Properties)
             {
-                if (property.Object is NiMaterialProperty)
+                if (property.Object is NiMaterialProperty propertyObject)
                 {
-                    material = property.Object as NiMaterialProperty;
+                    material = propertyObject;
                 }
-                if (property.Object is NiTexturingProperty)
+                if (property.Object is NiTexturingProperty texturingProperty)
                 {
-                    texture = property.Object as NiTexturingProperty;
+                    texture = texturingProperty;
                 }
             }
 
             if (material != null && texture != null)
             {
-                export.Add(printMaterial(material, texture));
+                export.Add(this.PrintMaterial(material, texture));
             }
 
             // Verticles (v)
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
-                export.Add(printVertices(geometry.Vertices, transformationMatrix));
+                export.Add(this.PrintVertices(geometry.Vertices, transformationMatrix));
             }
 
             // Texture coordinates (vt)
             if (geometry.UVSets.Length > 0)
             {
-                export.Add(printUvSets(geometry.UVSets));
+                export.Add(this.PrintUvSets(geometry.UVSets));
             }
 
             // Normals (vn)
             if (geometry.HasNormals)
             {
-                export.Add(printNormals(geometry.Normals, transformationMatrix));
+                export.Add(this.PrintNormals(geometry.Normals, transformationMatrix));
             }
 
             // Parameter space vertices (vp)
 
             // Face Definitions (f)
-            export.Add(printTriangles(geometry.Triangles, (geometry.UVSets.Length > 0)));
+            export.Add(this.PrintTriangles(geometry.Triangles, (geometry.UVSets.Length > 0)));
 
             return string.Join(Environment.NewLine, export);
         }
 
-        private string printMaterial(NiMaterialProperty material, NiTexturingProperty texture)
+        private string PrintMaterial(NiMaterialProperty material, NiTexturingProperty texture)
         {
-            if (mtlExport.Count > 0) mtlExport.Add(Environment.NewLine);
+            if (this.mtlExport.Count > 0) this.mtlExport.Add(Environment.NewLine);
 
-            string name = material.Name.ToString();
+            var name = material.Name.ToString();
 
-            mtlExport.Add("newmtl " + name);
+            this.mtlExport.Add("newmtl " + name);
 
-            // Ambient Color
-            mtlExport.Add(string.Format("Ka {0} {1} {2}", material.AmbientColor.Red, material.AmbientColor.Green, material.AmbientColor.Blue));
-            // Diffuse Color
-            mtlExport.Add(string.Format("Kd {0} {1} {2}", material.DiffuseColor.Red, material.DiffuseColor.Green, material.DiffuseColor.Blue));
-            // Specular Color
-            mtlExport.Add(string.Format("Ks {0} {1} {2}", material.SpecularColor.Red, material.SpecularColor.Green, material.SpecularColor.Blue));
-            // Transparency
-            mtlExport.Add(string.Format("d {0}", material.Alpha));
+            
+            this.mtlExport.Add(string.Format("Ka {0} {1} {2}", material.AmbientColor.Red, material.AmbientColor.Green, material.AmbientColor.Blue));            
+            this.mtlExport.Add(string.Format("Kd {0} {1} {2}", material.DiffuseColor.Red, material.DiffuseColor.Green, material.DiffuseColor.Blue));            
+            this.mtlExport.Add(string.Format("Ks {0} {1} {2}", material.SpecularColor.Red, material.SpecularColor.Green, material.SpecularColor.Blue));            
+            this.mtlExport.Add(string.Format("d {0}", material.Alpha));
             //mtlExport.Add(string.Format("Tr {0}", material.Alpha));
 
-            printTexture(texture);
+            this.PrintTexture(texture);
 
-            string export = "# Material" + Environment.NewLine;
+            var export = "# Material" + Environment.NewLine;
             export += "usemtl " + name + Environment.NewLine;
             return export;
         }
 
-        private void printTexture(NiTexturingProperty texture)
+        private void PrintTexture(NiTexturingProperty texture)
         {
-            NiSourceTexture source = texture.File.ObjectsByRef.Where(o => o.Key == texture.BaseTexture.Source.RefId).First().Value as NiSourceTexture;
+            var source = texture.File.ObjectsByRef.First(o => o.Key == texture.BaseTexture.Source.RefId).Value as NiSourceTexture;
 
-            string fileName = source.FileName.ToString().ToLower();
+            var fileName = source.FileName.ToString().ToLower();
 
-            string offset = string.Format("-o {0} {1}", texture.BaseTexture.CenterOffset.X, texture.BaseTexture.CenterOffset.Y);
+            var offset = string.Format("-o {0} {1}", texture.BaseTexture.CenterOffset.X, texture.BaseTexture.CenterOffset.Y);
 
-            mtlExport.Add("# original file " + fileName);
-            mtlExport.Add(string.Format("map_Ka {0}.tga", Path.GetFileNameWithoutExtension(fileName), offset));
-            mtlExport.Add(string.Format("map_Kd {0}.tga", Path.GetFileNameWithoutExtension(fileName), offset));
+            this.mtlExport.Add("# original file " + fileName);
+            this.mtlExport.Add(string.Format("map_Ka {0}.tga", Path.GetFileNameWithoutExtension(fileName), offset));
+            this.mtlExport.Add(string.Format("map_Kd {0}.tga", Path.GetFileNameWithoutExtension(fileName), offset));
             //mtlExport.Add(string.Format("map_Ks {0}.tga", Path.GetFileNameWithoutExtension(fileName), offset));
-            textures.Add(fileName);
+            this.textures.Add(fileName);
 
             if (texture.BumpMapTexture != null)
             {
-                NiSourceTexture bumbTexture = texture.File.ObjectsByRef.Where(o => o.Key == texture.BumpMapTexture.Source.RefId).First().Value as NiSourceTexture;
-                mtlExport.Add(string.Format("map_bump {0}.tga", Path.GetFileNameWithoutExtension(bumbTexture.FileName.ToString().ToLower())));
-                textures.Add(bumbTexture.FileName.ToString());
+                var bumbTexture = texture.File.ObjectsByRef.First(o => o.Key == texture.BumpMapTexture.Source.RefId).Value as NiSourceTexture;
+                this.mtlExport.Add(string.Format("map_bump {0}.tga", Path.GetFileNameWithoutExtension(bumbTexture.FileName.ToString().ToLower())));
+                this.textures.Add(bumbTexture.FileName.ToString());
             }
 
 
         }
 
-        private string printVertices(Vector3[] vertices, Matrix transformation)
+        private string PrintVertices(Vector3[] vertices, Matrix transformation)
         {
-            string export = "";
-            foreach (Vector3 verticle in vertices)
+            var export = "";
+            foreach (var verticle in vertices)
             {
-                Vector3 vectorTransformed = Vector3.TransformCoordinate(verticle, transformation);
+                var vectorTransformed = Vector3.TransformCoordinate(verticle, transformation);
                 export += string.Format("v {0} {1} {2}", vectorTransformed.X, vectorTransformed.Y, vectorTransformed.Z) + Environment.NewLine;
             }
             return export;
         }
 
-        private string printUvSets(Vector2[][] uvsets)
+        private string PrintUvSets(Vector2[][] uvsets)
         {
-            string export = "";
+            var export = "";
 
             /*
             foreach (Vector2[] uvset in uvsets.Reverse())
@@ -289,9 +286,9 @@ namespace NifUtil
              * */
 
             // Test: Draw only the first set without reverse
-            foreach (Vector2[] uvset in uvsets)
+            foreach (var uvset in uvsets)
             {
-                foreach (Vector2 uv in uvset)
+                foreach (var uv in uvset)
                 {
                     export += string.Format("vt {0} {1}", uv.X, 1f - uv.Y) + Environment.NewLine;
                 }
@@ -302,36 +299,36 @@ namespace NifUtil
             return export;
         }
 
-        private string printNormals(Vector3[]normals, Matrix transformation)
+        private string PrintNormals(Vector3[]normals, Matrix transformation)
         {
-            string export = "";
-            foreach (Vector3 normal in normals)
+            var export = "";
+            foreach (var normal in normals)
             {
-                Vector3 vectorTransformed = Vector3.TransformNormal(normal, transformation);
+                var vectorTransformed = Vector3.TransformNormal(normal, transformation);
                 export += string.Format("vn {0} {1} {2}", vectorTransformed.X, vectorTransformed.Y, vectorTransformed.Z) + Environment.NewLine;
             }
             return export;
         }
 
-        private string printTriangles(Triangle[] triangles, bool hasUvSets)
+        private string PrintTriangles(Triangle[] triangles, bool hasUvSets)
         {
-            string export = "";
+            var export = "";
 
-            string format = "f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}";
+            var format = "f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}";
             if (!hasUvSets)
             {
                 format = "f {0}//{0} {1}//{1} {2}//{2}";
             }
 
-            int max = m_triangleCounter;
-            foreach (Triangle face in triangles)
+            var max = this.triangleCounter;
+            foreach (var face in triangles)
             {
-                export += string.Format(format, face.X + m_triangleCounter, face.Y + m_triangleCounter, face.Z + m_triangleCounter) + Environment.NewLine;
-                if (face.X + m_triangleCounter > max) max = face.X + m_triangleCounter;
-                if (face.Y + m_triangleCounter > max) max = face.Y + m_triangleCounter;
-                if (face.Z + m_triangleCounter > max) max = face.Z + m_triangleCounter;
+                export += string.Format(format, face.X + this.triangleCounter, face.Y + this.triangleCounter, face.Z + this.triangleCounter) + Environment.NewLine;
+                if (face.X + this.triangleCounter > max) max = face.X + this.triangleCounter;
+                if (face.Y + this.triangleCounter > max) max = face.Y + this.triangleCounter;
+                if (face.Z + this.triangleCounter > max) max = face.Z + this.triangleCounter;
             }
-            m_triangleCounter = max + 1;
+            this.triangleCounter = max + 1;
 
             /*
             foreach (Triangle face in triangles)
@@ -345,83 +342,85 @@ namespace NifUtil
 
         public override void Write(string filename)
         {
-            FileInfo fileInfo = new FileInfo(filename);
+            var fileInfo = new FileInfo(filename);
 
-            if (mtlExport.Count > 0)
+            if (this.mtlExport.Count > 0)
             {
-                string mtlFileName = Path.GetFileNameWithoutExtension(filename) + ".mtl";
-                Export.Insert(3, "# Textures " + Environment.NewLine + "mtllib " + mtlFileName);
+                var mtlFileName = Path.GetFileNameWithoutExtension(filename) + ".mtl";
+                this.Export.Insert(3, "# Textures " + Environment.NewLine + "mtllib " + mtlFileName);
 
-                using (StreamWriter writer = new StreamWriter(fileInfo.Directory + "\\" + mtlFileName))
+                using (var writer = new StreamWriter(fileInfo.Directory + "\\" + mtlFileName))
                 {
-                    writer.WriteLine(string.Join(Environment.NewLine, mtlExport));
+                    writer.WriteLine(string.Join(Environment.NewLine, this.mtlExport));
                 }
 
-                using (StreamWriter writer = new StreamWriter(fileInfo.Directory + "\\" + mtlFileName))
+                using (var writer = new StreamWriter(fileInfo.Directory + "\\" + mtlFileName))
                 {
-                    writer.WriteLine(string.Join(Environment.NewLine, mtlExport));
+                    writer.WriteLine(string.Join(Environment.NewLine, this.mtlExport));
                 }
             }
 
-            using (StreamWriter writer = new StreamWriter(filename))
+            using (var writer = new StreamWriter(filename))
             {
-                writer.WriteLine(string.Join(Environment.NewLine, Export));
+                writer.WriteLine(string.Join(Environment.NewLine, this.Export));
             }
 
             // Load textues
-            if (textures.Count > 0)
+            if (this.textures.Count > 0)
             {
-                List<string> textureLocations = new List<string>()
+                var textureLocations = new List<string>()
+                                       {
+		                                       "D:\\DAoC Extracted\\figures\\Mskins",
+		                                       "D:\\DAoC Extracted\\figures\\skins",
+		                                       "D:\\DAoC Extracted\\items\\pskins",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\Nifs",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\Dnifs",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\sky",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\TerrainTex",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\textures",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\trees",
+		                                       "D:\\Games\\Dark Age of Camelot\\frontiers\\dnifs",
+		                                       "D:\\Games\\Dark Age of Camelot\\frontiers\\items",
+		                                       "D:\\Games\\Dark Age of Camelot\\frontiers\\NIFS",
+		                                       "D:\\Games\\Dark Age of Camelot\\frontiers\\zones\\TerrainTex",
+		                                       "D:\\Games\\Dark Age of Camelot\\frontiers\\zones\\textures",
+		                                       "D:\\Games\\Dark Age of Camelot\\phousing\\nifs",
+		                                       "D:\\Games\\Dark Age of Camelot\\phousing\\textures",
+		                                       "D:\\Games\\Dark Age of Camelot\\pregame",
+		                                       "D:\\Games\\Dark Age of Camelot\\Tutorial\\zones\\nifs",
+		                                       "D:\\Games\\Dark Age of Camelot\\Tutorial\\zones\\terraintex",
+		                                       "D:\\Games\\Dark Age of Camelot\\insignia",
+		                                       "D:\\Games\\Dark Age of Camelot\\items",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\zone026\\nifs",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\zone050\\nifs",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\zone120\\nifs",
+		                                       "D:\\Games\\Dark Age of Camelot\\zones\\zone209\\nifs",
+
+                                       };
+
+
+                foreach (var texture in this.textures)
                 {
-                    "D:\\DAoC Extracted\\figures\\Mskins",
-                    "D:\\DAoC Extracted\\figures\\skins",
-                    "D:\\DAoC Extracted\\items\\pskins",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\Nifs",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\Dnifs",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\sky",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\TerrainTex",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\textures",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\trees",
-                    "D:\\Games\\Dark Age of Camelot\\frontiers\\dnifs",
-                    "D:\\Games\\Dark Age of Camelot\\frontiers\\items",
-                    "D:\\Games\\Dark Age of Camelot\\frontiers\\NIFS",
-                    "D:\\Games\\Dark Age of Camelot\\frontiers\\zones\\TerrainTex",
-                    "D:\\Games\\Dark Age of Camelot\\frontiers\\zones\\textures",
-                    "D:\\Games\\Dark Age of Camelot\\phousing\\nifs",
-                    "D:\\Games\\Dark Age of Camelot\\phousing\\textures",
-                    "D:\\Games\\Dark Age of Camelot\\pregame",
-                    "D:\\Games\\Dark Age of Camelot\\Tutorial\\zones\\nifs",
-                    "D:\\Games\\Dark Age of Camelot\\Tutorial\\zones\\terraintex",
-                    "D:\\Games\\Dark Age of Camelot\\insignia",
-                    "D:\\Games\\Dark Age of Camelot\\items",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\zone026\\nifs",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\zone050\\nifs",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\zone120\\nifs",
-                    "D:\\Games\\Dark Age of Camelot\\zones\\zone209\\nifs",
-
-                };
-
-
-                foreach (string texture in textures)
-                {
-                    foreach (string loc in textureLocations)
+                    foreach (var loc in textureLocations)
                     {
-                        DirectoryInfo dir = new DirectoryInfo(loc);
+                        var dir = new DirectoryInfo(loc);
                         var files = dir.GetFiles(Path.GetFileNameWithoutExtension(texture) + ".*");
 
-                        if (files.Length > 0)
+                        if(files.Length <= 0)
                         {
-                            string sourceFileName = files.First().FullName;
-                            string targetFileName = fileInfo.Directory + "\\" + Path.GetFileNameWithoutExtension(sourceFileName) + ".tga";
-                            string targetFileNamePng = fileInfo.Directory + "\\" + Path.GetFileNameWithoutExtension(sourceFileName) + ".png";
-
-                            using (MagickImage image = new MagickImage(files.First().FullName))
-                            {
-                                image.Write(targetFileName.ToLower());
-                                image.Write(targetFileNamePng.ToLower());
-                            }
-                            break;
+	                        continue;
                         }
+
+                        var sourceFileName = files.First().FullName;
+                        var targetFileName = fileInfo.Directory + "\\" + Path.GetFileNameWithoutExtension(sourceFileName) + ".tga";
+                        var targetFileNamePng = fileInfo.Directory + "\\" + Path.GetFileNameWithoutExtension(sourceFileName) + ".png";
+
+                        using (var image = new MagickImage(files.First().FullName))
+                        {
+	                        image.Write(targetFileName.ToLower());
+	                        image.Write(targetFileNamePng.ToLower());
+                        }
+                        break;
                     }
                 }
 

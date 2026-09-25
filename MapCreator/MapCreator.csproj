@@ -112,6 +112,7 @@
     <Compile Include="Classes\Constants.cs" />
     <Compile Include="Classes\ImageDebug.cs" />
     <Compile Include="Classes\MapCreation\Fixtures\DrawableFixture.cs" />
+    <Compile Include="Classes\MapCreation\Fixtures\FixtureRenderererType.cs" />
     <Compile Include="Classes\MapCreation\Fixtures\Objects\FixtureRow.cs" />
     <Compile Include="Classes\MapCreation\Fixtures\FixtureRendererConfigurations.cs" />
     <Compile Include="Classes\MapCreation\Fixtures\FixturesLoader.cs" />
@@ -126,6 +127,7 @@
     <Compile Include="Classes\MapCreation\MapHeightmap.cs" />
     <Compile Include="Classes\MapCreation\MapLightmap.cs" />
     <Compile Include="Classes\MapCreation\MapWater.cs" />
+    <Compile Include="Classes\MapCreation\WaterConfiguration.cs" />
     <Compile Include="Classes\NiflibWrapper.cs" />
     <Compile Include="Classes\Tools.cs" />
     <Compile Include="Classes\ZoneConfiguration.cs" />

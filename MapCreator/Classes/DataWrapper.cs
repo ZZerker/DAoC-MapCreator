@@ -19,42 +19,42 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Xml.Linq;
-using System.Windows.Forms;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using System.Xml.Linq;
 using MapCreator.data;
 
-namespace MapCreator
+namespace MapCreator.Classes
 {
-    class DataWrapper
+	internal class DataWrapper
     {
-        private static XDocument zonesXml = null;
+        private static readonly XDocument ZonesXml = null;
 
-        private static string presetsDataFile;
+        private static readonly string PresetsDataFile;
 
         private static MapCreatorData mapCreatorData = new MapCreatorData();
         public static MapCreatorData MapCreatorData
         {
-            get { return DataWrapper.mapCreatorData; }
-            set { DataWrapper.mapCreatorData = value; }
+            get => DataWrapper.mapCreatorData;
+            set => DataWrapper.mapCreatorData = value;
         }
 
         static DataWrapper()
         {
             // Read Zones
-            zonesXml = XDocument.Load(string.Format("{0}\\data\\zones.xml", Application.StartupPath));
+            ZonesXml = XDocument.Load(string.Format("{0}\\data\\zones.xml", Application.StartupPath));
 
             // Create/Read data xml file
-            presetsDataFile = string.Format("{0}\\presets.xml", Application.StartupPath);
-            if (!File.Exists(presetsDataFile))
+            PresetsDataFile = string.Format("{0}\\presets.xml", Application.StartupPath);
+            if (!File.Exists(PresetsDataFile))
             {
-                mapCreatorData.ZoneSelectionPresets.WriteXml(presetsDataFile);
+                mapCreatorData.ZoneSelectionPresets.WriteXml(PresetsDataFile);
             }
             else
             {
-                mapCreatorData.ZoneSelectionPresets.ReadXml(presetsDataFile);
+                mapCreatorData.ZoneSelectionPresets.ReadXml(PresetsDataFile);
             }
         }
 
@@ -63,17 +63,17 @@ namespace MapCreator
         public static void LoadPresets()
         {
             mapCreatorData.ZoneSelectionPresets.Clear();
-            mapCreatorData.ZoneSelectionPresets.ReadXml(presetsDataFile);
+            mapCreatorData.ZoneSelectionPresets.ReadXml(PresetsDataFile);
         }
 
         public static void SavePresets()
         {
-            mapCreatorData.ZoneSelectionPresets.WriteXml(presetsDataFile);
+            mapCreatorData.ZoneSelectionPresets.WriteXml(PresetsDataFile);
         }
 
         public static void AddPresetRow(string name, List<string> zoneIds)
         {
-            MapCreatorData.ZoneSelectionPresetsRow row = mapCreatorData.ZoneSelectionPresets.NewZoneSelectionPresetsRow();
+            var row = mapCreatorData.ZoneSelectionPresets.NewZoneSelectionPresetsRow();
             row.Name = name;
             row.Zones = String.Join(",", zoneIds);
             mapCreatorData.ZoneSelectionPresets.AddZoneSelectionPresetsRow(row);
@@ -101,7 +101,7 @@ namespace MapCreator
         /// <returns></returns>
         public static List<string> GetRealms()
         {
-            return zonesXml.Descendants("realm").Attributes("name").Select(x => x.Value).ToList();
+            return ZonesXml.Descendants("realm").Attributes("name").Select(x => x.Value).ToList();
         }
 
         /// <summary>
@@ -111,10 +111,10 @@ namespace MapCreator
         /// <returns></returns>
         public static List<string> GetExpansionsByRealm(string realm)
         {
-            List<string> expansions = zonesXml.Descendants("expansion")
-                .Where(r => r.Parent.Attribute("name").Value == realm)
-                .Select(e => e.Attribute("name").Value)
-                .ToList();
+            var expansions = ZonesXml.Descendants("expansion")
+                                     .Where(r => r.Parent.Attribute("name").Value == realm)
+                                     .Select(e => e.Attribute("name").Value)
+                                     .ToList();
 
             return expansions;
         }
@@ -130,7 +130,7 @@ namespace MapCreator
             if (string.IsNullOrEmpty(realm)) return new List<string>();
             if (string.IsNullOrEmpty(expansion)) return new List<string>();
 
-            var zoneTypes = zonesXml.Descendants("zone")
+            var zoneTypes = ZonesXml.Descendants("zone")
                 .Where(r => r.Parent.Attribute("name").Value == expansion && r.Parent.Parent.Attribute("name").Value == realm)
                 .OrderBy(e => e.Attribute("type").Value)
                 .Select(e => e.Attribute("type").Value)
@@ -153,7 +153,7 @@ namespace MapCreator
             if (string.IsNullOrEmpty(expansion)) return new Dictionary<string, string>();
             if (string.IsNullOrEmpty(type)) return new Dictionary<string, string>();
 
-            var zones = zonesXml.Descendants("zone")
+            var zones = ZonesXml.Descendants("zone")
                 .Where(r => r.Parent.Attribute("name").Value == expansion && r.Parent.Parent.Attribute("name").Value == realm && r.Attribute("type").Value == type)
                 .OrderBy(e => e.Attribute("id").Value)
                 .ToDictionary(e => e.Attribute("id").Value, e => e.Value);
@@ -168,9 +168,9 @@ namespace MapCreator
         /// <returns></returns>
         public static GameExpansion GetExpansionByZone(string zoneId)
         {
-            var results = zonesXml.Descendants("zone").Where(z => z.Attribute("id").Value == zoneId).Select(e => e.Parent.Attribute("name").Value);
+            var results = ZonesXml.Descendants("zone").Where(z => z.Attribute("id").Value == zoneId).Select(e => e.Parent.Attribute("name").Value);
 
-            if (results.Count() > 0)
+            if (results.Any())
             {
                 return (GameExpansion)Enum.Parse(typeof(GameExpansion), results.First().Replace(" ", ""), true);
             }
@@ -180,12 +180,12 @@ namespace MapCreator
 
         public static ZoneSelection GetZoneSelectionByZoneId(string zoneId)
         {
-            var results = zonesXml.Descendants("zone").Where(z => z.Attribute("id").Value == zoneId);
+            var results = ZonesXml.Descendants("zone").Where(z => z.Attribute("id").Value == zoneId);
 
-            if (results.Count() > 0)
+            if (results.Any())
             {
-                string expansion = results.First().Parent.Attribute("name").Value;
-                string realm = results.First().Parent.Parent.Attribute("name").Value;
+                var expansion = results.First().Parent.Attribute("name").Value;
+                var realm = results.First().Parent.Parent.Attribute("name").Value;
                 return new ZoneSelection(zoneId, results.First().Value, expansion, realm, results.First().Attribute("type").Value);
             }
             else
@@ -207,7 +207,7 @@ namespace MapCreator
         /// <returns></returns>
         public static string GetSectorDatValue(string mpkFile, string iniRegion, string iniProperty)
         {
-            StreamReader sectorDatFile = MpkWrapper.GetFileFromMpk(mpkFile, "sector.dat");
+            var sectorDatFile = MpkWrapper.GetFileFromMpk(mpkFile, "sector.dat");
             return GetDatFileProperty(sectorDatFile, iniRegion, iniProperty);
         }
 
@@ -223,12 +223,12 @@ namespace MapCreator
             // Seek the stream
             datFile.BaseStream.Position = 0;
 
-            Regex regionRegex = new Regex(string.Format(@"\[{0}\]", iniRegion), RegexOptions.IgnoreCase);
-            Regex propertyRegex = new Regex(string.Format(@"{0}=(.*)", iniProperty), RegexOptions.IgnoreCase);
+            var regionRegex = new Regex(string.Format(@"\[{0}\]", iniRegion), RegexOptions.IgnoreCase);
+            var propertyRegex = new Regex(string.Format(@"{0}=(.*)", iniProperty), RegexOptions.IgnoreCase);
 
             string row;
             Match match;
-            bool recording = false;
+            var recording = false;
 
             while ((row = datFile.ReadLine()) != null)
             {
@@ -258,9 +258,9 @@ namespace MapCreator
 
         public static List<string> GetFileContent(string mpkFile, string filename)
         {
-            List<string> lines = new List<string>();
+            var lines = new List<string>();
 
-            using (StreamReader csv = MpkWrapper.GetFileFromMpk(mpkFile, filename))
+            using (var csv = MpkWrapper.GetFileFromMpk(mpkFile, filename))
             {
                 string row;
                 while ((row = csv.ReadLine()) != null)

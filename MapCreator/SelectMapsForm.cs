@@ -19,84 +19,77 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 using System.Collections;
+using MapCreator.Classes;
 using MapCreator.data;
 
 namespace MapCreator
 {
-    public partial class SelectMapsForm : Form
+	internal partial class SelectMapsForm : Form
     {
-        private List<ZoneSelection> m_selectedZones = new List<ZoneSelection>();
+	    public List<ZoneSelection> SelectedZones { get; set; } = new List<ZoneSelection>();
 
-        public List<ZoneSelection> SelectedZones
-        {
-            get { return m_selectedZones; }
-            set { m_selectedZones = value; }
-        }
-
-        public List<TreeNode> m_allNodes = new List<TreeNode>();
+	    private readonly List<TreeNode> AllNodes = new List<TreeNode>();
 
         public SelectMapsForm()
         {
-            InitializeComponent();
-            InitializeMapTreeView();
-            
-            selectedMapsListBox.DataSource = SelectedZones.OrderBy(s => s.Name).ToList();
-            selectedMapsListBox.DisplayMember = "Name";
-            selectedMapsListBox.ValueMember = "Id";
+	        this.InitializeComponent();
+	        this.InitializeMapTreeView();
+
+	        this.selectedMapsListBox.DataSource = this.SelectedZones.OrderBy(s => s.Name).ToList();
+	        this.selectedMapsListBox.DisplayMember = "Name";
+	        this.selectedMapsListBox.ValueMember = "Id";
 
             // Load Presets
-            presetsComboBox.DataSource = DataWrapper.GetPresetRows();
-            presetsComboBox.DisplayMember = "Name";
+            this.presetsComboBox.DataSource = DataWrapper.GetPresetRows();
+            this.presetsComboBox.DisplayMember = "Name";
             //presetsComboBox.ValueMember = "Id";
         }
 
         public void Preselect(List<ZoneSelection> preselect)
         {
-            m_selectedZones = preselect;
-            UpdateSelectedMapsListBox();
+	        this.SelectedZones = preselect;
+	        this.UpdateSelectedMapsListBox();
         }
 
         private void UpdateSelectedMapsListBox()
         {
-            selectedMapsListBox.DataSource = null;
-            selectedMapsListBox.DataSource = SelectedZones.OrderBy(s => s.Id).ToList();
+	        this.selectedMapsListBox.DataSource = null;
+	        this.selectedMapsListBox.DataSource = this.SelectedZones.OrderBy(s => s.Id).ToList();
         }
 
         private void UpdatePresets()
         {
-            presetsComboBox.DataSource = DataWrapper.GetPresetRows();
+	        this.presetsComboBox.DataSource = DataWrapper.GetPresetRows();
         }
 
         private void InitializeMapTreeView()
         {
-            foreach (string realm in DataWrapper.GetRealms())
+            foreach (var realm in DataWrapper.GetRealms())
             {
-                TreeNode realmNode = new TreeNode(realm);
+                var realmNode = new TreeNode(realm);
 
-                foreach (string expansion in DataWrapper.GetExpansionsByRealm(realm))
+                foreach (var expansion in DataWrapper.GetExpansionsByRealm(realm))
                 {
-                    TreeNode expansionNode = new TreeNode(expansion);
+                    var expansionNode = new TreeNode(expansion);
 
-                    foreach (string mapType in DataWrapper.GetZoneTypesByRealmAndExpansion(realm, expansion).OrderBy(o => o.ToString()))
+                    foreach (var mapType in DataWrapper.GetZoneTypesByRealmAndExpansion(realm, expansion).OrderBy(o => o.ToString()))
                     {
-                        TreeNode mapTypeNode = new TreeNode(mapType);
+                        var mapTypeNode = new TreeNode(mapType);
 
-                        foreach (KeyValuePair<string, string> zone in DataWrapper.GetZonesByRealmAndExpansionAndType(realm, expansion, mapType).OrderBy(o => o.Key))
+                        foreach (var zone in DataWrapper.GetZonesByRealmAndExpansionAndType(realm, expansion, mapType).OrderBy(o => o.Key))
                         {
                             if (mapType == "Capitol" || mapType == "Indoor" || mapType == "Dungeons" || mapType == "Instances") continue;
 
-                            ZoneSelection currentZone = new ZoneSelection(zone.Key, zone.Value, realm, expansion, mapType);
-                            TreeNode zoneNode = new TreeNode(currentZone.ToString());
-                            zoneNode.Tag = currentZone;
+                            var currentZone = new ZoneSelection(zone.Key, zone.Value, realm, expansion, mapType);
+                            var zoneNode = new TreeNode(currentZone.ToString())
+                                           {
+		                                           Tag = currentZone
+                                           };
 
-                            m_allNodes.Add(zoneNode);
+                            this.AllNodes.Add(zoneNode);
                             mapTypeNode.Nodes.Add(zoneNode);
                         }
 
@@ -121,85 +114,88 @@ namespace MapCreator
                     }
                 }
 
-                mapsTreeView.Nodes.Add(realmNode);
+                this.mapsTreeView.Nodes.Add(realmNode);
             }
         }
 
         private void AddZonesRecursive(TreeNode node)
         {
-            if(node.Tag is ZoneSelection)
+            if(node.Tag is ZoneSelection tag)
             {
-                if (!SelectedZones.Contains((ZoneSelection)node.Tag))
+                if (!this.SelectedZones.Contains(tag))
                 {
-                    SelectedZones.Add((ZoneSelection)node.Tag);
+	                this.SelectedZones.Add(tag);
                 }
             }
             else
             {
                 foreach(TreeNode childNode in node.Nodes)
                 {
-                    AddZonesRecursive(childNode);
+	                this.AddZonesRecursive(childNode);
                 }
             }
         }
 
         private void addAllButton_Click(object sender, EventArgs e)
         {
-            if(mapsTreeView.SelectedNode != null && !(mapsTreeView.SelectedNode.Tag is ZoneSelection))
+            if(this.mapsTreeView.SelectedNode != null && !(this.mapsTreeView.SelectedNode.Tag is ZoneSelection))
             {
-                AddZonesRecursive(mapsTreeView.SelectedNode);
+	            this.AddZonesRecursive(this.mapsTreeView.SelectedNode);
             }
-            else if(mapsTreeView.SelNodes.Count > 0)
+            else if(this.mapsTreeView.SelNodes.Count > 0)
             {
-                foreach(DictionaryEntry nodeEntry in mapsTreeView.SelNodes)
+                foreach(DictionaryEntry nodeEntry in this.mapsTreeView.SelNodes)
                 {
-                    AddZonesRecursive(((MWCommon.MWTreeNodeWrapper)nodeEntry.Value).Node);
+	                this.AddZonesRecursive(((MWCommon.MWTreeNodeWrapper)nodeEntry.Value).Node);
                 }
             }
-            UpdateSelectedMapsListBox();
+
+            this.UpdateSelectedMapsListBox();
         }
 
         private void addButton_Click(object sender, EventArgs e)
         {
-            foreach (DictionaryEntry entry in mapsTreeView.SelNodes)
+            foreach (DictionaryEntry entry in this.mapsTreeView.SelNodes)
             {
-                MWCommon.MWTreeNodeWrapper nodeWrapper = (MWCommon.MWTreeNodeWrapper)entry.Value;
-                if (nodeWrapper.Node.Tag is ZoneSelection)
+                var nodeWrapper = (MWCommon.MWTreeNodeWrapper)entry.Value;
+                if (nodeWrapper.Node.Tag is ZoneSelection tag)
                 {
-                    if (!SelectedZones.Contains((ZoneSelection)nodeWrapper.Node.Tag))
+                    if (!this.SelectedZones.Contains(tag))
                     {
-                        SelectedZones.Add((ZoneSelection)nodeWrapper.Node.Tag);
+	                    this.SelectedZones.Add(tag);
                     }
                 }
             }
-            UpdateSelectedMapsListBox();
+
+            this.UpdateSelectedMapsListBox();
         }
 
         private void removeButton_Click(object sender, EventArgs e)
         {
-            foreach (ZoneSelection selectedZone in selectedMapsListBox.SelectedItems)
+            foreach (ZoneSelection selectedZone in this.selectedMapsListBox.SelectedItems)
             {
-                SelectedZones.Remove(selectedZone);
+	            this.SelectedZones.Remove(selectedZone);
             }
-            UpdateSelectedMapsListBox();
+
+            this.UpdateSelectedMapsListBox();
         }
 
         private void removeAllButton_Click(object sender, EventArgs e)
         {
-            SelectedZones.Clear();
-            UpdateSelectedMapsListBox();
+	        this.SelectedZones.Clear();
+	        this.UpdateSelectedMapsListBox();
         }
 
         private void saveNewPresetButton_Click(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(newPresetTextBox.Text))
+            if (!string.IsNullOrEmpty(this.newPresetTextBox.Text))
             {
-                List<string> zoneIds = new List<string>();
-                foreach (ZoneSelection selectedZone in selectedMapsListBox.Items) zoneIds.Add(selectedZone.Id);
-                DataWrapper.AddPresetRow(newPresetTextBox.Text, zoneIds);
+                var zoneIds = new List<string>();
+                foreach (ZoneSelection selectedZone in this.selectedMapsListBox.Items) zoneIds.Add(selectedZone.Id);
+                DataWrapper.AddPresetRow(this.newPresetTextBox.Text, zoneIds);
 
-                UpdatePresets();
-                newPresetTextBox.Text = "";
+                this.UpdatePresets();
+                this.newPresetTextBox.Text = "";
             }
             else
             {
@@ -209,35 +205,32 @@ namespace MapCreator
 
         private void loadPresetButton_Click(object sender, EventArgs e)
         {
-            if (presetsComboBox.SelectedItem == null || !(presetsComboBox.SelectedItem is MapCreatorData.ZoneSelectionPresetsRow))
+            if (this.presetsComboBox.SelectedItem == null || !(this.presetsComboBox.SelectedItem is MapCreatorData.ZoneSelectionPresetsRow preset))
             {
                 return;
             }
 
-            MapCreatorData.ZoneSelectionPresetsRow preset = (MapCreatorData.ZoneSelectionPresetsRow)presetsComboBox.SelectedItem;
+            this.SelectedZones.Clear();
 
-            SelectedZones.Clear();
-
-            foreach (string zoneId in preset.Zones.Split(','))
+            foreach (var zoneId in preset.Zones.Split(','))
             {
-                var result = m_allNodes.Where(n => ((ZoneSelection)n.Tag).Id == zoneId).Select(n => (ZoneSelection)n.Tag);
-                if (result.Count() > 0) SelectedZones.Add(result.First());
+                var result = this.AllNodes.Where(n => ((ZoneSelection)n.Tag).Id == zoneId).Select(n => (ZoneSelection)n.Tag);
+                if (result.Any())
+	                this.SelectedZones.Add(result.First());
             }
 
-            UpdateSelectedMapsListBox();
+            this.UpdateSelectedMapsListBox();
         }
 
         private void savePresetButton_Click(object sender, EventArgs e)
         {
-            if (presetsComboBox.SelectedItem == null || !(presetsComboBox.SelectedItem is MapCreatorData.ZoneSelectionPresetsRow))
+            if (this.presetsComboBox.SelectedItem == null || !(this.presetsComboBox.SelectedItem is MapCreatorData.ZoneSelectionPresetsRow preset))
             {
                 return;
             }
 
-            MapCreatorData.ZoneSelectionPresetsRow preset = (MapCreatorData.ZoneSelectionPresetsRow)presetsComboBox.SelectedItem;
-
-            List<string> zoneIds = new List<string>();
-            foreach (ZoneSelection selectedZone in selectedMapsListBox.Items) zoneIds.Add(selectedZone.Id);
+            var zoneIds = new List<string>();
+            foreach (ZoneSelection selectedZone in this.selectedMapsListBox.Items) zoneIds.Add(selectedZone.Id);
             preset.Zones = string.Join(",", zoneIds);
 
             DataWrapper.SavePresets();
@@ -245,27 +238,26 @@ namespace MapCreator
 
         private void deletePresetButton_Click(object sender, EventArgs e)
         {
-            if (presetsComboBox.SelectedItem == null || !(presetsComboBox.SelectedItem is MapCreatorData.ZoneSelectionPresetsRow))
+            if (this.presetsComboBox.SelectedItem == null || !(this.presetsComboBox.SelectedItem is MapCreatorData.ZoneSelectionPresetsRow preset))
             {
                 return;
             }
 
-            MapCreatorData.ZoneSelectionPresetsRow preset = (MapCreatorData.ZoneSelectionPresetsRow)presetsComboBox.SelectedItem;
             DataWrapper.RemovePreset(preset);
-            UpdatePresets();
+            this.UpdatePresets();
         }
 
         private void selectedMapsListBox_DataSourceChanged(object sender, EventArgs e)
         {
-            selectMapsCounterLabel.Text = SelectedZones.Count.ToString();
+	        this.selectMapsCounterLabel.Text = this.SelectedZones.Count.ToString();
         }
 
         private void mapsTreeView_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
         {
-            if (e.Node.Tag is ZoneSelection)
+            if (e.Node.Tag is ZoneSelection tag)
             {
-                m_selectedZones.Add((ZoneSelection) e.Node.Tag);
-                UpdateSelectedMapsListBox();
+	            this.SelectedZones.Add(tag);
+	            this.UpdateSelectedMapsListBox();
             }
         }
     }

@@ -17,58 +17,69 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-namespace MapCreator
+using System;
+
+namespace MapCreator.Classes
 {
-    public struct ZoneSelection
+    public struct ZoneSelection: IEquatable<ZoneSelection>
     {
-        private string m_id;
-        private string m_name;
-        private string m_realm;
-        private string m_expansion;
-        private string m_type;
+	    internal string Id { get; set; }
 
-        public string Id
-        {
-            get { return m_id; }
-            set { m_id = value; }
-        }
+	    internal string Name { get; set; }
 
-        public string Name
-        {
-            get { return m_name; }
-            set { m_name = value; }
-        }
-        public string Realm
-        {
-            get { return m_realm; }
-            set { m_realm = value; }
-        }
+	    internal string Realm { get; set; }
 
-        public string Expansion
-        {
-            get { return m_expansion; }
-            set { m_expansion = value; }
-        }
+	    internal string Expansion { get; set; }
 
-        public string Type
-        {
-            get { return m_type; }
-            set { m_type = value; }
-        }
+	    internal string Type { get; set; }
 
-        public ZoneSelection(string id, string name, string expansion, string realm, string type)
+	    internal ZoneSelection(string id, string name, string expansion, string realm, string type)
         {
-            m_id = id;
-            m_name = name;
-            m_realm = realm;
-            m_expansion = expansion;
-            m_type = type;
+            this.Id = id;
+            this.Name = name;
+            this.Realm = realm;
+            this.Expansion = expansion;
+            this.Type = type;
         }
 
         public override string ToString()
         {
-            return Name + " (" + Id + ")";
+            return this.Name + " (" + this.Id + ")";
         }
 
+        #region Equality members
+        public bool Equals(ZoneSelection other)
+        {
+	        return this.Id == other.Id&&this.Name == other.Name&&this.Realm == other.Realm&&this.Expansion == other.Expansion&&this.Type == other.Type;
+        }
+
+        public override bool Equals(object obj)
+        {
+	        return obj is ZoneSelection other&&this.Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+	        unchecked
+	        {
+		        var hashCode = (this.Id != null?this.Id.GetHashCode():0);
+		        hashCode = (hashCode * 397)^(this.Name != null?this.Name.GetHashCode():0);
+		        hashCode = (hashCode * 397)^(this.Realm != null?this.Realm.GetHashCode():0);
+		        hashCode = (hashCode * 397)^(this.Expansion != null?this.Expansion.GetHashCode():0);
+		        hashCode = (hashCode * 397)^(this.Type != null?this.Type.GetHashCode():0);
+		        return hashCode;
+	        }
+        }
+
+        public static bool operator ==(ZoneSelection left, ZoneSelection right)
+        {
+	        return left.Equals(right);
+        }
+
+        public static bool operator !=(ZoneSelection left, ZoneSelection right)
+        {
+	        return !left.Equals(right);
+        }
+        #endregion
     }
 }

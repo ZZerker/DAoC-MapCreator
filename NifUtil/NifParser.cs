@@ -22,19 +22,21 @@ using System.Collections.Generic;
 
 using System.IO;
 using Niflib;
+using NifUtil.Classes;
+using NifUtil.Objects;
 using SharpDX;
 
 namespace NifUtil
 {
     public class NifParser : IDisposable
     {
-        string m_fileName;
+        string fileName;
 
-        private StreamReader m_fileReader;
+        private StreamReader fileReader;
 
-        private NiFile m_nifFile;
+        private NiFile nifFile;
 
-        private Polygon[] m_polygons;
+        private Polygon[] polygons;
 
         #region Events
         public event IsNodeDrawableEventHandler IsNodeDrawable;
@@ -43,7 +45,7 @@ namespace NifUtil
         public NifParser()
         {
             // Language settings
-            System.Globalization.CultureInfo ci = new System.Globalization.CultureInfo("en-US");
+            var ci = new System.Globalization.CultureInfo("en-US");
             System.Threading.Thread.CurrentThread.CurrentCulture = ci;
             System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
         }
@@ -59,9 +61,9 @@ namespace NifUtil
                 throw new FileNotFoundException("NIF File not found!");
             }
 
-            m_fileName = nifFile;
-            m_fileReader = new StreamReader(nifFile);
-            ReadNifFile();
+            this.fileName = nifFile;
+            this.fileReader = new StreamReader(nifFile);
+            this.ReadNifFile();
         }
 
         /// <summary>
@@ -70,8 +72,8 @@ namespace NifUtil
         /// <param name="nifFileStream"></param>
         public void Load(StreamReader nifFileStream)
         {
-            m_fileReader = nifFileStream;
-            ReadNifFile();
+	        this.fileReader = nifFileStream;
+	        this.ReadNifFile();
         }
 
         /// <summary>
@@ -79,9 +81,9 @@ namespace NifUtil
         /// </summary>
         private void ReadNifFile()
         {
-            using (BinaryReader br = new BinaryReader(m_fileReader.BaseStream))
+            using (var br = new BinaryReader(this.fileReader.BaseStream))
             {
-                m_nifFile = new NiFile(br);
+	            this.nifFile = new NiFile(br);
             }
         }
 
@@ -95,12 +97,12 @@ namespace NifUtil
             switch (type)
             {
                 case ConvertType.WaveFrontObject:
-                    ConvertWavefront wf = new ConvertWavefront(m_nifFile);
-                    if(IsNodeDrawable != null)
+                    var wf = new ConvertWavefront(this.nifFile);
+                    if(this.IsNodeDrawable != null)
                     {
                         wf.IsNodeDrawable += delegate(NiAVObject node)
                         {
-                            return IsNodeDrawable(node);
+                            return this.IsNodeDrawable(node);
                         };
                     }
 
@@ -109,17 +111,17 @@ namespace NifUtil
                     break;
                 case ConvertType.PolyText:
                 case ConvertType.Poly:
-                    ConvertPoly conv = new ConvertPoly(m_nifFile);
-                    if (IsNodeDrawable != null)
+                    var conv = new ConvertPoly(this.nifFile);
+                    if (this.IsNodeDrawable != null)
                     {
                         conv.IsNodeDrawable += delegate (NiAVObject node)
                         {
-                            return IsNodeDrawable(node);
+                            return this.IsNodeDrawable(node);
                         };
                     }
 
                     conv.Start();
-                    m_polygons = conv.Polys.ToArray();
+                    this.polygons = conv.Polys.ToArray();
 
                     if (type == ConvertType.PolyText) conv.WritePlain(targetFilename);
                     else conv.Write(targetFilename);
@@ -130,23 +132,23 @@ namespace NifUtil
 
         public Polygon[] GetPolys()
         {
-            if (m_polygons != null) return m_polygons;
+            if (this.polygons != null) return this.polygons;
 
-            ConvertPoly conv = new ConvertPoly(m_nifFile);
+            var conv = new ConvertPoly(this.nifFile);
             return conv.Polys.ToArray();
         }
 
         public void Dispose()
         {
-            if (m_fileReader != null)
+            if (this.fileReader != null)
             {
-                m_fileReader.Dispose();
+	            this.fileReader.Dispose();
             }
         }
 
         public static Polygon[] ReadPoly(string polyFile)
         {
-            using (StreamReader reader = new StreamReader(polyFile))
+            using (var reader = new StreamReader(polyFile))
             {
                 return ReadPoly(reader);
             }
@@ -154,26 +156,28 @@ namespace NifUtil
 
         public static Polygon[] ReadPoly(StreamReader polyFileReader)
         {
-            List<Polygon> polys = new List<Polygon>();
+            var polys = new List<Polygon>();
 
-            using (BinaryReader reader = new BinaryReader(polyFileReader.BaseStream))
+            using (var reader = new BinaryReader(polyFileReader.BaseStream))
             {
-                List<float> points = new List<float>();
+                var points = new List<float>();
 
                 while (reader.BaseStream.Position != reader.BaseStream.Length)
                 {
                     points.Add(reader.ReadSingle());
 
-                    if (points.Count == 9)
+                    if(points.Count != 9)
                     {
-                        polys.Add(new Polygon(
-                            new Vector3(points[0], points[1], points[2]),
-                            new Vector3(points[3], points[4], points[5]),
-                            new Vector3(points[6], points[7], points[8])
-                        ));
-
-                        points.Clear();
+	                    continue;
                     }
+
+                    polys.Add(new Polygon(
+                                          new Vector3(points[0], points[1], points[2]),
+                                          new Vector3(points[3], points[4], points[5]),
+                                          new Vector3(points[6], points[7], points[8])
+                                         ));
+
+                    points.Clear();
                 }
             }
 

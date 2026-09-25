@@ -17,61 +17,40 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-namespace MapCreator
+namespace MapCreator.Classes
 {
+	public enum GameExpansion
+	{
+		Unknown = 0,
 
-    public enum GameExpansion
-    {
-        Unknown = 0,
+		Tutorial,
+		Classic,
+		ShroudedIsles,
+		TrialsOfAtlantis,
+		Catacombs,
+		DarknessRising,
+		LabyrithOfTheMinotaur,
 
-        Tutorial,
-        Classic,
-        ShroudedIsles,
-        TrialsOfAtlantis,
-        Catacombs,
-        DarknessRising,
-        LabyrithOfTheMinotaur,
+		Foundations,
+		NewFrontiers,
+		OldFrontiers
+	}
 
-        Foundations,
-        NewFrontiers,
-        OldFrontiers
-    }
+	public enum RiverTypes
+	{
+		River = 0,
+		Lake = 1,
+		Swamp = 2,
 
-    public enum RiverTypes
-    {
+		Lava = 10
+	}
 
-        River = 0,
-        Lake = 1,
-        Swamp = 2,
+	public class Point3D
+	{
+		public int X { get; set; }
 
-        Lava = 10
-    }
+		public int Y { get; set; }
 
-    public class Point3D
-    {
-        private int m_x;
-
-        public int X
-        {
-            get { return m_x; }
-            set { m_x = value; }
-        }
-
-        private int m_y;
-
-        public int Y
-        {
-            get { return m_y; }
-            set { m_y = value; }
-        }
-
-        private int m_z;
-
-        public int Z
-        {
-            get { return m_z; }
-            set { m_z = value; }
-        }
-    }
-
+		public int Z { get; set; }
+	}
 }

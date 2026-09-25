@@ -18,46 +18,26 @@
 //
 
 using System;
-using ImageMagick;
 using System.Drawing;
+using ImageMagick;
 
-namespace MapCreator
+namespace MapCreator.Classes.MapCreation
 {
 
     /// <summary>
     /// Direct conversion of MapperGuis BumpmapRender.py
     /// </summary>
-    class MapLightmap
+    internal class MapLightmap
     {
-        private ZoneConfiguration zoneConfiguration;
+        private readonly ZoneConfiguration zoneConfiguration;
 
-        private double zScale = 20.0;
-        public double ZScale
-        {
-            get { return zScale; }
-            set { zScale = value; }
-        }
+        public double ZScale { get; set; } = 20.0;
 
-        private double m_lightMin = 0.5;
-        public double LightMin
-        {
-            get { return m_lightMin; }
-            set { m_lightMin = value; }
-        }
+        public double LightMin { get; set; } = 0.5;
 
-        private double m_lightMax = 1.5;
-        public double LightMax
-        {
-            get { return m_lightMax; }
-            set { m_lightMax = value; }
-        }
+        public double LightMax { get; set; } = 1.5;
 
-        private double[] lightVector = new double[] { -1.0, 1, -1.0 };
-        public double[] ZVector
-        {
-            get { return lightVector; }
-            set { lightVector = value; }
-        }
+        public double[] ZVector { get; set; } = new double[] { -1.0, 1, -1.0 };
 
         private double lightBase;
         private double lightScale;
@@ -71,12 +51,12 @@ namespace MapCreator
         public void RecalculateLights()
         {
             // Set vector and lights
-            this.lightVector = Tools.NormalizeVector(this.lightVector);
+            this.ZVector = Tools.NormalizeVector(this.ZVector);
 
-            double lminScaled = m_lightMin / m_lightMax;
-            double baseLight = 255 * lminScaled;
-            lightBase = baseLight + (255 - baseLight) / 2;
-            lightScale = 255 - lightBase;
+            var lminScaled = this.LightMin / this.LightMax;
+            var baseLight = 255 * lminScaled;
+            this.lightBase = baseLight + (255 - baseLight) / 2;
+            this.lightScale = 255 - this.lightBase;
         }
 
         public void Draw(MagickImage map)
@@ -84,33 +64,35 @@ namespace MapCreator
             MainForm.ProgressStart("Drawing lightmap ...");
 
             // Get the heightmap
-            MagickImage heightmap = zoneConfiguration.Heightmap.Heightmap;
+            var heightmap = this.zoneConfiguration.Heightmap.Heightmap;
 
-            using (MagickImage lightmap = MagickWrapper.NewImage(Color.Transparent, 256, 256))
+            using (var lightmap = MagickWrapper.NewImage(Color.Transparent, 256, 256))
             {
-                using (IPixelCollection<ushort> heightmapPixels = heightmap.GetPixels())
+                using (var heightmapPixels = heightmap.GetPixels())
                 {
-                    using (IPixelCollection<ushort> lightmapPixels = lightmap.GetPixels())
+                    using (var lightmapPixels = lightmap.GetPixels())
                     {
                         // z-component of surface normals
-                        double nz = 512d / zScale;
-                        double nz_2 = nz * nz;
-                        double nzlz = nz * lightVector[2];
+                        var nz = 512d / this.ZScale;
+                        var nz2 = nz * nz;
+                        var nzlz = nz * this.ZVector[2];
 
-                        int y1 = 0, y2 = 0;
-                        for (int y = 0; y < lightmap.Height; y++)
+                        for (var y = 0; y < lightmap.Height; y++)
                         {
-                            if (y == 0) y1 = 0;
+	                        var y1 = 0;
+	                        if (y == 0) y1 = 0;
                             else y1 = y - 1;
+                            var y2 = 0;
                             if (y == 255) y2 = 255;
                             else y2 = y + 1;
 
-                            int x1 = 0, x2 = 0;
-                            for (int x = 0; x < lightmap.Width; x++)
+                            for (var x = 0; x < lightmap.Width; x++)
                             {
-                                if (x == 0) x1 = 0;
+	                            var x1 = 0;
+	                            if (x == 0) x1 = 0;
                                 else x1 = x - 1;
-                                if (x == 255) x2 = 255;
+	                            var x2 = 0;
+	                            if (x == 255) x2 = 255;
                                 else x2 = x + 1;
 
                                 double l = heightmapPixels.GetPixel(x1, y).GetChannel(0);
@@ -118,16 +100,16 @@ namespace MapCreator
                                 double u = heightmapPixels.GetPixel(x, y1).GetChannel(0);
                                 double d = heightmapPixels.GetPixel(x, y2).GetChannel(0);
 
-                                double nx = l - r;
-                                double ny = u - d;
+                                var nx = l - r;
+                                var ny = u - d;
 
-                                double m_normal = Math.Sqrt(nx * nx + ny * ny + nz_2);
-                                double ndotl = (nx * lightVector[0] + ny * lightVector[1] + nzlz) / m_normal;
+                                var normal = Math.Sqrt(nx * nx + ny * ny + nz2);
+                                var ndotl = (nx * this.ZVector[0] + ny * this.ZVector[1] + nzlz) / normal;
 
-                                double pixelValue = lightBase - ndotl * lightScale * 256d;
+                                var pixelValue = this.lightBase - ndotl * this.lightScale * 256d;
 
                                 ushort pixelValueDiff = 0;
-                                ushort alphaValue = ushort.MaxValue;
+                                var alphaValue = ushort.MaxValue;
                                 if(pixelValue < 0)
                                 {
                                     pixelValueDiff = 0;
@@ -144,7 +126,7 @@ namespace MapCreator
                                 lightmapPixels.SetPixel(x, y, new ushort[] { pixelValueDiff, pixelValueDiff, pixelValueDiff, alphaValue });
                             }
 
-                            int percent = 100 * y / (int)lightmap.Height;
+                            var percent = 100 * y / (int)lightmap.Height;
                             MainForm.ProgressUpdate(percent);
                         }
                     }
@@ -155,7 +137,7 @@ namespace MapCreator
 
                 lightmap.VirtualPixelMethod = VirtualPixelMethod.Transparent;
                 lightmap.FilterType = FilterType.Gaussian;
-                lightmap.Resize((uint)(zoneConfiguration.TargetMapSize), (uint)(zoneConfiguration.TargetMapSize));
+                lightmap.Resize((uint)(this.zoneConfiguration.TargetMapSize), (uint)(this.zoneConfiguration.TargetMapSize));
 
                 // Apply the bumpmap using ColorDodge
                 map.Composite(lightmap, 0, 0, CompositeOperator.ColorDodge);

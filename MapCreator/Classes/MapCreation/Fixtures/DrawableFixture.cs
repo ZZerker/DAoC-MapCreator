@@ -18,15 +18,16 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using NifUtil;
-using System.Collections;
+using MapCreator.Classes.MapCreation.Fixtures.Objects;
+using NifUtil.Objects;
 using SharpDX;
 
-namespace MapCreator
+namespace MapCreator.Classes.MapCreation.Fixtures
 {
-    class DrawableFixture
+	internal class DrawableFixture
     {
         public string Name;
         public string NifName;
@@ -44,10 +45,9 @@ namespace MapCreator
         public double Scale;
 
         public IEnumerable<Polygon> RawPolygons;
-        public List<Polygon> ProcessedPolygons = new List<Polygon>();
+        public readonly List<Polygon> ProcessedPolygons = new List<Polygon>();
         public IEnumerable<DrawableElement> DrawableElements = new List<DrawableElement>();
 
-        private ZoneConfiguration m_zoneConf;
         public FixtureRendererConfiguration2 RendererConf;
 
         public bool IsTree = false; // Trees need some extra love
@@ -57,24 +57,19 @@ namespace MapCreator
 
         #region Getter/Setter
 
-        public ZoneConfiguration ZoneConf
-        {
-            get { return m_zoneConf; }
-            set { m_zoneConf = value; }
-        }
-
+        public ZoneConfiguration ZoneConf { get; set; }
         #endregion
 
         public bool Calc()
         {
             // Do nothig if we don't want to draw the nif
-            if (RendererConf.Renderer == FixtureRenderererType.None)
+            if (this.RendererConf.Renderer == FixtureRenderererType.None)
             {
                 return false;
             }
 
             // Do nothing is there are no polgons
-            if (RawPolygons.Count() == 0)
+            if (!this.RawPolygons.Any())
             {
                 return false;
             }
@@ -84,65 +79,65 @@ namespace MapCreator
             //CanvasY = ZoneConf.LocToPixel(FixtureRow.Y);
 
             // Calculate correct Z
-            if (FixtureRow.OnGround)
+            if (this.FixtureRow.OnGround)
             {
-                FixtureRow.Z = ZoneConf.Heightmap.GetHeight(FixtureRow.X, FixtureRow.Y);
+                this.FixtureRow.Z = this.ZoneConf.Heightmap.GetHeight(this.FixtureRow.X, this.FixtureRow.Y);
             }
-            FixtureRow.Z = RawPolygons.SelectMany(p => p.Vectors).Max(p => p.Z) + FixtureRow.Z;
-            CanvasZ = ZoneConf.ZoneCoordinateToMapCoordinate(FixtureRow.Z);
+            this.FixtureRow.Z = this.RawPolygons.SelectMany(p => p.Vectors).Max(p => p.Z) + this.FixtureRow.Z;
+            this.CanvasZ = this.ZoneConf.ZoneCoordinateToMapCoordinate(this.FixtureRow.Z);
 
             // Transform Polygons
-            TransformPolygons();
-            return GenerateCanvas();
+            this.TransformPolygons();
+            return this.GenerateCanvas();
         }
 
         private bool GenerateCanvas()
         {
-            if (ProcessedPolygons.Count() == 0) return false;
+            if (!this.ProcessedPolygons.Any()) return false;
 
-            var vectors = ProcessedPolygons.SelectMany(p => p.Vectors);
+            var vectors = this.ProcessedPolygons.SelectMany(p => p.Vectors);
             double minX = vectors.Min(p => p.X);
             double maxX = vectors.Max(p => p.X);
             double minY = vectors.Min(p => p.Y);
             double maxY = vectors.Max(p => p.Y);
 
             // Get the canvas size
-            double minXProduct = (minX < 0) ? minX * -1 : minX;
-            double maxXProduct = (maxX < 0) ? maxX * -1 : maxX;
-            double minYProduct = (minY < 0) ? minY * -1 : minY;
-            double maxYProduct = (maxY < 0) ? maxY * -1 : maxY;
-            CanvasWidth = Convert.ToInt32((minXProduct < maxXProduct) ? maxXProduct * 2f : minXProduct * 2f);
-            CanvasHeight = Convert.ToInt32((minYProduct < maxYProduct) ? maxYProduct * 2f : minYProduct * 2f);
+            var minXProduct = (minX < 0) ? minX * -1 : minX;
+            var maxXProduct = (maxX < 0) ? maxX * -1 : maxX;
+            var minYProduct = (minY < 0) ? minY * -1 : minY;
+            var maxYProduct = (maxY < 0) ? maxY * -1 : maxY;
+            this.CanvasWidth = Convert.ToInt32((minXProduct < maxXProduct) ? maxXProduct * 2f : minXProduct * 2f);
+            this.CanvasHeight = Convert.ToInt32((minYProduct < maxYProduct) ? maxYProduct * 2f : minYProduct * 2f);
 
-            if(CanvasWidth <= 0 || CanvasHeight <= 0)
+            if(this.CanvasWidth <= 0 || this.CanvasHeight <= 0)
             {
                 return false;
             }
 
 
             // Contains all polygons
-            List<DrawableElement> drawlist = new List<DrawableElement>();
+            var drawlist = new List<DrawableElement>();
 
-            foreach (Polygon poly in ProcessedPolygons)
+            foreach (var poly in this.ProcessedPolygons)
             {
-                Vector3 n = Vector3.Normalize(GetNormal(poly.P1, poly.P2, poly.P3));
+                var n = Vector3.Normalize(this.GetNormal(poly.P1, poly.P2, poly.P3));
 
                 // backface cull
                 if (n[2] < 0) continue;
 
                 // shade
-                double ndotl = RendererConf.LightVector[0] * n[0] + RendererConf.LightVector[1] * n[1] + RendererConf.LightVector[2] * n[2];
+                double ndotl = this.RendererConf.LightVector[0] * n[0] + this.RendererConf.LightVector[1] * n[1] + this.RendererConf.LightVector[2] * n[2];
                 if (ndotl > 0) ndotl = 0;
 
                 // Lightning must be between 0 and 1, its multiplied with RGB and that must return a ushort
-                double lighting = RendererConf.LightMin - (RendererConf.LightMax - RendererConf.LightMin) * ndotl;
+                var lighting = this.RendererConf.LightMin - (this.RendererConf.LightMax - this.RendererConf.LightMin) * ndotl;
                 if (lighting < 0) lighting = 0;
                 else if (lighting > 1) lighting = 1;
 
-                List<ImageMagick.PointD> coordinates = new List<ImageMagick.PointD>();
-                foreach (Vector3 vector in poly.Vectors)
+                var coordinates = new List<ImageMagick.PointD>();
+                foreach (var vector in poly.Vectors)
                 {
-                    coordinates.Add(new ImageMagick.PointD(CanvasWidth / 2 + vector.X, CanvasHeight / 2 - vector.Y));
+                    coordinates.Add(new ImageMagick.PointD(this.CanvasWidth / 2 + vector.X, this.CanvasHeight / 2 - vector.Y));
                 }
 
                 // We want to draw the vectors in z-order
@@ -150,57 +145,57 @@ namespace MapCreator
                 drawlist.Add(new DrawableElement(maxZ, lighting, coordinates));
             }
 
-            DrawableElements = drawlist.OrderBy(o => o.order);
-            CanvasX = Convert.ToInt32(ZoneConf.ZoneCoordinateToMapCoordinate(FixtureRow.X) - CanvasWidth / 2d);
-            CanvasY = Convert.ToInt32(ZoneConf.ZoneCoordinateToMapCoordinate(FixtureRow.Y) - CanvasHeight / 2d);
-            ModelColor = RendererConf.Color;
-            ModelTransparency = RendererConf.Transparency;
+            this.DrawableElements = drawlist.OrderBy(o => o.Order);
+            this.CanvasX = Convert.ToInt32(this.ZoneConf.ZoneCoordinateToMapCoordinate(this.FixtureRow.X) - this.CanvasWidth / 2d);
+            this.CanvasY = Convert.ToInt32(this.ZoneConf.ZoneCoordinateToMapCoordinate(this.FixtureRow.Y) - this.CanvasHeight / 2d);
+            this.ModelColor = this.RendererConf.Color;
+            this.ModelTransparency = this.RendererConf.Transparency;
             return true;
         }
 
         private void TransformPolygons()
         {
-            Scale = ((FixtureRow.Scale / 100f) * ZoneConf.LocScale);
+            this.Scale = ((this.FixtureRow.Scale / 100f) * this.ZoneConf.LocScale);
 
-            double angle = 360d * FixtureRow.AxisZ3D - FixtureRow.A;
+            var angle = 360d * this.FixtureRow.AxisZ3D - this.FixtureRow.A;
 
-            if (ZoneConf.ZoneId == "330" || ZoneConf.ZoneId == "334" || ZoneConf.ZoneId == "335")
+            if (this.ZoneConf.ZoneId == "330" || this.ZoneConf.ZoneId == "334" || this.ZoneConf.ZoneId == "335")
             {
-                angle = (360 - FixtureRow.A) * FixtureRow.AxisZ3D;
+                angle = (360 - this.FixtureRow.A) * this.FixtureRow.AxisZ3D;
             }
 
-            Matrix rotation = Matrix.Identity;
+            var rotation = Matrix.Identity;
             if (angle != 0)
             {
                 rotation *= Matrix.RotationZ(Convert.ToSingle(angle * Math.PI / 180.0));
             }
 
-            foreach (Polygon poly in RawPolygons)
+            foreach (var poly in this.RawPolygons)
             {
-                Vector3 p1 = Vector3.TransformCoordinate(poly.P1, rotation);
-                Vector3 p2 = Vector3.TransformCoordinate(poly.P2, rotation);
-                Vector3 p3 = Vector3.TransformCoordinate(poly.P3, rotation);
+                var p1 = Vector3.TransformCoordinate(poly.P1, rotation);
+                var p2 = Vector3.TransformCoordinate(poly.P2, rotation);
+                var p3 = Vector3.TransformCoordinate(poly.P3, rotation);
 
-                if (Scale != 1)
+                if (this.Scale != 1)
                 {
-                    p1.X *= (float)Scale;
-                    p1.Y *= (float)Scale;
-                    p1.Z *= (float)Scale;
+                    p1.X *= (float)this.Scale;
+                    p1.Y *= (float)this.Scale;
+                    p1.Z *= (float)this.Scale;
 
-                    p2.X *= (float)Scale;
-                    p2.Y *= (float)Scale;
-                    p2.Z *= (float)Scale;
+                    p2.X *= (float)this.Scale;
+                    p2.Y *= (float)this.Scale;
+                    p2.Z *= (float)this.Scale;
 
-                    p3.X *= (float)Scale;
-                    p3.Y *= (float)Scale;
-                    p3.Z *= (float)Scale;
+                    p3.X *= (float)this.Scale;
+                    p3.Y *= (float)this.Scale;
+                    p3.Z *= (float)this.Scale;
                 }
 
                 // Check visibility of polygons
-                Polygon newPolygon = new Polygon(p1, p2, p3);
-                if (PolygonArea(newPolygon.Vectors) > 0.01)
+                var newPolygon = new Polygon(p1, p2, p3);
+                if (this.PolygonArea(newPolygon.Vectors) > 0.01)
                 {
-                    ProcessedPolygons.Add(newPolygon);
+                    this.ProcessedPolygons.Add(newPolygon);
                 }
             }
         }
@@ -235,28 +230,28 @@ namespace MapCreator
         /// <returns></returns>
         private Vector3 GetNormal(Vector3 p1, Vector3 p2, Vector3 p3)
         {
-            Vector3 v1 = new Vector3(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]);
-            Vector3 v2 = new Vector3(p3[0] - p2[0], p3[1] - p2[1], p3[2] - p2[2]);
+            var v1 = new Vector3(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]);
+            var v2 = new Vector3(p3[0] - p2[0], p3[1] - p2[1], p3[2] - p2[2]);
             return Vector3.Cross(v1, v2);
         }
 
         public override string ToString()
         {
-            return string.Format("{0} ({1})", Name, NifName);
+            return string.Format("{0} ({1})", this.Name, this.NifName);
         }
     }
 
-    struct DrawableElement : IEnumerable
+	internal struct DrawableElement : IEnumerable
     {
-        public double order;
-        public double lightning;
-        public IEnumerable<ImageMagick.PointD> coordinates;
+        public readonly double Order;
+        public readonly double Lightning;
+        public readonly IEnumerable<ImageMagick.PointD> Coordinates;
 
         public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates)
         {
-            this.order = order;
-            this.lightning = lightning;
-            this.coordinates = coordinates;
+            this.Order = order;
+            this.Lightning = lightning;
+            this.Coordinates = coordinates;
         }
 
         public IEnumerator GetEnumerator()

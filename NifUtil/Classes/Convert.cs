@@ -18,66 +18,61 @@
 //
 
 using System.Collections.Generic;
+using System.Linq;
 using Niflib;
 using SharpDX;
-using System;
 
-namespace NifUtil
+namespace NifUtil.Classes
 {
     public delegate bool IsNodeDrawableEventHandler(NiAVObject node);
 
-    class Convert
+    internal class Convert
     {
         /// <summary>
         /// The NIF File
         /// </summary>
-        private NiFile m_file;
+        private NiFile file;
 
         /// <summary>
         /// The Nif File
         /// </summary>
         internal NiFile File
         {
-            get { return m_file; }
-            set { m_file = value; }
+            get => this.file;
+            set => this.file = value;
         }
 
         /// <summary>
         /// The exported text
         /// </summary>
-        private List<string> m_export = new List<string>();
+        private List<string> export = new List<string>();
 
         /// <summary>
         /// The exported text
         /// </summary>
         internal List<string> Export
         {
-            get { return m_export; }
-            set { m_export = value; }
+            get => this.export;
+            set => this.export = value;
         }
 
-        private List<string> ignoreNodeNames = new List<string>();
-        internal List<string> IgnoreNodeNames
-        {
-            get { return ignoreNodeNames; }
-            set { ignoreNodeNames = value; }
-        }
+        private List<string> IgnoreNodeNames { get; set; } = new List<string>();
 
         public event IsNodeDrawableEventHandler IsNodeDrawable;
 
-        public Convert(NiFile niFile)
+        protected Convert(NiFile niFile)
         {
-            File = niFile;
+            this.File = niFile;
 
-            ignoreNodeNames.AddRange(new List<string> {
-                "collidee",
-                "bounding",
-                "climb",
-                "!lod_cullme",
-                "!visible_damaged",
-                "shadowcaster",
-                "far"
-            });
+            this.IgnoreNodeNames.AddRange(new List<string> {
+		                                                           "collidee",
+		                                                           "bounding",
+		                                                           "climb",
+		                                                           "!lod_cullme",
+		                                                           "!visible_damaged",
+		                                                           "shadowcaster",
+		                                                           "far"
+                                                           });
 
         }
 
@@ -87,18 +82,13 @@ namespace NifUtil
             if ((node.Flags & 1) == 1) return false;
 
             // Ignore some node names
-            foreach (string ignoreName in IgnoreNodeNames)
+            if(this.IgnoreNodeNames.Any(ignoreName => node.Name.Value.ToLower().StartsWith(ignoreName.ToLower())))
             {
-                if (node.Name.Value.ToLower().StartsWith(ignoreName.ToLower())) return false;
+	            return false;
             }
 
             // Additional Callback
-            if(IsNodeDrawable != null)
-            {
-                return IsNodeDrawable(node);
-            }
-
-            return true;
+            return this.IsNodeDrawable == null||this.IsNodeDrawable(node);
         }
 
         internal Matrix ComputeWorldMatrix(NiAVObject obj)
@@ -111,12 +101,11 @@ namespace NifUtil
                 current = current.Parent;
             }
             var worldMatrix = Matrix.Identity;
-            for (var i = 0; i < path.Count; i++)
+            foreach(var node in path)
             {
-                var node = path[i];
-                worldMatrix *= node.Rotation;
-                worldMatrix *= Matrix.Scaling(node.Scale, node.Scale, node.Scale);
-                worldMatrix *= Matrix.Translation(node.Translation.X, node.Translation.Y, node.Translation.Z);
+	            worldMatrix *= node.Rotation;
+	            worldMatrix *= Matrix.Scaling(node.Scale, node.Scale, node.Scale);
+	            worldMatrix *= Matrix.Translation(node.Translation.X, node.Translation.Y, node.Translation.Z);
             }
 
             return worldMatrix;

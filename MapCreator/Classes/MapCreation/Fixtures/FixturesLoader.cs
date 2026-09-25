@@ -19,31 +19,33 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
+using System.Linq;
+using MapCreator.Classes.MapCreation.Fixtures.Objects;
 using MPKLib;
 using NifUtil;
+using NifUtil.Objects;
 
-namespace MapCreator.Fixtures
+namespace MapCreator.Classes.MapCreation.Fixtures
 {
-    static class FixturesLoader
+	internal static class FixturesLoader
     {
         private static ZoneConfiguration zoneConf;
 
         private static List<NifRow> nifRows = new List<NifRow>();
-        private static List<FixtureRow> fixtureRows = new List<FixtureRow>();
-        private static List<TreeRow> treeRows = new List<TreeRow>();
-        private static List<TreeClusterRow> treeClusterRows = new List<TreeClusterRow>();
+        private static readonly List<FixtureRow> FixtureRows = new List<FixtureRow>();
+        private static readonly List<TreeRow> TreeRows = new List<TreeRow>();
+        private static readonly List<TreeClusterRow> TreeClusterRows = new List<TreeClusterRow>();
 
         // Location where to search for npk with nifs
-        private static List<string> nifSearchPaths = new List<string>();
+        private static readonly List<string> NifSearchPaths = new List<string>();
 
         private static List<string> nifObjectImages = new List<string>();
 
         internal static List<NifRow> NifRows
         {
-            get { return FixturesLoader.nifRows; }
-            set { FixturesLoader.nifRows = value; }
+            get => FixturesLoader.nifRows;
+            set => FixturesLoader.nifRows = value;
         }
 
         public static void Initialize(ZoneConfiguration zoneConfiguration)
@@ -52,7 +54,7 @@ namespace MapCreator.Fixtures
 
             // Clear on call
             nifRows.Clear();
-            fixtureRows.Clear();
+            FixtureRows.Clear();
             // Trees and TreeCluster are always the same, do not load on each progress
             //treeRows.Clear();
             //treeClusterRows.Clear();
@@ -61,7 +63,7 @@ namespace MapCreator.Fixtures
             LoadPolygons();
 
             // Load the filenames in data/prerendered/objects
-            string objectImageFileDirectory = string.Format("{0}\\data\\prerendered\\objects", System.Windows.Forms.Application.StartupPath);
+            var objectImageFileDirectory = string.Format("{0}\\data\\prerendered\\objects", System.Windows.Forms.Application.StartupPath);
             if (!Directory.Exists(objectImageFileDirectory)) Directory.CreateDirectory(objectImageFileDirectory);
             nifObjectImages = Directory.GetFiles(objectImageFileDirectory).Select(f => Path.GetFileNameWithoutExtension(f).ToLower()).ToList();
         }
@@ -72,46 +74,52 @@ namespace MapCreator.Fixtures
         private static void LoadCsvData() {
             MainForm.ProgressStartMarquee("Loading fixture data ...");
 
-            List<string> nifsCsvRows = DataWrapper.GetFileContent(zoneConf.CvsMpk, "nifs.csv");
-            List<string> fixturesRows = DataWrapper.GetFileContent(zoneConf.CvsMpk, "fixtures.csv");
+            var nifsCsvRows = DataWrapper.GetFileContent(zoneConf.CvsMpk, "nifs.csv");
+            var fixturesRows = DataWrapper.GetFileContent(zoneConf.CvsMpk, "fixtures.csv");
 
             // Create a NumberFormatInfo object for floats and set some of its properties.
-            System.Globalization.NumberFormatInfo provider = new System.Globalization.NumberFormatInfo();
-            provider.NumberDecimalSeparator = ".";
-            provider.NumberGroupSeparator = "";
-            provider.NumberGroupSizes = new int[] { 2 };
+            var provider = new System.Globalization.NumberFormatInfo
+                           {
+		                           NumberDecimalSeparator = ".",
+		                           NumberGroupSeparator = "",
+		                           NumberGroupSizes = new int[] { 2 }
+                           };
 
-            foreach (string row in nifsCsvRows)
+            foreach (var row in nifsCsvRows)
             {
                 if (row.StartsWith("Grid") || row.StartsWith("NIF")) continue;
 
-                string[] fields = row.Split(',');
+                var fields = row.Split(',');
 
-                NifRow nifRow = new NifRow();
-                nifRow.NifId = Convert.ToInt32(fields[0]);
-                nifRow.TextualName = fields[1];
-                nifRow.Filename = fields[2];
-                nifRow.Color = Convert.ToInt32(fields[5]);
+                var nifRow = new NifRow
+                             {
+		                             NifId = Convert.ToInt32(fields[0]),
+		                             TextualName = fields[1],
+		                             Filename = fields[2],
+		                             Color = Convert.ToInt32(fields[5])
+                             };
                 nifRows.Add(nifRow);
             }
 
             // Read fixtures.csv
-            foreach (string row in fixturesRows)
+            foreach (var row in fixturesRows)
             {
                 if (row.StartsWith("Fixtures") || row.StartsWith("ID")) continue;
 
-                string[] fields = row.Split(',');
-                FixtureRow fixtureRow = new FixtureRow();
-                fixtureRow.Id = Convert.ToInt32(fields[0]);
-                fixtureRow.NifId = Convert.ToInt32(fields[1]);
-                fixtureRow.TextualName = fields[2];
-                fixtureRow.X = Convert.ToDouble(fields[3], provider);
-                fixtureRow.Y = Convert.ToDouble(fields[4], provider);
-                fixtureRow.Z = Convert.ToDouble(fields[5], provider);
-                fixtureRow.A = Convert.ToInt32(fields[6]);
-                fixtureRow.Scale = Convert.ToInt32(fields[7]);
-                fixtureRow.OnGround = (Convert.ToInt32(fields[11]) == 1) ? true : false;
-                fixtureRow.Flip = (Convert.ToInt32(fields[12]) == 1) ? true : false;
+                var fields = row.Split(',');
+                var fixtureRow = new FixtureRow
+                                 {
+		                                 Id = Convert.ToInt32(fields[0]),
+		                                 NifId = Convert.ToInt32(fields[1]),
+		                                 TextualName = fields[2],
+		                                 X = Convert.ToDouble(fields[3], provider),
+		                                 Y = Convert.ToDouble(fields[4], provider),
+		                                 Z = Convert.ToDouble(fields[5], provider),
+		                                 A = Convert.ToInt32(fields[6]),
+		                                 Scale = Convert.ToInt32(fields[7]),
+		                                 OnGround = (Convert.ToInt32(fields[11]) == 1) ? true : false,
+		                                 Flip = (Convert.ToInt32(fields[12]) == 1) ? true : false
+                                 };
 
                 if (fields.Length > 15)
                 {
@@ -121,72 +129,78 @@ namespace MapCreator.Fixtures
                     fixtureRow.AxisZ3D = Convert.ToDouble(fields[18], provider);
                 }
 
-                fixtureRows.Add(fixtureRow);
+                FixtureRows.Add(fixtureRow);
             }
 
             // Only load on first init
-            if (treeRows.Count == 0)
+            if (TreeRows.Count == 0)
             {
-                string treeMpk = string.Format("{0}\\zones\\trees\\treemap.mpk", Properties.Settings.Default.game_path);
-                string treeClusterMpk = string.Format("{0}\\zones\\trees\\tree_clusters.mpk", Properties.Settings.Default.game_path);
+                var treeMpk = string.Format("{0}\\zones\\trees\\treemap.mpk", Properties.Settings.Default.game_path);
+                var treeClusterMpk = string.Format("{0}\\zones\\trees\\tree_clusters.mpk", Properties.Settings.Default.game_path);
 
-                List<string> treesCsvRows = DataWrapper.GetFileContent(treeMpk, "Treemap.csv");
-                List<string> treeClusterCsvRows = DataWrapper.GetFileContent(treeClusterMpk, "tree_clusters.csv");
+                var treesCsvRows = DataWrapper.GetFileContent(treeMpk, "Treemap.csv");
+                var treeClusterCsvRows = DataWrapper.GetFileContent(treeClusterMpk, "tree_clusters.csv");
 
-                foreach (string row in treesCsvRows)
+                foreach (var row in treesCsvRows)
                 {
                     if (row.StartsWith("NIF Name")) continue;
 
-                    string[] fields = row.Split(',');
+                    var fields = row.Split(',');
                     //if (fields[4] == "") continue;
 
-                    TreeRow treeRow = new TreeRow();
-                    treeRow.Name = fields[0];
-                    treeRow.ZOffset = (string.IsNullOrEmpty(fields[4])) ? 0 : Convert.ToInt32(fields[4]);
-                    treeRow.LeafTexture = (string.IsNullOrEmpty(fields[3])) ? "" : fields[3];
+                    var treeRow = new TreeRow
+                                  {
+		                                  Name = fields[0],
+		                                  ZOffset = (string.IsNullOrEmpty(fields[4])) ? 0 : Convert.ToInt32(fields[4]),
+		                                  LeafTexture = (string.IsNullOrEmpty(fields[3])) ? "" : fields[3]
+                                  };
                     treeRow.AverageColor = GetTreeColor(treeRow);
-                    treeRows.Add(treeRow);
+                    TreeRows.Add(treeRow);
                 }
 
-                foreach (string row in treeClusterCsvRows)
+                foreach (var row in treeClusterCsvRows)
                 {
                     if (row.StartsWith("name")) continue;
                     if (row == "") continue;
 
-                    string[] fields = row.Split(',');
-                    TreeClusterRow treeClusterRow = new TreeClusterRow();
-                    treeClusterRow.Name = fields[0];
-                    treeClusterRow.Tree = fields[1];
-                    treeClusterRow.TreeInstances = new List<SharpDX.Vector3>();
-                    for (int i = 2; i < fields.Length; i = i + 3)
+                    var fields = row.Split(',');
+                    var treeClusterRow = new TreeClusterRow
+                                         {
+		                                         Name = fields[0],
+		                                         Tree = fields[1],
+		                                         TreeInstances = new List<SharpDX.Vector3>()
+                                         };
+                    for (var i = 2; i < fields.Length; i = i + 3)
                     {
                         if(fields[i] == "" || fields[i+1] == "" || fields[i+2] == "") break;
 
-                        float x = Convert.ToSingle(fields[i], provider);
-                        float y = Convert.ToSingle(fields[i + 1], provider);
-                        float z = Convert.ToSingle(fields[i + 2], provider);
+                        var x = Convert.ToSingle(fields[i], provider);
+                        var y = Convert.ToSingle(fields[i + 1], provider);
+                        var z = Convert.ToSingle(fields[i + 2], provider);
                         if (x == 0 && y == 0 && z == 0) break;
 
                         treeClusterRow.TreeInstances.Add(new SharpDX.Vector3(x, y, z));
                     }
 
-                    treeClusterRows.Add(treeClusterRow);
+                    TreeClusterRows.Add(treeClusterRow);
                 }
             }
             
             // Add the trees of the clusters to the cache
-            for (int i = 0; i < nifRows.Count; i++ )
+            for (var i = 0; i < nifRows.Count; i++ )
             {
-                bool isTreeCluster = treeClusterRows.Any(tc => tc.Name.ToLower() == nifRows[i].Filename.ToLower());
+                var isTreeCluster = TreeClusterRows.Any(tc => tc.Name.ToLower() == nifRows[i].Filename.ToLower());
                 if (isTreeCluster)
                 {
-                    TreeClusterRow treeCluster = treeClusterRows.Where(tc => tc.Name.ToLower() == nifRows[i].Filename.ToLower()).FirstOrDefault();
-                    if(treeCluster == null || nifRows.Where(n => n.Filename == treeCluster.Tree).Count() > 0) continue;
+                    var treeCluster = TreeClusterRows.FirstOrDefault(tc => tc.Name.ToLower() == nifRows[i].Filename.ToLower());
+                    if(treeCluster == null || nifRows.Any(n => n.Filename == treeCluster.Tree)) continue;
 
-                    NifRow tree = new NifRow();
-                    tree.NifId = 10000 + i;
-                    tree.TextualName = treeCluster.Tree + " (cluster tree)";
-                    tree.Filename = treeCluster.Tree;
+                    var tree = new NifRow
+                               {
+		                               NifId = 10000 + i,
+		                               TextualName = treeCluster.Tree + " (cluster tree)",
+		                               Filename = treeCluster.Tree
+                               };
                     nifRows.Add(tree);
                 }
             }
@@ -194,13 +208,13 @@ namespace MapCreator.Fixtures
             MainForm.ProgressReset();
         }
 
-        private static Dictionary<string, System.Drawing.Color> treeColors = new Dictionary<string,System.Drawing.Color>();
+        private static readonly Dictionary<string, System.Drawing.Color> TreeColors = new Dictionary<string,System.Drawing.Color>();
 
         private static System.Drawing.Color GetTreeColor(TreeRow treeRow)
         {
-            if (treeColors.ContainsKey(treeRow.Name)) return treeColors[treeRow.Name];
+            if (TreeColors.TryGetValue(treeRow.Name, out var treeColor)) return treeColor;
 
-            string treeTextureFile = string.Format("{0}\\zones\\trees\\{1}", Properties.Settings.Default.game_path, treeRow.LeafTexture);
+            var treeTextureFile = string.Format("{0}\\zones\\trees\\{1}", Properties.Settings.Default.game_path, treeRow.LeafTexture);
             if (!File.Exists(treeTextureFile))
             {
                 MainForm.Log(string.Format("Unable to get texture for tree {0}. Using default color.", treeRow.Name));
@@ -208,13 +222,13 @@ namespace MapCreator.Fixtures
             }
             else
             {
-                using (ImageMagick.MagickImage texture = new ImageMagick.MagickImage(treeTextureFile))
+                using (var texture = new ImageMagick.MagickImage(treeTextureFile))
                 {
                     texture.Resize(1, 1);
-                    ImageMagick.IPixel<ushort> pixel = texture.GetPixels().First();
+                    var pixel = texture.GetPixels().First();
 
-                    System.Drawing.Color color = pixel.ToColor().ToSystemColor();
-                    treeColors.Add(treeRow.Name, color);
+                    var color = pixel.ToColor().ToSystemColor();
+                    TreeColors.Add(treeRow.Name, color);
                     return color;
                 }
             }
@@ -226,10 +240,10 @@ namespace MapCreator.Fixtures
         /// </summary>
         private static void LoadPolygons()
         {
-            if (nifRows.Count() == 0 || fixtureRows.Count() == 0) return;
+            if (!nifRows.Any() || !FixtureRows.Any()) return;
 
             // Shared with parallel MapCreator processes
-            using (System.Threading.Mutex polysMutex = new System.Threading.Mutex(false, "MapCreatorPolysCache"))
+            using (var polysMutex = new System.Threading.Mutex(false, "MapCreatorPolysCache"))
             {
                 try
                 {
@@ -254,49 +268,49 @@ namespace MapCreator.Fixtures
         {
 
             // MainForm progress
-            MainForm.Log("Loading polygons ...", MainForm.LogLevel.notice);
+            MainForm.Log("Loading polygons ...", MainForm.LogLevel.Notice);
             MainForm.ProgressStart("Loading polygons ...");
 
-            DirectoryInfo polysDirectory = new DirectoryInfo(string.Format("{0}\\data\\polys", System.Windows.Forms.Application.StartupPath));
+            var polysDirectory = new DirectoryInfo(string.Format("{0}\\data\\polys", System.Windows.Forms.Application.StartupPath));
             if (!polysDirectory.Exists) polysDirectory.Create();
 
-            string polysMpkFile = string.Format("{0}\\data\\polys.mpk", System.Windows.Forms.Application.StartupPath);
+            var polysMpkFile = string.Format("{0}\\data\\polys.mpk", System.Windows.Forms.Application.StartupPath);
 
-            MPAK polyMpk = new MPAK();
-            bool polyMpkModified = false;
+            var polyMpk = new MPAK();
+            var polyMpkModified = false;
 
             if (!File.Exists(polysMpkFile)) polyMpkModified = true; // Create a new poyls.mpk
             else polyMpk.Load(polysMpkFile); // Load existing polys.mpk
 
             // Loop all nifs from nifs.csv
-            int progressCounter = 0;
-            foreach (NifRow nifRow in nifRows)
+            var progressCounter = 0;
+            foreach (var nifRow in nifRows)
             {
                 // Check if this nif is a TreeCluster
-                bool isTreeCluster = treeClusterRows.Any(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
+                var isTreeCluster = TreeClusterRows.Any(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
                 if(isTreeCluster) continue;
 
                 // The poly filename
-                string modelPolyFileName = Path.GetFileNameWithoutExtension(nifRow.Filename) + ".poly";
-                string modelPolySavePath = string.Format("{0}\\{1}", polysDirectory, modelPolyFileName);
+                var modelPolyFileName = Path.GetFileNameWithoutExtension(nifRow.Filename) + ".poly";
+                var modelPolySavePath = string.Format("{0}\\{1}", polysDirectory, modelPolyFileName);
 
                 // MPK handling, cache .poly file for models
-                if (polyMpk.Files.Where(f => f.Name.ToLower() == modelPolyFileName.ToLower()).Count() == 0)
+                if (polyMpk.Files.All(f => f.Name.ToLower() != modelPolyFileName.ToLower()))
                 {
-                    string nifArchivePath = FindNifArchive(nifRow);
+                    var nifArchivePath = FindNifArchive(nifRow);
                     if(string.IsNullOrEmpty(nifArchivePath)) continue;
 
                     // open the archive
-                    using (StreamReader nifFileFromNpk = MpkWrapper.GetFileFromMpk(nifArchivePath, nifRow.Filename))
+                    using (var nifFileFromNpk = MpkWrapper.GetFileFromMpk(nifArchivePath, nifRow.Filename))
                     {
                         if (nifFileFromNpk != null)
                         {
-                            MainForm.Log(string.Format("Processing {0}...", nifRow.TextualName), MainForm.LogLevel.notice);
+                            MainForm.Log(string.Format("Processing {0}...", nifRow.TextualName), MainForm.LogLevel.Notice);
 
                             // Create a new poly and add to mpk
                             polyMpkModified = true;
 
-                            NifParser nifParser = new NifParser();
+                            var nifParser = new NifParser();
                             nifParser.IsNodeDrawable += delegate(Niflib.NiAVObject node)
                             {
                                 return NifParser_IsNodeDrawable(nifRow, node);
@@ -319,7 +333,7 @@ namespace MapCreator.Fixtures
                     nifRow.Polygons = NifParser.ReadPoly(new StreamReader(new MemoryStream(polyMpk.GetFile(modelPolyFileName).Data)));
                 }
 
-                int percent = 100 * progressCounter / nifRows.Count;
+                var percent = 100 * progressCounter / nifRows.Count;
                 MainForm.ProgressUpdate(percent);
                 progressCounter++;
             }
@@ -335,7 +349,7 @@ namespace MapCreator.Fixtures
             // Delete polys directory
             Directory.Delete(polysDirectory.FullName, true);
 
-            MainForm.Log("Polygons loaded!", MainForm.LogLevel.success);
+            MainForm.Log("Polygons loaded!", MainForm.LogLevel.Success);
             MainForm.ProgressReset();
         }
 
@@ -344,19 +358,19 @@ namespace MapCreator.Fixtures
             // Only draw the elements, sticking out of the ground
             if(nifRow.NifId == 408)
             {
-                List<string> validNodes = new List<string>
-                {
-                    "agramonKeep01",
-                    "collisionswitch",
-                    "visible",
-                    "wall -outdoors",
-                    "wall -outdoors01",
-                    "tower",
-                    "tower01",
-                    "tower02",
-                    "entrance",
-                    "disc"
-                };
+                var validNodes = new List<string>
+                                 {
+		                                 "agramonKeep01",
+		                                 "collisionswitch",
+		                                 "visible",
+		                                 "wall -outdoors",
+		                                 "wall -outdoors01",
+		                                 "tower",
+		                                 "tower01",
+		                                 "tower02",
+		                                 "entrance",
+		                                 "disc"
+                                 };
 
                 var result = validNodes.Find(v => node.Name.Value.StartsWith(v));
                 if (result != null)
@@ -371,33 +385,34 @@ namespace MapCreator.Fixtures
 
         public static List<DrawableFixture> GetDrawableFixtures()
         {
-            List<DrawableFixture> drawables = new List<DrawableFixture>();
+            var drawables = new List<DrawableFixture>();
 
             // MainForm progress
-            MainForm.Log("Preparing fixtures ...", MainForm.LogLevel.notice);
+            MainForm.Log("Preparing fixtures ...", MainForm.LogLevel.Notice);
             MainForm.ProgressStart("Preparing fixtures ...");
 
-            int progressCounter = 0;
-            foreach (FixtureRow fixtureRow in fixtureRows)
+            var progressCounter = 0;
+            foreach (var fixtureRow in FixtureRows)
             {
                 try
                 {
-                    NifRow nifRow = nifRows.Where(n => n.NifId == fixtureRow.NifId).FirstOrDefault();
+                    var nifRow = nifRows.FirstOrDefault(n => n.NifId == fixtureRow.NifId);
                     if (nifRow == null) continue;
 
-                    DrawableFixture fixture = new DrawableFixture();
-
-                    // Set default values
-                    fixture.Name = fixtureRow.TextualName;
-                    fixture.NifName = nifRow.Filename;
-                    fixture.FixtureRow = fixtureRow;
-                    fixture.ZoneConf = zoneConf;
+                    var fixture = new DrawableFixture
+                                  {
+		                                  // Set default values
+		                                  Name = fixtureRow.TextualName,
+		                                  NifName = nifRow.Filename,
+		                                  FixtureRow = fixtureRow,
+		                                  ZoneConf = zoneConf
+                                  };
 
                     // Get renderer configuration
-                    FixtureRendererConfiguration2? rConf = FixtureRendererConfigurations.GetFixtureRendererConfiguration(nifRow.Filename);
+                    var rConf = FixtureRendererConfigurations.GetFixtureRendererConfiguration(nifRow.Filename);
 
-                    fixture.IsTree = treeRows.Any(t => t.Name.ToLower() == nifRow.Filename.ToLower());
-                    fixture.IsTreeCluster = treeClusterRows.Any(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
+                    fixture.IsTree = TreeRows.Any(t => t.Name.ToLower() == nifRow.Filename.ToLower());
+                    fixture.IsTreeCluster = TreeClusterRows.Any(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
 
                     if (rConf != null && (rConf.Value.Name == "TreeShaded" || rConf.Value.Name == "TreeImage"))
                     {
@@ -406,29 +421,28 @@ namespace MapCreator.Fixtures
 
                     if (fixture.IsTree)
                     {
-                        fixture.Tree = treeRows.Where(tc => tc.Name.ToLower() == nifRow.Filename.ToLower()).FirstOrDefault();
+                        fixture.Tree = TreeRows.FirstOrDefault(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
                         fixture.RawPolygons = nifRow.Polygons;
 
-                        if (rConf == null) fixture.RendererConf = FixtureRendererConfigurations.GetRendererById("TreeImage");
-                        else fixture.RendererConf = rConf.GetValueOrDefault();
+                        fixture.RendererConf = rConf ?? FixtureRendererConfigurations.GetRendererById("TreeImage");
                     }
                     else if (fixture.IsTreeCluster)
                     {
-                        fixture.TreeCluster = treeClusterRows.Where(tc => tc.Name.ToLower() == nifRow.Filename.ToLower()).FirstOrDefault();
+                        fixture.TreeCluster = TreeClusterRows.FirstOrDefault(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
 
                         // Get the polygons of the base nif
-                        var treeNif = nifRows.Where(n => n.Filename.ToLower() == fixture.TreeCluster.Tree.ToLower()).FirstOrDefault();
+                        var treeNif = nifRows.FirstOrDefault(n => n.Filename.ToLower() == fixture.TreeCluster.Tree.ToLower());
                         if (treeNif == null) continue;
-                        Polygon[] baseTreePolygons = treeNif.Polygons;
+                        var baseTreePolygons = treeNif.Polygons;
 
                         // Loop the instances and transform the polygons
-                        List<Polygon> treeClusterPolygons = new List<Polygon>();
-                        foreach (SharpDX.Vector3 tree in fixture.TreeCluster.TreeInstances)
+                        var treeClusterPolygons = new List<Polygon>();
+                        foreach (var tree in fixture.TreeCluster.TreeInstances)
                         {
-                            foreach (Polygon treePolygon in baseTreePolygons)
+                            foreach (var treePolygon in baseTreePolygons)
                             {
-                                Polygon newPolygon = new Polygon(treePolygon.P1, treePolygon.P2, treePolygon.P3);
-                                for (int i = 0; i < newPolygon.Vectors.Length; i++)
+                                var newPolygon = new Polygon(treePolygon.P1, treePolygon.P2, treePolygon.P3);
+                                for (var i = 0; i < newPolygon.Vectors.Length; i++)
                                 {
                                     newPolygon.Vectors[i].X -= tree.X;
                                     newPolygon.Vectors[i].Y += tree.Y;
@@ -448,7 +462,7 @@ namespace MapCreator.Fixtures
 
                         if (rConf == null)
                         {
-                            string nifFilenamWithoutExtension = Path.GetFileNameWithoutExtension(fixture.NifName);
+                            var nifFilenamWithoutExtension = Path.GetFileNameWithoutExtension(fixture.NifName);
                             if (nifObjectImages.Contains(nifFilenamWithoutExtension.ToLower()))
                             {
                                 fixture.RendererConf = FixtureRendererConfigurations.GetRendererById("Prerendered");
@@ -462,7 +476,7 @@ namespace MapCreator.Fixtures
                     }
 
                     // Calculate the final look of the model
-                    bool result = fixture.Calc();
+                    var result = fixture.Calc();
                     if (result)
                     {
                         drawables.Add(fixture);
@@ -473,7 +487,7 @@ namespace MapCreator.Fixtures
                     }
 
                     progressCounter++;
-                    int percent = 100 * progressCounter / fixtureRows.Count;
+                    var percent = 100 * progressCounter / FixtureRows.Count;
                     MainForm.ProgressUpdate(percent);
                 }
                 catch
@@ -484,7 +498,7 @@ namespace MapCreator.Fixtures
                 }
             }
 
-            MainForm.Log("Fixtures prepared!", MainForm.LogLevel.success);
+            MainForm.Log("Fixtures prepared!", MainForm.LogLevel.Success);
             MainForm.ProgressReset();
 
             return drawables;
@@ -492,23 +506,23 @@ namespace MapCreator.Fixtures
 
         private static string FindNifArchive(NifRow nifRow)
         {
-            if (nifSearchPaths.Count == 0)
+            if (NifSearchPaths.Count == 0)
             {
-                nifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "Newtowns\\zones\\Nifs")); // Newtows
-                nifSearchPaths.Add(string.Format("{0}\\{1}", zoneConf.ZoneDirectory, "nifs")); // Current Zone Directory
-                nifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "zones\\Nifs")); // Globals zones nif dir
+                NifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "Newtowns\\zones\\Nifs")); // Newtows
+                NifSearchPaths.Add(string.Format("{0}\\{1}", zoneConf.ZoneDirectory, "nifs")); // Current Zone Directory
+                NifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "zones\\Nifs")); // Globals zones nif dir
                 //nifPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "zones\\trees")); // Global trees nif dir: removed, theses nifs are CAD files
-                nifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "frontiers\\NIFS")); // Frontiers
-                nifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "phousing\\nifs")); // Housing
-                nifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "Tutorial\\zones\\nifs")); // Tutorial
-                nifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "pregame")); // Pregame?
-                nifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "zones\\Dnifs")); // Guess Dungeon nifs
+                NifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "frontiers\\NIFS")); // Frontiers
+                NifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "phousing\\nifs")); // Housing
+                NifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "Tutorial\\zones\\nifs")); // Tutorial
+                NifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "pregame")); // Pregame?
+                NifSearchPaths.Add(string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "zones\\Dnifs")); // Guess Dungeon nifs
             }
 
             // Search NPKs
-            string archiveName = Path.GetFileNameWithoutExtension(nifRow.Filename) + ".npk";
+            var archiveName = Path.GetFileNameWithoutExtension(nifRow.Filename) + ".npk";
             //MainForm.Log(string.Format("Searching for {0}", archiveName), MainForm.LogLevel.notice);
-            foreach (string dir in nifSearchPaths)
+            foreach (var dir in NifSearchPaths)
             {
                 if (Directory.Exists(dir) && Directory.GetFiles(dir, archiveName).Length > 0)
                 {
@@ -517,7 +531,7 @@ namespace MapCreator.Fixtures
                 }
             }
 
-            MainForm.Log(string.Format("Unable to find nif \"{0}\"!", nifRow.Filename), MainForm.LogLevel.warning);
+            MainForm.Log(string.Format("Unable to find nif \"{0}\"!", nifRow.Filename), MainForm.LogLevel.Warning);
             return null;
         }
 

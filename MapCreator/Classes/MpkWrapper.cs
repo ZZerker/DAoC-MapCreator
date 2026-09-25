@@ -19,19 +19,19 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using MPKLib;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
+using MPKLib;
 
-namespace MapCreator
+namespace MapCreator.Classes
 {
-    static class MpkWrapper
+	internal static class MpkWrapper
     {
 
         public static bool CheckGamePath()
         {
-            string checkFile = string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "camelot.exe");
+            var checkFile = string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "camelot.exe");
             if (!File.Exists(checkFile))
             {
                 MainForm.Log("camelot.exe not found in gamepath!");
@@ -52,23 +52,23 @@ namespace MapCreator
                 return null;
             }
 
-            Dictionary<int, string> zones = new Dictionary<int, string>();
-            string zonesMpk = string.Format("{0}\\zones\\zones.mpk", Properties.Settings.Default.game_path);
+            var zones = new Dictionary<int, string>();
+            var zonesMpk = string.Format("{0}\\zones\\zones.mpk", Properties.Settings.Default.game_path);
 
-            MPAK mpak = new MPAK();
+            var mpak = new MPAK();
             mpak.Load(zonesMpk);
 
-            MPAKFileEntry zonesFile = mpak.GetFile("zones.dat");
+            var zonesFile = mpak.GetFile("zones.dat");
 
             using (Stream stream = new MemoryStream(zonesFile.Data))
             {
-                using (StreamReader reader = new StreamReader(stream))
+                using (var reader = new StreamReader(stream))
                 {
                     string row;
-                    bool recording = false;
+                    var recording = false;
 
-                    int current_zone = 0;
-                    string current_zone_name = "";
+                    var currentZone = 0;
+                    var currentZoneName = "";
                     Match match;
 
                     while ((row = reader.ReadLine()) != null)
@@ -81,27 +81,27 @@ namespace MapCreator
                         if (row.StartsWith("[zone"))
                         {
                             recording = true;
-                            Regex regex = new Regex(@"\[zone(.*)\]", RegexOptions.IgnoreCase);
+                            var regex = new Regex(@"\[zone(.*)\]", RegexOptions.IgnoreCase);
                             if ((match = regex.Match(row)) != null)
                             {
-                                current_zone = Convert.ToInt32(match.Groups[1].Value);
+                                currentZone = Convert.ToInt32(match.Groups[1].Value);
                             }
                         }
 
                         if (recording && row.StartsWith("name="))
                         {
-                            Regex regex = new Regex(@"name=(.*)", RegexOptions.IgnoreCase);
+                            var regex = new Regex(@"name=(.*)", RegexOptions.IgnoreCase);
                             if ((match = regex.Match(row)) != null)
                             {
-                                current_zone_name = match.Groups[1].Value;
+                                currentZoneName = match.Groups[1].Value;
                             }
                         }
 
-                        if (recording && current_zone > 0 && current_zone_name != "")
+                        if (recording && currentZone > 0 && currentZoneName != "")
                         {
-                            zones.Add(current_zone, current_zone_name);
-                            current_zone = 0;
-                            current_zone_name = "";
+                            zones.Add(currentZone, currentZoneName);
+                            currentZone = 0;
+                            currentZoneName = "";
                             recording = false;
                         }
 
@@ -114,10 +114,10 @@ namespace MapCreator
 
         public static StreamReader GetFileFromMpk(string mpk, string filename)
         {
-            MPAK mpak = new MPAK();
+            var mpak = new MPAK();
             mpak.Load(mpk);
 
-            if (mpak.Files.Where(f => f.Name.ToLower() == filename.ToLower()).Count() > 0)
+            if (mpak.Files.Any(f => f.Name.ToLower() == filename.ToLower()))
             {
                 return new StreamReader(new MemoryStream(mpak.GetFile(filename).Data));
             }
@@ -127,7 +127,7 @@ namespace MapCreator
 
         public static Byte[] GetFileBytesFromMpk(string mpk, string filename)
         {
-            MPAK mpak = new MPAK();
+            var mpak = new MPAK();
             mpak.Load(mpk);
             return mpak.GetFile(filename).Data;
         }

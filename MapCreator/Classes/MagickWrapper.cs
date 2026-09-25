@@ -20,9 +20,9 @@
 using System.Drawing;
 using ImageMagick;
 
-namespace MapCreator
+namespace MapCreator.Classes
 {
-    static class MagickWrapper
+	internal static class MagickWrapper
     {
         public static MagickColor ToMagickColor(this Color color)
         {

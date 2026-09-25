@@ -17,41 +17,19 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-namespace MapCreator
+namespace MapCreator.Classes.MapCreation.Fixtures.Objects
 {
-    class TreeRow
+	internal class TreeRow
     {
-        private string m_name;
-        private int m_zOffset;
-        private string m_leafTexture;
-        private System.Drawing.Color m_averageColor;
+	    #region Getter/Setter
 
-        #region Getter/Setter
+        public string Name { get; set; }
 
-        public string Name
-        {
-            get { return m_name; }
-            set { m_name = value; }
-        }
+        public int ZOffset { get; set; }
 
-        public int ZOffset
-        {
-            get { return m_zOffset; }
-            set { m_zOffset = value; }
-        }
+        public string LeafTexture { get; set; }
 
-        public string LeafTexture
-        {
-            get { return m_leafTexture; }
-            set { m_leafTexture = value; }
-        }
-
-        public System.Drawing.Color AverageColor
-        {
-            get { return m_averageColor; }
-            set { m_averageColor = value; }
-        }
-
+        public System.Drawing.Color AverageColor { get; set; }
         #endregion
 
         public TreeRow()

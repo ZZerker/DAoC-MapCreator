@@ -18,12 +18,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 namespace MapCreator
@@ -32,7 +26,7 @@ namespace MapCreator
     {
         public PreferencesForm()
         {
-            InitializeComponent();
+	        this.InitializeComponent();
         }
 
         private void gamePathTextBox_KeyPress(object sender, KeyPressEventArgs e)
@@ -49,27 +43,27 @@ namespace MapCreator
 
         private void gamePathBrowseButton_Click(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(gamePathTextBox.Text))
+            if (!string.IsNullOrEmpty(this.gamePathTextBox.Text))
             {
-                gamePathFileBrowser.SelectedPath = gamePathTextBox.Text;
+	            this.gamePathFileBrowser.SelectedPath = this.gamePathTextBox.Text;
             }
 
-            if (gamePathFileBrowser.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if (this.gamePathFileBrowser.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                gamePathTextBox.Text = gamePathFileBrowser.SelectedPath;
+	            this.gamePathTextBox.Text = this.gamePathFileBrowser.SelectedPath;
             }
         }
 
         private void targetMapBrowseButton_Click(object sender, EventArgs e)
         {
-            if (!string.IsNullOrEmpty(targetMapPathTextBox.Text))
+            if (!string.IsNullOrEmpty(this.targetMapPathTextBox.Text))
             {
-                targetMapPathBrowser.SelectedPath = targetMapPathTextBox.Text;
+	            this.targetMapPathBrowser.SelectedPath = this.targetMapPathTextBox.Text;
             }
 
-            if (targetMapPathBrowser.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if (this.targetMapPathBrowser.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                targetMapPathTextBox.Text = targetMapPathBrowser.SelectedPath;
+	            this.targetMapPathTextBox.Text = this.targetMapPathBrowser.SelectedPath;
             }
         }
     }

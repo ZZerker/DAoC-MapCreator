@@ -19,7 +19,7 @@
 
 namespace MapCreator.Classes
 {
-    class NiflibWrapper
+	internal class NiflibWrapper
     {
     }
 }

@@ -17,26 +17,22 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using ImageMagick;
 using System.Windows.Forms;
+using ImageMagick;
 
-namespace MapCreator
+namespace MapCreator.Classes
 {
-    static class ImageDebug
+	internal static class ImageDebug
     {
         public static void Draw(IMagickImage image, string name = "image_debug.png")
         {
-            string targetDirectory = Application.StartupPath + System.IO.Path.DirectorySeparatorChar + "debug";
+            var targetDirectory = Application.StartupPath + System.IO.Path.DirectorySeparatorChar + "debug";
             if(!System.IO.Directory.Exists(targetDirectory))
             {
                 System.IO.Directory.CreateDirectory(targetDirectory);
             }
 
-            string imageName = targetDirectory + System.IO.Path.DirectorySeparatorChar + name;
+            var imageName = targetDirectory + System.IO.Path.DirectorySeparatorChar + name;
             image.Write(imageName);
         }
     }

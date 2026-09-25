@@ -18,22 +18,16 @@
 //
 
 using System.Collections.Generic;
-using Niflib;
 using System.IO;
+using Niflib;
+using NifUtil.Objects;
 using SharpDX;
-using System;
 
-namespace NifUtil
+namespace NifUtil.Classes
 {
-    class ConvertPoly : Convert
+	internal class ConvertPoly : Convert
     {
-        private List<Polygon> m_polys = new List<Polygon>();
-
-        internal List<Polygon> Polys
-        {
-            get { return m_polys; }
-            set { m_polys = value; }
-        }
+	    internal List<Polygon> Polys { get; set; } = new List<Polygon>();
 
         public ConvertPoly(NiFile niFile)
             :base(niFile)
@@ -43,24 +37,24 @@ namespace NifUtil
 
         public void Start()
         {
-            WalkNodes(File.FindRoot());
+            this.WalkNodes(this.File.FindRoot());
         }
 
         private void WalkNodes(NiAVObject node)
         {
-            if (!IsValidNode(node)) return;
+            if (!this.IsValidNode(node)) return;
 
             // Render Children
-            if (node is NiTriShape)
+            if (node is NiTriShape shape)
             {
-                ParseShape((NiTriShape)node);
+                this.ParseShape(shape);
             }
-            else if (node is NiTriStrips)
+            else if (node is NiTriStrips strips)
             {
-                ParseStrips((NiTriStrips)node);
+                this.ParseStrips(strips);
             }
 
-            NiNode currentNode = node as NiNode;
+            var currentNode = node as NiNode;
             if (currentNode != null)
             {
                 if (currentNode.Children.Length > 0)
@@ -70,7 +64,7 @@ namespace NifUtil
                     {
                         if (child.IsValid())
                         {
-                            WalkNodes(child.Object);
+                            this.WalkNodes(child.Object);
                         }
                     }
                 }
@@ -79,36 +73,36 @@ namespace NifUtil
 
         private void ParseShape(NiTriShape shape)
         {
-            List<string> export = new List<string>();
+            var export = new List<string>();
 
-            NiTriShapeData geometry = (NiTriShapeData)shape.Data.Object;
+            var geometry = (NiTriShapeData)shape.Data.Object;
 
             // Verticles (v)
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
-                Matrix transformationMatrix = ComputeWorldMatrix(shape);
-                computePolys(geometry.Triangles, geometry.Vertices, transformationMatrix);
+                var transformationMatrix = this.ComputeWorldMatrix(shape);
+                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix);
             }
         }
 
         private void ParseStrips(NiTriStrips strips)
         {
-            List<string> export = new List<string>();
+            var export = new List<string>();
 
-            NiTriStripsData geometry = (NiTriStripsData)strips.Data.Object;
+            var geometry = (NiTriStripsData)strips.Data.Object;
 
-            List<Triangle> triangles = new List<Triangle>();
-            foreach (ushort[] points in geometry.Points)
+            var triangles = new List<Triangle>();
+            foreach (var points in geometry.Points)
             {
-                bool t = false;
-                int j = 1;
+                var t = false;
+                var j = 1;
 
-                ushort p1 = points[0];
-                ushort p2 = points[1];
+                var p1 = points[0];
+                var p2 = points[1];
 
                 while (j < points.Length - 1)
                 {
-                    ushort p3 = points[j + 1];
+                    var p3 = points[j + 1];
 
                     if (p1 != p2 && p1 != p3 && p2 != p3)
                     {
@@ -132,25 +126,25 @@ namespace NifUtil
             // Verticles (v)
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
-                Matrix transformationMatrix = ComputeWorldMatrix(strips);
-                computePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix);
+                var transformationMatrix = this.ComputeWorldMatrix(strips);
+                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix);
             }
         }
 
-        private void computePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation)
+        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation)
         {
             // Transaform all vertices
-            List<Vector3> verticesTransformed = new List<Vector3>();
-            foreach (Vector3 vector in vertices) verticesTransformed.Add(Vector3.TransformCoordinate(vector, transformation));
+            var verticesTransformed = new List<Vector3>();
+            foreach (var vector in vertices) verticesTransformed.Add(Vector3.TransformCoordinate(vector, transformation));
 
-            foreach (Triangle triangle in trianlges)
+            foreach (var triangle in trianlges)
             {
-                Polygon poly = new Polygon(
-                    new Vector3(verticesTransformed[triangle.X].X, verticesTransformed[triangle.X].Y, verticesTransformed[triangle.X].Z),
-                    new Vector3(verticesTransformed[triangle.Y].X, verticesTransformed[triangle.Y].Y, verticesTransformed[triangle.Y].Z),
-                    new Vector3(verticesTransformed[triangle.Z].X, verticesTransformed[triangle.Z].Y, verticesTransformed[triangle.Z].Z)
-                );
-                m_polys.Add(poly);
+                var poly = new Polygon(
+                                       new Vector3(verticesTransformed[triangle.X].X, verticesTransformed[triangle.X].Y, verticesTransformed[triangle.X].Z),
+                                       new Vector3(verticesTransformed[triangle.Y].X, verticesTransformed[triangle.Y].Y, verticesTransformed[triangle.Y].Z),
+                                       new Vector3(verticesTransformed[triangle.Z].X, verticesTransformed[triangle.Z].Y, verticesTransformed[triangle.Z].Z)
+                                      );
+                this.Polys.Add(poly);
             }
         }
 
@@ -160,9 +154,9 @@ namespace NifUtil
         /// <param name="targetFile"></param>
         public void WritePlain(string targetFile)
         {
-            using (StreamWriter writer = new StreamWriter(targetFile))
+            using (var writer = new StreamWriter(targetFile))
             {
-                foreach (Polygon poly in m_polys)
+                foreach (var poly in this.Polys)
                 {
                     writer.WriteLine(string.Format("{0} {1} {2}", poly.P1.X, poly.P1.Y, poly.P1.Z));
                     writer.WriteLine(string.Format("{0} {1} {2}", poly.P2.X, poly.P2.Y, poly.P2.Z));
@@ -174,11 +168,11 @@ namespace NifUtil
 
         public override void Write(string targetFile)
         {
-            using (FileStream fs = new FileStream(targetFile, FileMode.Create))
+            using (var fs = new FileStream(targetFile, FileMode.Create))
             {
-                using (BinaryWriter writer = new BinaryWriter(fs))
+                using (var writer = new BinaryWriter(fs))
                 {
-                    foreach (Polygon poly in m_polys)
+                    foreach (var poly in this.Polys)
                     {
                         writer.Write(poly.P1.X);
                         writer.Write(poly.P1.Y);

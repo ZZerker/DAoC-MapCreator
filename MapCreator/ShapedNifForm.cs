@@ -18,12 +18,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Windows.Forms;
 
 namespace MapCreator
@@ -32,24 +26,24 @@ namespace MapCreator
     {
         public ShapedNifForm()
         {
-            InitializeComponent();
+	        this.InitializeComponent();
         }
 
         private void selectFileButton_Click(object sender, EventArgs e)
         {
-            string file = Properties.Settings.Default.shapedNifLastFile;
-            if (!string.IsNullOrEmpty(selectedFileTextBox.Text))
+            var file = Properties.Settings.Default.shapedNifLastFile;
+            if (!string.IsNullOrEmpty(this.selectedFileTextBox.Text))
             {
-                file = selectedFileTextBox.Text;
+                file = this.selectedFileTextBox.Text;
             }
 
             //selectFileDialog.InitialDirectory = System.IO.Path.GetDirectoryName(file);
-            selectFileDialog.FileName = System.IO.Path.GetFileName(file);
+            this.selectFileDialog.FileName = System.IO.Path.GetFileName(file);
 
-            if (selectFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            if (this.selectFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                selectedFileTextBox.Text = selectFileDialog.FileName;
-                selectFileDialog.FileName = selectFileDialog.FileName;
+	            this.selectedFileTextBox.Text = this.selectFileDialog.FileName;
+	            this.selectFileDialog.FileName = this.selectFileDialog.FileName;
                 Properties.Settings.Default.Save();
             }
         }

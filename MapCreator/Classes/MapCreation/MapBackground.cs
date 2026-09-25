@@ -18,27 +18,25 @@
 //
 
 using System;
-using System.Linq;
-using System.IO;
-using ImageMagick;
 using System.Drawing;
+using System.IO;
+using System.Linq;
+using ImageMagick;
 using MPKLib;
 
-namespace MapCreator
+namespace MapCreator.Classes.MapCreation
 {
-    class MapBackground
+	internal class MapBackground
     {
-        private ZoneConfiguration zoneConfiguration;
+        private readonly ZoneConfiguration zoneConfiguration;
 
-        private bool drawBackground = true;
+        private readonly string textureZoneDataDirectory;
 
-        private string textureZoneDataDirectory;
+        private readonly string textureZoneId;
 
-        private string textureZoneId;
+        private readonly bool flipX = false;
 
-        private bool flipX = false;
-
-        private bool flipY = false;
+        private readonly bool flipY = false;
 
         public MapBackground(ZoneConfiguration zoneConfiguration)
         {
@@ -46,47 +44,47 @@ namespace MapCreator
             this.textureZoneId = zoneConfiguration.ZoneId;
             this.textureZoneDataDirectory = zoneConfiguration.ZoneDirectory;
 
-            string flipX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "flip_x");
-            string flipY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "flip_y");
-            string useTexture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "use_texture");
+            var flipX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "flip_x");
+            var flipY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "flip_y");
+            var useTexture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, "terrain", "use_texture");
 
             if (!string.IsNullOrEmpty(flipX)) this.flipX = (Convert.ToInt32(flipX) != 0) ? true : false;
             if (!string.IsNullOrEmpty(flipY)) this.flipY = (Convert.ToInt32(flipY) != 0) ? true : false;
 
             if (!string.IsNullOrEmpty(useTexture))
             {
-                int useTextureInt = Convert.ToInt32(useTexture);
+                var useTextureInt = Convert.ToInt32(useTexture);
                 useTexture = (useTextureInt < 10) ? "00" + useTextureInt : (useTextureInt < 100) ? "0" + useTextureInt : useTextureInt.ToString();
                 this.textureZoneId = useTexture;
                 this.textureZoneDataDirectory = zoneConfiguration.GetZoneDirectory(useTexture);
             }
         }
 
-        public bool DrawBackground { get => drawBackground; set => drawBackground = value; }
+        public bool DrawBackground { get; set; } = true;
 
         public MagickImage Draw()
         {
             MainForm.ProgressStart("Rendering background ...");
 
-            if(!this.drawBackground)
+            if(!this.DrawBackground)
             {
-                return MagickWrapper.NewImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize);
+                return MagickWrapper.NewImage(Color.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize);
             }
 
             // Check which terrain file is used
-            string texMpk = string.Format("{0}\\tex{1}.mpk", this.textureZoneDataDirectory, this.textureZoneId);
-            string lodMpk = string.Format("{0}\\lod{1}.mpk", this.textureZoneDataDirectory, this.textureZoneId);
+            var texMpk = string.Format("{0}\\tex{1}.mpk", this.textureZoneDataDirectory, this.textureZoneId);
+            var lodMpk = string.Format("{0}\\lod{1}.mpk", this.textureZoneDataDirectory, this.textureZoneId);
 
             // Get the tile dimension
-            double tileWidth = 512.0;
-            string tileTemplate = "";
+            var tileWidth = 512.0;
+            var tileTemplate = "";
 
-            MPAK mpak = new MPAK();
+            var mpak = new MPAK();
             if (File.Exists(texMpk))
             {
                 mpak.Load(texMpk);
 
-                if (mpak.Files.Where(f => f.Name.ToLower() == "tex00-00.dds").Count() > 0)
+                if (mpak.Files.Any(f => f.Name.ToLower() == "tex00-00.dds"))
                 {
                     tileTemplate += "tex0{0}-0{1}.dds";
                     tileWidth = 512.0;
@@ -97,7 +95,7 @@ namespace MapCreator
             {
                 mpak.Load(lodMpk);
 
-                if (mpak.Files.Where(f => f.Name.ToLower() == "lod00-00.dds").Count() > 0)
+                if (mpak.Files.Any(f => f.Name.ToLower() == "lod00-00.dds"))
                 {
                     tileTemplate += "lod0{0}-0{1}.dds";
                     tileWidth = 256.0;
@@ -106,28 +104,28 @@ namespace MapCreator
 
             if (string.IsNullOrEmpty(tileTemplate))
             {
-                MainForm.Log(string.Format("Zone {0}: No background textures found!", zoneConfiguration.ZoneId), MainForm.LogLevel.error);
+                MainForm.Log(string.Format("Zone {0}: No background textures found!", this.zoneConfiguration.ZoneId), MainForm.LogLevel.Error);
                 return null;
             }
 
             // original size
-            double orginalWidth = tileWidth * 8;
-            double resizeFactor = (double)zoneConfiguration.TargetMapSize / (double)orginalWidth; // 0 - 1
+            var orginalWidth = tileWidth * 8;
+            var resizeFactor = (double)this.zoneConfiguration.TargetMapSize / (double)orginalWidth; // 0 - 1
 
-            MagickImage map = MagickWrapper.NewImage(Color.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize);
+            var map = MagickWrapper.NewImage(Color.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize);
 
-            int lastWidth = 0;
-            int x = 0;
-            for (int col = 0; col <= 7; col++)
+            var lastWidth = 0;
+            var x = 0;
+            for (var col = 0; col <= 7; col++)
             {
-                int y = 0;
-                for (int row = 0; row <= 7; row++)
+                var y = 0;
+                for (var row = 0; row <= 7; row++)
                 {
-                    string filename = string.Format(tileTemplate, col, row);
+                    var filename = string.Format(tileTemplate, col, row);
 
-                    using (MagickImage mapTile = new MagickImage(mpak.GetFile(filename).Data))
+                    using (var mapTile = new MagickImage(mpak.GetFile(filename).Data))
                     {
-                        int newSize = Convert.ToInt32(mapTile.Width * resizeFactor);
+                        var newSize = Convert.ToInt32(mapTile.Width * resizeFactor);
                         mapTile.Resize((uint)(newSize), (uint)(newSize));
 
                         map.Composite(mapTile, x, y, CompositeOperator.SrcOver);
@@ -140,7 +138,7 @@ namespace MapCreator
 
                 x += lastWidth;
 
-                int percent = 100 * col / 8;
+                var percent = 100 * col / 8;
                 MainForm.ProgressUpdate(percent);
             }
 

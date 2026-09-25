@@ -19,79 +19,62 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using ImageMagick;
 using ImageMagick.Drawing;
 
-namespace MapCreator
+namespace MapCreator.Classes.MapCreation
 {
-    class MapWater
+	internal class MapWater
     {
-        private ZoneConfiguration zoneConfiguration;
+        private readonly ZoneConfiguration zoneConfiguration;
 
-        private List<WaterConfiguration> m_waterAreas = new List<WaterConfiguration>();
-        internal List<WaterConfiguration> WaterAreas
-        {
-            get { return m_waterAreas; }
-        }
+        internal List<WaterConfiguration> WaterAreas { get; } = new List<WaterConfiguration>();
 
-        private Color m_waterColor;
-        public Color WaterColor
-        {
-            get { return m_waterColor; }
-            set { m_waterColor = value; }
-        }
+        public Color WaterColor { get; set; }
 
-        private int m_waterTransparency;
-        public int WaterTransparency
-        {
-            get { return m_waterTransparency; }
-            set { m_waterTransparency = value; }
-        }
+        public int WaterTransparency { get; set; }
 
-        private bool m_useClientColors = true;
-        public bool UseClientColors
-        {
-            get { return m_useClientColors; }
-            set { m_useClientColors = value; }
-        }
+        public bool UseClientColors { get; set; } = true;
 
-        private bool debug = false;
+        private readonly bool debug = false;
 
         public MapWater(ZoneConfiguration zoneConfiguration)
         {
             MainForm.ProgressStartMarquee("Loading water configurations ...");
             this.zoneConfiguration = zoneConfiguration;
 
-            bool riversFound = true;
-            int riverIndex = 0;
+            var riversFound = true;
+            var riverIndex = 0;
 
             while (riversFound)
             {
-                string riverIndexString = "river" + ((riverIndex < 10) ? "0" + riverIndex : riverIndex.ToString());
+                var riverIndexString = "river" + ((riverIndex < 10) ? "0" + riverIndex : riverIndex.ToString());
 
                 // Check if there is a section
-                string riverCheck = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "name");
+                var riverCheck = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "name");
                 if (string.IsNullOrEmpty(riverCheck))
                 {
                     riversFound = false;
                     continue;
                 }
 
-                WaterConfiguration waterConf = new WaterConfiguration(riverCheck);
-                waterConf.Texture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "texture");
-                waterConf.Multitexture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "multitexture");
-                waterConf.Flow = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "flow");
-                waterConf.Height = Convert.ToInt32(DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "height"));
-                waterConf.Bankpoints = Convert.ToInt32(DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "bankpoints"));
-                waterConf.Extend_PosX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_PosX");
-                waterConf.Extend_PosY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_PosY");
-                waterConf.Extend_NegX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_NegX");
-                waterConf.Extend_NegY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_NegY");
-                waterConf.Tesselation = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Tesselation");
-                waterConf.Type = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "type");
+                var waterConf = new WaterConfiguration(riverCheck)
+                                {
+		                                Texture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "texture"),
+		                                Multitexture = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "multitexture"),
+		                                Flow = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "flow"),
+		                                Height = Convert.ToInt32(DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "height")),
+		                                Bankpoints = Convert.ToInt32(DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "bankpoints")),
+		                                ExtendPosX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_PosX"),
+		                                ExtendPosY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_PosY"),
+		                                ExtendNegX = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_NegX"),
+		                                ExtendNegY = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Extend_NegY"),
+		                                Tesselation = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "Tesselation"),
+		                                Type = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "type")
+                                };
 
                 // Adjust some river heights
                 if (zoneConfiguration.ZoneId == "168" || zoneConfiguration.ZoneId == "171" || zoneConfiguration.ZoneId == "178")
@@ -106,35 +89,35 @@ namespace MapCreator
                     continue;
                 }
 
-                string color = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "color");
-                string baseColor = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "base_color");
+                var color = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "color");
+                var baseColor = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "base_color");
                 if (color.Length >= 6)
                 {
                     waterConf.Color = ColorTranslator.FromWin32(Convert.ToInt32((string.IsNullOrEmpty(baseColor)) ? color : baseColor));
                 }
 
-                for (int i = 0; i < waterConf.Bankpoints; i++)
+                for (var i = 0; i < waterConf.Bankpoints; i++)
                 {
-                    string coordinatesIndexString = (i < 10) ? "0" + i : i.ToString();
-                    string left = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "left" + coordinatesIndexString);
-                    string right = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "right" + coordinatesIndexString);
+                    var coordinatesIndexString = (i < 10) ? "0" + i : i.ToString();
+                    var left = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "left" + coordinatesIndexString);
+                    var right = DataWrapper.GetDatFileProperty(zoneConfiguration.SectorDatStreamReader, riverIndexString, "right" + coordinatesIndexString);
 
                     if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right))
                     {
                         continue;
                     }
 
-                    string[] leftArr = left.Split(',');
-                    string[] rightArr = right.Split(',');
+                    var leftArr = left.Split(',');
+                    var rightArr = right.Split(',');
 
-                    PointD leftPoint = new PointD((Convert.ToInt32(leftArr[0]) >= 0) ? Convert.ToInt32(leftArr[0]) : 0, (Convert.ToInt32(leftArr[1]) >= 0) ? Convert.ToInt32(leftArr[1]) : 0);
+                    var leftPoint = new PointD((Convert.ToInt32(leftArr[0]) >= 0) ? Convert.ToInt32(leftArr[0]) : 0, (Convert.ToInt32(leftArr[1]) >= 0) ? Convert.ToInt32(leftArr[1]) : 0);
                     waterConf.LeftCoordinates.Add(leftPoint);
 
-                    PointD rightPoint = new PointD((Convert.ToInt32(rightArr[0]) >= 0) ? Convert.ToInt32(rightArr[0]) : 0, (Convert.ToInt32(rightArr[1]) >= 0) ? Convert.ToInt32(rightArr[1]) : 0);
+                    var rightPoint = new PointD((Convert.ToInt32(rightArr[0]) >= 0) ? Convert.ToInt32(rightArr[0]) : 0, (Convert.ToInt32(rightArr[1]) >= 0) ? Convert.ToInt32(rightArr[1]) : 0);
                     waterConf.RightCoordinates.Add(rightPoint);
                 }
 
-                this.m_waterAreas.Add(waterConf);
+                this.WaterAreas.Add(waterConf);
 
                 riverIndex++;
             }
@@ -142,16 +125,16 @@ namespace MapCreator
             MainForm.ProgressReset();
         }
 
-        private MagickImage m_waterTexture = null;
-        private MagickImage m_lavaTexture = null;
+        private MagickImage waterTexture = null;
+        private MagickImage lavaTexture = null;
 
-        public MagickImage GetWateryTexture()
+        private MagickImage GetWateryTexture()
         {
-            if (m_waterTexture != null) return m_waterTexture;
+            if (this.waterTexture != null) return this.waterTexture;
 
-            string textureFile = string.Format("{0}\\data\\textures\\watery.dds", System.Windows.Forms.Application.StartupPath);
+            var textureFile = string.Format("{0}\\data\\textures\\watery.dds", System.Windows.Forms.Application.StartupPath);
             
-            MagickImage tex = new MagickImage(textureFile);
+            var tex = new MagickImage(textureFile);
             tex.ColorSpace = ColorSpace.Gray;
             tex.Normalize();
             tex.Evaluate(Channels.RGB, EvaluateOperator.Multiply, 0.3);
@@ -159,21 +142,21 @@ namespace MapCreator
             // Back to RGB, otherwise the tint is lost
             tex.ColorSpace = ColorSpace.sRGB;
 
-            m_waterTexture = tex;
-            return m_waterTexture;
+            this.waterTexture = tex;
+            return this.waterTexture;
         }
 
-        public MagickImage GetLavaTexture()
+        private MagickImage GetLavaTexture()
         {
-            if (m_lavaTexture != null) return m_lavaTexture;
+            if (this.lavaTexture != null) return this.lavaTexture;
 
-            string textureFile = string.Format("{0}\\data\\textures\\lava.dds", System.Windows.Forms.Application.StartupPath);
+            var textureFile = string.Format("{0}\\data\\textures\\lava.dds", System.Windows.Forms.Application.StartupPath);
 
-            MagickImage tex = new MagickImage(textureFile);
+            var tex = new MagickImage(textureFile);
             //tex.ColorSpace = ColorSpace.GRAY;
 
-            m_lavaTexture = tex;
-            return m_lavaTexture;
+            this.lavaTexture = tex;
+            return this.lavaTexture;
         }
 
         public void Draw(MagickImage map)
@@ -181,58 +164,58 @@ namespace MapCreator
             MainForm.ProgressStart("Rendering water ...");
 
 
-            using (IPixelCollection<ushort> heightmapPixels = zoneConfiguration.Heightmap.HeightmapScaled.GetPixelsUnsafe())
+            using (IPixelCollection<ushort> heightmapPixels = this.zoneConfiguration.Heightmap.HeightmapScaled.GetPixelsUnsafe())
             {
-                using (MagickImage water = MagickWrapper.NewImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+                using (var water = MagickWrapper.NewImage(MagickColors.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
                 {
-                    int progressCounter = 0;
+                    var progressCounter = 0;
 
-                    foreach (WaterConfiguration river in m_waterAreas)
+                    foreach (var river in this.WaterAreas)
                     {
-                        MainForm.Log(river.Name + "...", MainForm.LogLevel.notice);
+                        MainForm.Log(river.Name + "...", MainForm.LogLevel.Notice);
 
                         MagickColor fillColor;
-                        if (m_useClientColors) fillColor = river.Color.ToMagickColor();
-                        else fillColor = m_waterColor.ToMagickColor();
+                        if (this.UseClientColors) fillColor = river.Color.ToMagickColor();
+                        else fillColor = this.WaterColor.ToMagickColor();
                         //water.FillColor = fillColor;
 
                         // Get the river coordinates and scale them to the targets size
-                        List<PointD> riverCoordinates = river.GetCoordinates().Select(c => new PointD(c.X * zoneConfiguration.MapScale, c.Y * zoneConfiguration.MapScale)).ToList();
+                        var riverCoordinates = river.GetCoordinates().Select(c => new PointD(c.X * this.zoneConfiguration.MapScale, c.Y * this.zoneConfiguration.MapScale)).ToList();
 
                         // Texture
-                        bool isLava = river.Type.ToLower() == "lava";
-                        using (MagickImage texture = new MagickImage(isLava ? GetLavaTexture() : GetWateryTexture()))
+                        var isLava = river.Type.ToLower() == "lava";
+                        using (var texture = new MagickImage(isLava ? this.GetLavaTexture() : this.GetWateryTexture()))
                         {
-                            using (MagickImage pattern = new MagickImage(fillColor, texture.Width, texture.Height))
+                            using (var pattern = new MagickImage(fillColor, texture.Width, texture.Height))
                             {
                                 texture.Composite(pattern, 0, 0, CompositeOperator.DstIn);
                                 texture.Composite(pattern, 0, 0, isLava ? CompositeOperator.ColorDodge : CompositeOperator.Multiply);
 
                                 water.Settings.FillPattern = texture;
-                                DrawablePolygon poly = new DrawablePolygon(riverCoordinates);
+                                var poly = new DrawablePolygon(riverCoordinates);
                                 water.Draw(poly);
                             }
                         }
 
                         // get the min/max and just process them
-                        int minX = Convert.ToInt32(riverCoordinates.Min(m => m.X)) - 10;
-                        int maxX = Convert.ToInt32(riverCoordinates.Max(m => m.X)) + 10;
-                        int minY = Convert.ToInt32(riverCoordinates.Min(m => m.Y)) - 10;
-                        int maxY = Convert.ToInt32(riverCoordinates.Max(m => m.Y)) + 10;
+                        var minX = Convert.ToInt32(riverCoordinates.Min(m => m.X)) - 10;
+                        var maxX = Convert.ToInt32(riverCoordinates.Max(m => m.X)) + 10;
+                        var minY = Convert.ToInt32(riverCoordinates.Min(m => m.Y)) - 10;
+                        var maxY = Convert.ToInt32(riverCoordinates.Max(m => m.Y)) + 10;
 
                         using (IPixelCollection<ushort> riverPixelCollection = water.GetPixelsUnsafe())
                         {
-                            for (int x = minX; x < maxX; x++)
+                            for (var x = minX; x < maxX; x++)
                             {
                                 if (x < 0) continue;
-                                if (x >= zoneConfiguration.TargetMapSize) continue;
+                                if (x >= this.zoneConfiguration.TargetMapSize) continue;
 
-                                for (int y = minY; y < maxY; y++)
+                                for (var y = minY; y < maxY; y++)
                                 {
                                     if (y < 0) continue;
-                                    if (y >= zoneConfiguration.TargetMapSize) continue;
+                                    if (y >= this.zoneConfiguration.TargetMapSize) continue;
 
-                                    ushort pixelHeight = heightmapPixels.GetPixel(x, y).GetChannel(0);
+                                    var pixelHeight = heightmapPixels.GetPixel(x, y).GetChannel(0);
                                     if (pixelHeight > river.Height)
                                     {
                                         riverPixelCollection.SetPixel(new Pixel(x, y, new ushort[] { 0, 0, 0, ushort.MinValue }));
@@ -242,22 +225,22 @@ namespace MapCreator
                         }
                         
 
-                        if (debug)
+                        if (this.debug)
                         {
-                            DebugRiver(progressCounter, river, riverCoordinates);
+                            this.DebugRiver(progressCounter, river, riverCoordinates);
                         }
 
-                        int percent = 100 * progressCounter / m_waterAreas.Count();
+                        var percent = 100 * progressCounter / this.WaterAreas.Count();
                         MainForm.ProgressUpdate(percent);
                         progressCounter++;
                     }
 
                     MainForm.ProgressStartMarquee("Merging...");
 
-                    if (WaterTransparency != 0)
+                    if (this.WaterTransparency != 0)
                     {
                         water.Alpha(AlphaOption.Set);
-                        double divideValue = 100.0 / (100.0 - WaterTransparency);
+                        var divideValue = 100.0 / (100.0 - this.WaterTransparency);
                         water.Evaluate(Channels.Alpha, EvaluateOperator.Divide, divideValue);
                     }
 
@@ -272,39 +255,39 @@ namespace MapCreator
 
         private void DebugRiver(int index, WaterConfiguration river, List<PointD> riverCoordinates)
         {
-            string debugFilename = string.Format("{0}\\debug\\rivers\\{1}_{2}_{3}.jpg", System.Windows.Forms.Application.StartupPath, zoneConfiguration.ZoneId, index, river.Name);
+            var debugFilename = string.Format("{0}\\debug\\rivers\\{1}_{2}_{3}.jpg", System.Windows.Forms.Application.StartupPath, this.zoneConfiguration.ZoneId, index, river.Name);
 
             if (index == 0)
             {
-                DirectoryInfo di = new DirectoryInfo(Path.GetDirectoryName(debugFilename));
-                if (di.Exists) di.EnumerateFiles().ToList().ForEach(f => f.Delete());
-                else di.Create();
+                var directoryInfo = new DirectoryInfo(Path.GetDirectoryName(debugFilename));
+                if (directoryInfo.Exists) directoryInfo.EnumerateFiles().ToList().ForEach(f => f.Delete());
+                else directoryInfo.Create();
             }
 
-            using (MagickImage debugRiver = MagickWrapper.NewImage(MagickColors.Transparent, zoneConfiguration.TargetMapSize, zoneConfiguration.TargetMapSize))
+            using (var debugRiver = MagickWrapper.NewImage(MagickColors.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
             {
                 debugRiver.BackgroundColor = MagickColors.White;
                 debugRiver.Settings.FillColor = new MagickColor(0, 0, ushort.MaxValue, 256 * 128);
 
-                double resizeFactor = zoneConfiguration.TargetMapSize / zoneConfiguration.Heightmap.Heightmap.Width;
+                double resizeFactor = this.zoneConfiguration.TargetMapSize / this.zoneConfiguration.Heightmap.Heightmap.Width;
 
-                DrawablePolygon poly = new DrawablePolygon(riverCoordinates);
+                var poly = new DrawablePolygon(riverCoordinates);
                 debugRiver.Draw(poly);
                 
-                List<PointD> orginalCoords = river.GetCoordinates();
-                for (int i = 0; i < riverCoordinates.Count(); i++)
+                var originalCoordinates = river.GetCoordinates();
+                for (var i = 0; i < riverCoordinates.Count(); i++)
                 {
                     double x, y;
 
-                    if (riverCoordinates[i].X > zoneConfiguration.TargetMapSize / 2) x = riverCoordinates[i].X - 15;
+                    if (riverCoordinates[i].X > this.zoneConfiguration.TargetMapSize / 2) x = riverCoordinates[i].X - 15;
                     else x = riverCoordinates[i].X + 1;
 
-                    if (riverCoordinates[i].Y < zoneConfiguration.TargetMapSize / 2) y = riverCoordinates[i].Y + 15;
+                    if (riverCoordinates[i].Y < this.zoneConfiguration.TargetMapSize / 2) y = riverCoordinates[i].Y + 15;
                     else y = riverCoordinates[i].Y - 1;
 
                     debugRiver.Settings.FontPointsize = 14.0;
                     debugRiver.Settings.FillColor = MagickColors.Black;
-                    DrawableText text = new DrawableText(x, y, string.Format("{0} ({1}/{2})", i, orginalCoords[i].X, orginalCoords[i].Y));
+                    var text = new DrawableText(x, y, string.Format("{0} ({1}/{2})", i, originalCoordinates[i].X, originalCoordinates[i].Y));
                     debugRiver.Draw(text);
                 }
 
@@ -313,40 +296,5 @@ namespace MapCreator
             }
         }
         
-    }
-
-    class WaterConfiguration
-    {
-
-        public string Name;
-        public string Texture;
-        public string Multitexture;
-        public string Flow;
-        public int Height;
-        public int Bankpoints;
-        public Color Color;
-        public Color baseColor;
-        public string Extend_PosX;
-        public string Extend_PosY;
-        public string Extend_NegX;
-        public string Extend_NegY;
-        public string Tesselation;
-        public string Type;
-
-        public List<PointD> LeftCoordinates = new List<PointD>();
-        public List<PointD> RightCoordinates = new List<PointD>();
-
-        public WaterConfiguration(string name)
-        {
-            Name = name;
-        }
-
-        public List<PointD> GetCoordinates()
-        {
-            List<PointD> newCoordinates = new List<PointD>();
-            newCoordinates.AddRange(LeftCoordinates);
-            newCoordinates.AddRange(RightCoordinates.Reverse<PointD>());
-            return newCoordinates;
-        }
     }
 }
