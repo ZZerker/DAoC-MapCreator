@@ -15,7 +15,8 @@ This is a fork of [Merec/DAoC-MapCreator](https://github.com/Merec/DAoC-MapCreat
 - Command line batch mode for unattended rendering, several zones in parallel in one process
 - Render script that converts the result to DDS for the UI
 - Finds the game folder on first start (Eden and Blackthorn launcher, default install paths)
-- Much faster rendering and smaller output (8 bit PNG)
+- Much faster rendering: zones render in parallel inside one process and share their model and texture caches, models are drawn by an own rasterizer instead of one ImageMagick draw call per triangle (fixtures of zone 171: 54 s before, under 5 s now). All 14 New Frontiers zones at 2048 px take about 2 minutes.
+- Smaller output files (8 bit PNG)
 - `fixtures.xml` only holds overrides now (texture mode, size limits), everything else is read from the models
 - Code cleanup: naming rules enforced by `.editorconfig`, no build warnings
 
