@@ -26,6 +26,7 @@ using System.Windows.Forms;
 using System.IO;
 using MapCreator.Classes;
 using MapCreator.Classes.MapCreation;
+using MapCreator.Classes.Rendering;
 
 namespace MapCreator
 {
@@ -272,14 +273,14 @@ namespace MapCreator
         /// <param name="logLevel"></param>
         public void LogText(string text, LogLevel logLevel = LogLevel.Normal)
         {
-            if (!this.enableLogCheckBox.Checked)
-            {
-                return;
-            }
-
             if (this.InvokeRequired)
             {
                 this.Invoke(new LogDelegate(this.LogText), text, logLevel);
+                return;
+            }
+
+            if (!this.enableLogCheckBox.Checked)
+            {
                 return;
             }
 
@@ -591,13 +592,14 @@ namespace MapCreator
                 {
 	                this.HandleRenderButton(false);
 
+                    var settings = this.CaptureRenderSettings();
                     var counter = 1;
                     foreach (var zone in this.SelectedZones)
                     {
                         Log(string.Format("Rendering {0} ({1})...", zone.Name, zone.Id), LogLevel.Notice);
                         this.currentMapLabel.Text = string.Format("| {0} ({1}) |", zone.Name, zone.Id);
                         this.queueProcessedLabel.Text = counter.ToString();
-                        this.drawMapBackgroundWorker.RunWorkerAsync(zone);
+                        this.drawMapBackgroundWorker.RunWorkerAsync((zone, settings));
 
                         while (this.drawMapBackgroundWorker.IsBusy)
                         {
@@ -611,6 +613,40 @@ namespace MapCreator
                 }
             }
         }
+        private RenderSettings CaptureRenderSettings()
+        {
+            var settings = Properties.Settings.Default;
+            return new RenderSettings
+            {
+                MapSize = this.TargetMapSize,
+                TargetPath = !string.IsNullOrEmpty(settings.targetMapPath) ? settings.targetMapPath : Application.StartupPath,
+                DirectoryPattern = this.directoryPatternTextBox.Text,
+                FilePattern = this.filePatternTextBox.Text,
+                FileType = this.fileTypeComboBox.Text,
+                Quality = Convert.ToUInt32(this.mapQualityTextBox.Value),
+                SkipIfFileExists = this.skipIfFileExistsCheckbox.Checked,
+                DrawBackground = this.createBackgroundCheckBox.Checked,
+                Lightmap = this.generateLightmapCheckBox.Checked,
+                LightmapZScale = Convert.ToDouble(this.heightmapZScaleTextBox.Value),
+                LightmapLightMin = Convert.ToDouble(this.heightmapLightMinTextBox.Value),
+                LightmapLightMax = Convert.ToDouble(this.heightmapLightMaxTextBox.Value),
+                LightmapZVector = new[] { Convert.ToDouble(this.heightmapZVector1TextBox.Value), Convert.ToDouble(this.heightmapZVector2TextBox.Value), Convert.ToDouble(this.heightmapZVector3TextBox.Value) },
+                Rivers = this.generateRiversCheckBox.Checked,
+                RiversUseDefaultColor = this.riversUseDefaultColorCheckBox.Checked,
+                RiversColor = settings.mapRiverColor,
+                RiverOpacity = Convert.ToInt32(this.mapRiversOpacityTextBox.Value),
+                Bounds = this.generateBoundsCheckBox.Checked,
+                BoundsColor = settings.mapBoundsColor,
+                BoundsOpacity = Convert.ToInt32(this.mapBoundsOpacityTextBox.Text),
+                ExcludeBoundsFromMap = this.excludeBoundsFromMapCheckbox.Checked,
+                DrawFixtures = this.drawFixturesCheckBox.Checked,
+                DrawFixturesBelowWater = this.drawFixturesBelowWaterCheckBox.Checked,
+                DrawTrees = this.drawTreesCheckBox.Checked,
+                TreesAsImages = this.treesAsImages.Checked,
+                TreeTransparency = Convert.ToInt32(this.mapTreeTransparencyTextBox.Value)
+            };
+        }
+
         /// <summary>
         /// Load Image Delegate
         /// </summary>
@@ -623,14 +659,14 @@ namespace MapCreator
         /// <param name="filename"></param>
         private void LoadImage(string filename)
         {
-            if(!this.enableResultPreview.Checked)
-            {
-                return;
-            }
-
             if (this.InvokeRequired)
             {
                 this.Invoke(new LoadImageDelegate(this.LoadImage), filename);
+                return;
+            }
+
+            if(!this.enableResultPreview.Checked)
+            {
                 return;
             }
 
@@ -648,13 +684,13 @@ namespace MapCreator
             try
             {
             */
-            var zone = (ZoneSelection)e.Argument;
+            var (zone, settings) = ((ZoneSelection, RenderSettings))e.Argument;
 
             // Start BackgroundWorker
             Log(string.Format("Start creating map for zone {0} ...", zone.Id), LogLevel.Notice);
 
             // The filename
-            var targetFileDirectory = this.directoryPatternTextBox.Text;
+            var targetFileDirectory = settings.DirectoryPattern;
             if (string.IsNullOrEmpty(targetFileDirectory)) targetFileDirectory = "maps";
 
             targetFileDirectory = targetFileDirectory.Replace("{id}", zone.Id);
@@ -662,10 +698,10 @@ namespace MapCreator
             targetFileDirectory = targetFileDirectory.Replace("{realm}", zone.Realm);
             targetFileDirectory = targetFileDirectory.Replace("{expansion}", zone.Expansion);
             targetFileDirectory = targetFileDirectory.Replace("{type}", zone.Type);
-            targetFileDirectory = targetFileDirectory.Replace("{size}", this.TargetMapSize.ToString());
+            targetFileDirectory = targetFileDirectory.Replace("{size}", settings.MapSize.ToString());
             targetFileDirectory = Tools.MakeValidDirectoryName(targetFileDirectory);
 
-            var targetFileName = this.filePatternTextBox.Text;
+            var targetFileName = settings.FilePattern;
             if (string.IsNullOrEmpty(targetFileName)) targetFileName = "zone{id}_{size}";
 
             // Replace some values
@@ -674,69 +710,35 @@ namespace MapCreator
             targetFileName = targetFileName.Replace("{realm}", zone.Realm);
             targetFileName = targetFileName.Replace("{expansion}", zone.Expansion);
             targetFileName = targetFileName.Replace("{type}", zone.Type);
-            targetFileName = targetFileName.Replace("{size}", this.TargetMapSize.ToString());
+            targetFileName = targetFileName.Replace("{size}", settings.MapSize.ToString());
             targetFileName = Tools.MakeValidFileName(targetFileName);
 
-            // File extension
-            var fileExtension = "jpg";
-            var selectedFileExtension = "JPEG";
-            this.Invoke((MethodInvoker)delegate ()
-            {
-                selectedFileExtension = this.fileTypeComboBox.Text;
-            });
-            switch (selectedFileExtension)
-            {
-                case "PNG":
-                    fileExtension = "png";
-                    break;
-                case "JPEG":
-                default:
-                    fileExtension = "jpg";
-                    break;
-            }
+            var fileExtension = settings.FileType == "PNG" ? "png" : "jpg";
 
             // The Target File
-            var targetFilePath = string.Format("{0}", (!string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath)) ? Properties.Settings.Default.targetMapPath : Application.StartupPath);
-            var mapFile = new FileInfo(string.Format("{0}\\{3}\\{1}.{2}", targetFilePath, targetFileName, fileExtension, targetFileDirectory));
+            var mapFile = new FileInfo(string.Format("{0}\\{3}\\{1}.{2}", settings.TargetPath, targetFileName, fileExtension, targetFileDirectory));
             if (!Directory.Exists(mapFile.DirectoryName))
             {
                 Directory.CreateDirectory(mapFile.DirectoryName);
             }
 
-            if (this.skipIfFileExistsCheckbox.Checked && mapFile.Exists)
+            if (settings.SkipIfFileExists && mapFile.Exists)
             {
                 Log(string.Format("The target file \"{0}/{1}.{2}\" already exists. Skipping.", targetFileDirectory, targetFileName, fileExtension));
                 return;
             }
 
-
-            var lightmap = this.generateLightmapCheckBox.Checked;
-            var lightmapZScale = Convert.ToDouble(this.heightmapZScaleTextBox.Value);
-            var lightmapLightMin = Convert.ToDouble(this.heightmapLightMinTextBox.Value);
-            var lightmapLightMax = Convert.ToDouble(this.heightmapLightMaxTextBox.Value);
-            var lightmapZVector = new double[] { Convert.ToDouble(this.heightmapZVector1TextBox.Value), Convert.ToDouble(this.heightmapZVector2TextBox.Value), Convert.ToDouble(this.heightmapZVector3TextBox.Value) };
-
-            var rivers = this.generateRiversCheckBox.Checked;
-            var riversUseDefaultColor = this.riversUseDefaultColorCheckBox.Checked;
-            var riversColor = Properties.Settings.Default.mapRiverColor;
-            var riverOpacity = Convert.ToInt32(this.mapRiversOpacityTextBox.Value);
-
-            var bounds = this.generateBoundsCheckBox.Checked;
-            var boundsColor = Properties.Settings.Default.mapBoundsColor;
-            var boundsOpacity = Convert.ToInt32(this.mapBoundsOpacityTextBox.Text);
-            var excludeBoundsFromMap = this.excludeBoundsFromMapCheckbox.Checked;
-
-            var drawFixtures = this.drawFixturesCheckBox.Checked;
-            var drawFixturesBelowWater = this.drawFixturesBelowWaterCheckBox.Checked;
-            var drawTrees = this.drawTreesCheckBox.Checked;
+            var drawFixtures = settings.DrawFixtures;
+            var drawFixturesBelowWater = settings.DrawFixturesBelowWater;
+            var drawTrees = settings.DrawTrees;
 
             // Generate the map
-            using (var conf = new ZoneConfiguration(zone.Id, this.TargetMapSize))
+            using (var conf = new ZoneConfiguration(zone.Id, settings.MapSize))
             {
                 // Create Background
                 var background = new MapBackground(conf)
                                  {
-		                                 DrawBackground = this.createBackgroundCheckBox.Checked
+		                                 DrawBackground = settings.DrawBackground
                                  };
 
                 MainForm.Log("Rendering background ...", LogLevel.Notice);
@@ -747,15 +749,15 @@ namespace MapCreator
                         MainForm.Log("Finished background rendering!", LogLevel.Success);
 
                         // Create lightmap
-                        if (lightmap)
+                        if (settings.Lightmap)
                         {
                             MainForm.Log("Rendering lightmap ...", LogLevel.Notice);
                             var lightmapGenerator = new MapLightmap(conf)
                                                     {
-		                                                    ZScale = lightmapZScale,
-		                                                    LightMin = lightmapLightMin,
-		                                                    LightMax = lightmapLightMax,
-		                                                    ZVector = lightmapZVector
+		                                                    ZScale = settings.LightmapZScale,
+		                                                    LightMin = settings.LightmapLightMin,
+		                                                    LightMax = settings.LightmapLightMax,
+		                                                    ZVector = (double[])settings.LightmapZVector.Clone()
                                                     };
                             lightmapGenerator.RecalculateLights();
                             lightmapGenerator.Draw(map);
@@ -772,10 +774,10 @@ namespace MapCreator
                         {
                             MainForm.Log("Loading fixtures ...", LogLevel.Notice);
                             fixturesGenerator = new MapFixtures(conf, river.WaterAreas);
-                            fixturesGenerator.DrawFixtures = this.drawFixturesCheckBox.Checked ||this.drawFixturesBelowWaterCheckBox.Checked;
-                            fixturesGenerator.DrawTrees = this.drawTreesCheckBox.Checked;
-                            fixturesGenerator.DrawTreesAsImages = this.treesAsImages.Checked;
-                            fixturesGenerator.TreeTransparency = Convert.ToInt32(this.mapTreeTransparencyTextBox.Value);
+                            fixturesGenerator.DrawFixtures = drawFixtures || drawFixturesBelowWater;
+                            fixturesGenerator.DrawTrees = drawTrees;
+                            fixturesGenerator.DrawTreesAsImages = settings.TreesAsImages;
+                            fixturesGenerator.TreeTransparency = settings.TreeTransparency;
                             fixturesGenerator.Start();
                             MainForm.Log("Finished loading fixtures!", LogLevel.Success);
                         }
@@ -789,12 +791,12 @@ namespace MapCreator
                         }
 
                         // Create Rivers
-                        if (rivers)
+                        if (settings.Rivers)
                         {
                             MainForm.Log("Rendering water ...", LogLevel.Notice);
-                            river.WaterColor = riversColor;
-                            river.WaterTransparency = riverOpacity;
-                            river.UseClientColors = riversUseDefaultColor;
+                            river.WaterColor = settings.RiversColor;
+                            river.WaterTransparency = settings.RiverOpacity;
+                            river.UseClientColors = settings.RiversUseDefaultColor;
                             river.Draw(map);
                             MainForm.Log("Finished water rendering!", LogLevel.Success);
                         }
@@ -813,14 +815,14 @@ namespace MapCreator
                         }
 
                         // Create bounds
-                        if (bounds)
+                        if (settings.Bounds)
                         {
                             MainForm.Log("Adding zone bounds ...", LogLevel.Notice);
                             var mapBounds = new MapBounds(conf)
                                             {
-		                                            BoundsColor = boundsColor,
-		                                            Transparency = boundsOpacity,
-		                                            ExcludeFromMap = excludeBoundsFromMap
+		                                            BoundsColor = settings.BoundsColor,
+		                                            Transparency = settings.BoundsOpacity,
+		                                            ExcludeFromMap = settings.ExcludeBoundsFromMap
                                             };
                             mapBounds.Draw(map);
                             MainForm.Log("Finished zone bunds!", LogLevel.Success);
@@ -828,7 +830,7 @@ namespace MapCreator
 
                         MainForm.Log(string.Format("Writing map image {0} ...", mapFile.Name));
                         ProgressStartMarquee("Writing map image ...");
-                        map.Quality = Convert.ToUInt32(this.mapQualityTextBox.Value);
+                        map.Quality = settings.Quality;
                         map.Depth = 8;
                         map.Write(mapFile.FullName);
                     }
