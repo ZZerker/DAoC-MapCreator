@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using ImageMagick;
@@ -17,6 +18,11 @@ namespace MapCreator.Classes.Rendering
         // Share of the whole dungeon left visible under a level, like the client level maps
         private const double OTHER_LEVELS_OPACITY = 0.25;
 
+        // Dungeon textures are often very dark; the brightest 5% of the drawn pixels are lifted to this level
+        private const double TARGET_BRIGHTNESS = 0.85;
+
+        private const double MAX_GAIN = 3.0;
+
         public void Render(ZoneConfiguration conf, FileInfo mapFile)
         {
             reporter.Log("Loading models ...", LogLevel.Notice);
@@ -24,7 +30,17 @@ namespace MapCreator.Classes.Rendering
 
             using (var map = MagickWrapper.NewImage(BackgroundColor, settings.MapSize, settings.MapSize))
             {
-                this.DrawModels(conf, loader, map);
+                var gain = 1.0;
+                using (var models = this.DrawModels(conf, loader))
+                {
+                    if (conf.IsDungeon)
+                    {
+                        gain = GetGain(models);
+                        reporter.Log(string.Format("Dungeon brightness gain {0:F2}", gain), LogLevel.Notice);
+                        Brighten(models, gain);
+                    }
+                    map.Composite(models, 0, 0, CompositeOperator.SrcOver);
+                }
                 this.Write(map, mapFile);
 
                 foreach (var level in conf.Levels)
@@ -36,7 +52,11 @@ namespace MapCreator.Classes.Rendering
                         levelMap.Evaluate(Channels.RGB, EvaluateOperator.Add, (1 - OTHER_LEVELS_OPACITY) * BackgroundColor.R);
 
                         loader.Level = level;
-                        this.DrawModels(conf, loader, levelMap);
+                        using (var models = this.DrawModels(conf, loader))
+                        {
+                            Brighten(models, gain);
+                            levelMap.Composite(models, 0, 0, CompositeOperator.SrcOver);
+                        }
                         var levelName = string.Format("{0}_{1:00}{2}", Path.GetFileNameWithoutExtension(mapFile.Name), level.Index, mapFile.Extension);
                         this.Write(levelMap, new FileInfo(Path.Combine(mapFile.DirectoryName, levelName)));
                     }
@@ -45,14 +65,54 @@ namespace MapCreator.Classes.Rendering
             }
         }
 
-        private void DrawModels(ZoneConfiguration conf, FixturesLoader loader, MagickImage map)
+        private MagickImage DrawModels(ZoneConfiguration conf, FixturesLoader loader)
         {
+            var layer = MagickWrapper.NewImage(MagickColors.Transparent, settings.MapSize, settings.MapSize);
             using (var models = new MapFixtures(conf, new List<WaterConfiguration>(), loader))
             {
                 models.Start();
 
                 reporter.Log("Rendering models ...", LogLevel.Notice);
-                models.Draw(map, false);
+                models.Draw(layer, false);
+            }
+            return layer;
+        }
+
+        /// <summary>
+        /// Gain that lifts the 95th brightness percentile of the drawn pixels to TARGET_BRIGHTNESS
+        /// </summary>
+        private static double GetGain(MagickImage layer)
+        {
+            var values = layer.GetPixels().ToArray();
+            var channels = (int)layer.ChannelCount;
+            if (values == null || channels < 4)
+            {
+                return 1;
+            }
+
+            var brightness = new List<int>();
+            for (var i = 0; i + 3 < values.Length; i += channels)
+            {
+                if (values[i + 3] > ushort.MaxValue / 2)
+                {
+                    brightness.Add(Math.Max(values[i], Math.Max(values[i + 1], values[i + 2])));
+                }
+            }
+            if (brightness.Count == 0)
+            {
+                return 1;
+            }
+
+            brightness.Sort();
+            var percentile = brightness[(int)(brightness.Count * 0.95)];
+            return percentile == 0 ? MAX_GAIN : Math.Clamp(TARGET_BRIGHTNESS * ushort.MaxValue / percentile, 1, MAX_GAIN);
+        }
+
+        private static void Brighten(MagickImage layer, double gain)
+        {
+            if (gain > 1)
+            {
+                layer.Evaluate(Channels.RGB, EvaluateOperator.Multiply, gain);
             }
         }
 
