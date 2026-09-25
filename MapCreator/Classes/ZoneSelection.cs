@@ -23,15 +23,15 @@ namespace MapCreator.Classes
 {
     public struct ZoneSelection: IEquatable<ZoneSelection>
     {
-	    internal string Id { get; set; }
+	    public string Id { get; set; }
 
-	    internal string Name { get; set; }
+	    public string Name { get; set; }
 
-	    internal string Realm { get; set; }
+	    public string Realm { get; set; }
 
-	    internal string Expansion { get; set; }
+	    public string Expansion { get; set; }
 
-	    internal string Type { get; set; }
+	    public string Type { get; set; }
 
 	    internal ZoneSelection(string id, string name, string expansion, string realm, string type)
         {

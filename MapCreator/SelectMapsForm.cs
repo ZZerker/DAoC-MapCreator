@@ -83,7 +83,7 @@ namespace MapCreator
                         {
                             if (mapType == "Capitol" || mapType == "Indoor" || mapType == "Dungeons" || mapType == "Instances") continue;
 
-                            var currentZone = new ZoneSelection(zone.Key, zone.Value, realm, expansion, mapType);
+                            var currentZone = new ZoneSelection(zone.Key, zone.Value, expansion, realm, mapType);
                             var zoneNode = new TreeNode(currentZone.ToString())
                                            {
 		                                           Tag = currentZone
