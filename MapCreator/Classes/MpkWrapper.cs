@@ -55,8 +55,7 @@ namespace MapCreator.Classes
             var zones = new Dictionary<int, string>();
             var zonesMpk = string.Format("{0}\\zones\\zones.mpk", Properties.Settings.Default.game_path);
 
-            var mpak = new MPAK();
-            mpak.Load(zonesMpk);
+            var mpak = Open(zonesMpk);
 
             var zonesFile = mpak.GetFile("zones.dat");
 
@@ -112,10 +111,22 @@ namespace MapCreator.Classes
             return zones;
         }
 
-        public static StreamReader GetFileFromMpk(string mpk, string filename)
+        /// <summary>
+        /// Loads an archive read only. MPAK.Load(path) asks for write access, which fails while parallel processes read the same file.
+        /// </summary>
+        public static MPAK Open(string mpk)
         {
             var mpak = new MPAK();
-            mpak.Load(mpk);
+            using (var stream = new FileStream(mpk, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                mpak.Load(stream);
+            }
+            return mpak;
+        }
+
+        public static StreamReader GetFileFromMpk(string mpk, string filename)
+        {
+            var mpak = Open(mpk);
 
             if (mpak.Files.Any(f => f.Name.ToLower() == filename.ToLower()))
             {
@@ -127,8 +138,7 @@ namespace MapCreator.Classes
 
         public static Byte[] GetFileBytesFromMpk(string mpk, string filename)
         {
-            var mpak = new MPAK();
-            mpak.Load(mpk);
+            var mpak = Open(mpk);
             return mpak.GetFile(filename).Data;
         }
 

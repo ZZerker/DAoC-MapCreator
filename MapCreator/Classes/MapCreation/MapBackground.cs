@@ -79,10 +79,10 @@ namespace MapCreator.Classes.MapCreation
             var tileWidth = 512.0;
             var tileTemplate = "";
 
-            var mpak = new MPAK();
+            MPAK mpak = null;
             if (File.Exists(texMpk))
             {
-                mpak.Load(texMpk);
+                mpak = MpkWrapper.Open(texMpk);
 
                 if (mpak.Files.Any(f => f.Name.ToLower() == "tex00-00.dds"))
                 {
@@ -91,9 +91,9 @@ namespace MapCreator.Classes.MapCreation
                 }
             }
 
-            if (string.IsNullOrEmpty(tileTemplate))
+            if (string.IsNullOrEmpty(tileTemplate) && File.Exists(lodMpk))
             {
-                mpak.Load(lodMpk);
+                mpak = MpkWrapper.Open(lodMpk);
 
                 if (mpak.Files.Any(f => f.Name.ToLower() == "lod00-00.dds"))
                 {
@@ -114,38 +114,29 @@ namespace MapCreator.Classes.MapCreation
 
             var map = MagickWrapper.NewImage(Color.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize);
 
-            var lastWidth = 0;
-            var x = 0;
             for (var col = 0; col <= 7; col++)
             {
-                var y = 0;
+                var x = TileEdge(col, tileWidth, resizeFactor);
+                var width = TileEdge(col + 1, tileWidth, resizeFactor) - x;
+
                 for (var row = 0; row <= 7; row++)
                 {
+                    var y = TileEdge(row, tileWidth, resizeFactor);
+                    var height = TileEdge(row + 1, tileWidth, resizeFactor) - y;
                     var filename = string.Format(tileTemplate, col, row);
 
                     using (var mapTile = new MagickImage(mpak.GetFile(filename).Data))
                     {
-                        var newSize = Convert.ToInt32(mapTile.Width * resizeFactor);
-                        mapTile.Resize((uint)(newSize), (uint)(newSize));
-
+                        mapTile.Resize(new MagickGeometry((uint)width, (uint)height) { IgnoreAspectRatio = true });
                         map.Composite(mapTile, x, y, CompositeOperator.SrcOver);
-                         
-                        // Calculate new y
-                        y += (int)mapTile.Height;
-                        lastWidth = (int)mapTile.Height;
                     }
                 }
-
-                x += lastWidth;
 
                 var percent = 100 * col / 8;
                 MainForm.ProgressUpdate(percent);
             }
 
             MainForm.ProgressStartMarquee("Merging ...");
-
-            // Remove rounding fails
-            map.Trim();
 
             // Flip if set
             if (this.flipX) map.Flop();
@@ -157,6 +148,12 @@ namespace MapCreator.Classes.MapCreation
             MainForm.ProgressReset();
 
             return map;
+        }
+
+        // Tiles are placed on exact edges so non power of two sizes leave no gaps
+        private static int TileEdge(int index, double tileWidth, double resizeFactor)
+        {
+            return (int)Math.Round(index * tileWidth * resizeFactor);
         }
     }
 }

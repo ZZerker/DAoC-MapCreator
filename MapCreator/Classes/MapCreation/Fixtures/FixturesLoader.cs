@@ -285,7 +285,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var polyMpkModified = false;
 
             if (!File.Exists(polysMpkFile)) polyMpkModified = true; // Create a new poyls.mpk
-            else polyMpk.Load(polysMpkFile); // Load existing polys.mpk
+            else polyMpk = MpkWrapper.Open(polysMpkFile);
 
             // Loop all nifs from nifs.csv
             var progressCounter = 0;
