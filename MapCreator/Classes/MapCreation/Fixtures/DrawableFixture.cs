@@ -31,6 +31,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
     {
         public string Name;
         public string NifName;
+        public string TextureDirectory;
 
         public FixtureRow FixtureRow;
 
@@ -142,7 +143,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                 // We want to draw the vectors in z-order
                 double maxZ = poly.Vectors.Max(p => p.Z);
-                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates));
+                var textureColor = this.RendererConf.UseTextureColor ? TextureColors.Get(poly.Texture, this.TextureDirectory) : null;
+                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor));
             }
 
             this.DrawableElements = drawlist.OrderBy(o => o.Order);
@@ -192,7 +194,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 // Check visibility of polygons
-                var newPolygon = new Polygon(p1, p2, p3);
+                var newPolygon = new Polygon(p1, p2, p3, poly.Texture);
                 if (this.PolygonArea(newPolygon.Vectors) > 0.01)
                 {
                     this.ProcessedPolygons.Add(newPolygon);
@@ -247,11 +249,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public readonly double Lightning;
         public readonly IEnumerable<ImageMagick.PointD> Coordinates;
 
-        public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates)
+        /// <summary>
+        /// Average color of the triangle's texture, null to use the renderer color
+        /// </summary>
+        public readonly System.Drawing.Color? TextureColor;
+
+        public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates, System.Drawing.Color? textureColor = null)
         {
             this.Order = order;
             this.Lightning = lightning;
             this.Coordinates = coordinates;
+            this.TextureColor = textureColor;
         }
 
         public IEnumerator GetEnumerator()

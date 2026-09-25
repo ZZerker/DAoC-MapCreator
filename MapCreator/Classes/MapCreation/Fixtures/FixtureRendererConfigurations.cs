@@ -156,6 +156,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 conf.Renderer = GetRendererType(node.Descendants("renderer").First().Value);
                 conf.Color = new ImageMagick.MagickColor((node.Descendants("color").Any()) ? node.Descendants("color").First().Value : "#FFF");
                 conf.Transparency = Convert.ToInt32((node.Descendants("transparency").Any()) ? node.Descendants("transparency").First().Value : "0");
+                conf.UseTextureColor = node.Descendants("texture_color").Any() && Convert.ToBoolean(node.Descendants("texture_color").First().Value);
 
                 var lightElement = node.Descendants("light");
                 if (lightElement.Any())
@@ -251,6 +252,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public FixtureRendererType Renderer;
         public ImageMagick.MagickColor Color;
         public int Transparency;
+
+        // Fill triangles with the average color of their texture instead of Color
+        public bool UseTextureColor;
 
         // Light
         public bool HasLight;

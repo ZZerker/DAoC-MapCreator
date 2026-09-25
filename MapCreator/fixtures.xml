@@ -18,6 +18,8 @@
     <renderer>Shaded</renderer>
     <light min="0.6" max="1.0" direction="1.0,1.0,-1.0">true</light>
     <color>#FFF</color>
+    <!-- Use the average color of each triangle's texture, color is the fallback -->
+    <texture_color>true</texture_color>
     <transparency>0</transparency>
     <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">true</shadow>
   </FixtureCategory>
@@ -28,6 +30,7 @@
     <renderer>Flat</renderer>
     <light min="0.6" max="1.0" direction="1.0,1.0,-1.0">false</light>
     <color>#FFF</color>
+    <texture_color>true</texture_color>
     <transparency>0</transparency>
     <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">true</shadow>
   </FixtureCategory>

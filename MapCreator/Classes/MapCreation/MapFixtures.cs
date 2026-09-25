@@ -224,18 +224,20 @@ namespace MapCreator.Classes.MapCreation
             {
                 foreach (var drawableElement in fixture.DrawableElements)
                 {                    
+                    var color = drawableElement.TextureColor?.ToMagickColor() ?? fixture.RendererConf.Color;
+
                     // A Shaded model without lightning is not shaded... but just we add this just be flexible
                     if (fixture.RendererConf.HasLight)
                     {
                         modelCanvas.Settings.FillColor = new MagickColor(
-                            Convert.ToUInt16(drawableElement.Lightning * fixture.RendererConf.Color.R),
-                            Convert.ToUInt16(drawableElement.Lightning * fixture.RendererConf.Color.G),
-                            Convert.ToUInt16(drawableElement.Lightning * fixture.RendererConf.Color.B)
+                            Convert.ToUInt16(drawableElement.Lightning * color.R),
+                            Convert.ToUInt16(drawableElement.Lightning * color.G),
+                            Convert.ToUInt16(drawableElement.Lightning * color.B)
                         );
                     }
                     else
                     {
-                        modelCanvas.Settings.FillColor = fixture.RendererConf.Color;
+                        modelCanvas.Settings.FillColor = color;
                     }
 
                     var polyDraw = new DrawablePolygon(drawableElement.Coordinates);
@@ -277,10 +279,9 @@ namespace MapCreator.Classes.MapCreation
 
             using (var modelCanvas = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
             {
-                modelCanvas.Settings.FillColor = fixture.RendererConf.Color;
-
                 foreach (var drawableElement in fixture.DrawableElements)
                 {
+                    modelCanvas.Settings.FillColor = drawableElement.TextureColor?.ToMagickColor() ?? fixture.RendererConf.Color;
                     var polyDraw = new DrawablePolygon(drawableElement.Coordinates);
                     modelCanvas.Draw(polyDraw);
                 }

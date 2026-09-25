@@ -20,6 +20,7 @@
                 </xs:complexType>
               </xs:element>
               <xs:element type="xs:string" name="color"/>
+              <xs:element type="xs:boolean" name="texture_color" minOccurs="0"/>
               <xs:element type="xs:byte" name="transparency"/>
               <xs:element name="shadow">
                 <xs:complexType>

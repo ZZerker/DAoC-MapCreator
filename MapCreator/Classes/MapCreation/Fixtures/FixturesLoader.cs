@@ -425,6 +425,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 		                                  // Set default values
 		                                  Name = fixtureRow.TextualName,
 		                                  NifName = nifRow.Filename,
+		                                  TextureDirectory = nifRow.ArchiveDirectory,
 		                                  FixtureRow = fixtureRow,
 		                                  ZoneConf = zoneConf
                                   };
