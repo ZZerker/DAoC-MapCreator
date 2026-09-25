@@ -31,6 +31,7 @@ namespace MapCreator.Classes.MapCreation
     {
         private readonly ZoneConfiguration zoneConfiguration;
         private readonly List<WaterConfiguration> rivers;
+        private readonly FixturesLoader loader;
 
         private readonly List<DrawableFixture> fixtures = new List<DrawableFixture>();
 
@@ -54,13 +55,11 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration = zoneConfiguration;
             this.rivers = rivers;
 
-            // Load Renderer Configurations
-
-            // Initialize the fixtures loader, loads CSV files and polygons
-            FixturesLoader.Initialize(zoneConfiguration);
+            // Loads CSV files and polygons
+            this.loader = new FixturesLoader(zoneConfiguration);
 
             // Prepare models
-            this.fixtures = FixturesLoader.GetDrawableFixtures();
+            this.fixtures = this.loader.GetDrawableFixtures();
         }
 
         public void Start()
@@ -370,7 +369,7 @@ namespace MapCreator.Classes.MapCreation
             // Draw the image
             if (this.modelImages.ContainsKey(fileName) && this.modelImages[fileName] != null)
             {
-                var orginalNif = FixturesLoader.NifRows.FirstOrDefault(n => n.NifId == fixture.FixtureRow.NifId);
+                var orginalNif = this.loader.NifRows.FirstOrDefault(n => n.NifId == fixture.FixtureRow.NifId);
                 if (orginalNif == null)
                 {
                     this.zoneConfiguration.Reporter.Log(string.Format("Error with imaged nif ({0})!", fixture.FixtureRow.TextualName), LogLevel.Warning);
@@ -569,7 +568,7 @@ namespace MapCreator.Classes.MapCreation
             if (this.modelImages.ContainsKey(fileName) && this.modelImages[fileName] != null)
             {
                 // Get the width of the orginal tree shape
-                var tree = FixturesLoader.NifRows.FirstOrDefault(n => n.Filename.ToLower() == fixture.TreeCluster.Tree.ToLower());
+                var tree = this.loader.NifRows.FirstOrDefault(n => n.Filename.ToLower() == fixture.TreeCluster.Tree.ToLower());
                 if (tree == null) return;
 
                 var treeSize = tree.GetSize(0, 0);

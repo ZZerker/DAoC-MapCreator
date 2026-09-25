@@ -105,22 +105,17 @@ namespace MapCreator.Classes
                 );
         }
 
-        private static PointF centerHolder = PointF.Empty;
-
         public static IEnumerable<PointF> SortCounterClockwise(List<PointF> points)
         {
-            centerHolder = Tools.GetCentroid(points);
-            points.Sort(new Comparison<PointF>(SortCornersClockwise));
+            var centroid = Tools.GetCentroid(points);
+            points.Sort((a, b) => SortCornersClockwise(a, b, centroid));
             return points;
         }
 
-        private static int SortCornersClockwise(PointF a, PointF b)
+        private static int SortCornersClockwise(PointF a, PointF b, PointF centroid)
         {
             //  Variables to Store the atans
             double aTanA, aTanB;
-
-            //  Reference Point
-            var centroid = centerHolder;
 
             //  Fetch the atans
             aTanA = Math.Atan2(a.Y - centroid.Y, a.X - centroid.X);
