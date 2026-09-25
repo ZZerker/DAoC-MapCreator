@@ -31,6 +31,7 @@ TEXT = (238, 230, 207)
 HALO = (16, 12, 8, 255)
 REALM_TEXT = {1: (232, 168, 152), 2: (170, 198, 232), 3: (170, 214, 150)}
 NEIGHBOR_TEXT = (228, 204, 140)
+BOSS_TEXT = (236, 168, 112)
 ICON_FILL = {"entrance": (70, 58, 44), "portal": (60, 70, 96), "boss": (150, 60, 40), "dock": (60, 80, 100)}
 
 # Pixel sizes at 512; smaller maps scale down and drop labels with a higher priority number
@@ -95,7 +96,7 @@ def draw_labels(img, labels):
         f = font(kind, size)
         text = label["text"]
         x, y = label["x"] * size, label["y"] * size
-        color = REALM_TEXT.get(label["realm"], TEXT) if kind == "keep" else NEIGHBOR_TEXT if kind == "neighbor" else TEXT
+        color = REALM_TEXT.get(label["realm"], TEXT) if kind == "keep" else NEIGHBOR_TEXT if kind == "neighbor" else BOSS_TEXT if kind == "boss" else TEXT
 
         if kind == "neighbor" and label["edge"] in ("west", "east"):
             # Along the side border: reads upwards on the west edge, downwards on the east edge, arrow pointing out

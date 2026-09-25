@@ -1,5 +1,5 @@
 # Landmarks baked into the maps, in zone coordinates. kind: place, dock, entrance, portal, boss. priority 1 = always shown, 2 = dropped on small maps
-# Sources: Eden war map (places, docks, Ellan Vannin sites), client zonejump.csv (entrances, portal keeps). Keeps and neighbor zones are added automatically.
+# Sources: Eden war map (places, docks, Ellan Vannin sites), client zonejump.csv (entrances, portal keeps). Keeps and neighbor zones are added automatically. Bosses from the Eden bestiary (mbs/search.php).
 zone;x;y;kind;label;priority
 163;4004;24643;dock;West Ellan Dock;2
 163;5490;46771;place;Tower of Graoch;1
@@ -21,3 +21,9 @@ zone;x;y;kind;label;priority
 177;30000;5000;place;Brough Ruins;1
 177;61039;29082;entrance;RvR Dungeon;1
 178;48000;40000;place;Folley Lake;1
+167;31800;46200;boss;Glacier Giant;1
+167;39700;42000;boss;Kjorlakath;1
+176;24600;44500;boss;Green Knight;1
+172;24900;63600;boss;Evern;1
+171;5900;25400;boss;Sarnvasath;1
+178;60000;55600;boss;Amrateth;1
