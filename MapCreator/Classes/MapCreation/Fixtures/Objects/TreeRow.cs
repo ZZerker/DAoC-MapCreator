@@ -27,6 +27,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures.Objects
 
         public int ZOffset { get; set; }
 
+        public string BarkTexture { get; set; }
+
         public string LeafTexture { get; set; }
 
         public System.Drawing.Color AverageColor { get; set; }

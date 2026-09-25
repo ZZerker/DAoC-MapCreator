@@ -152,7 +152,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                                   {
 		                                  Name = fields[0],
 		                                  ZOffset = (string.IsNullOrEmpty(fields[4])) ? 0 : Convert.ToInt32(fields[4]),
-		                                  LeafTexture = (string.IsNullOrEmpty(fields[3])) ? "" : fields[3]
+		                                  BarkTexture = fields[2],
+		                                  LeafTexture = fields[3]
                                   };
                     treeRow.AverageColor = GetTreeColor(treeRow);
                     TreeRows.Add(treeRow);
@@ -209,30 +210,34 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         }
 
         private static readonly Dictionary<string, System.Drawing.Color> TreeColors = new Dictionary<string,System.Drawing.Color>();
+        private static readonly System.Drawing.Color DefaultTreeColor = System.Drawing.ColorTranslator.FromHtml("#5e683a");
 
         private static System.Drawing.Color GetTreeColor(TreeRow treeRow)
         {
             if (TreeColors.TryGetValue(treeRow.Name, out var treeColor)) return treeColor;
 
-            var treeTextureFile = string.Format("{0}\\zones\\trees\\{1}", Properties.Settings.Default.game_path, treeRow.LeafTexture);
+            // Leafless trees (burnt trees, reeds) only have a bark texture
+            var textureName = string.IsNullOrEmpty(treeRow.LeafTexture) ? treeRow.BarkTexture : treeRow.LeafTexture;
+            if (string.IsNullOrEmpty(textureName))
+            {
+                MainForm.Log(string.Format("Tree {0} has no texture in Treemap.csv. Using default color.", treeRow.Name));
+                return DefaultTreeColor;
+            }
+
+            var treeTextureFile = Path.Combine(Properties.Settings.Default.game_path, "zones", "trees", textureName);
             if (!File.Exists(treeTextureFile))
             {
-                MainForm.Log(string.Format("Unable to get texture for tree {0}. Using default color.", treeRow.Name));
-                return System.Drawing.ColorTranslator.FromHtml("#5e683a");
+                MainForm.Log(string.Format("Texture {0} for tree {1} not found. Using default color.", textureName, treeRow.Name), MainForm.LogLevel.Warning);
+                return DefaultTreeColor;
             }
-            else
+
+            using (var texture = new ImageMagick.MagickImage(treeTextureFile))
             {
-                using (var texture = new ImageMagick.MagickImage(treeTextureFile))
-                {
-                    texture.Resize(1, 1);
-                    var pixel = texture.GetPixels().First();
-
-                    var color = pixel.ToColor().ToSystemColor();
-                    TreeColors.Add(treeRow.Name, color);
-                    return color;
-                }
+                texture.Resize(1, 1);
+                var color = texture.GetPixels().First().ToColor().ToSystemColor();
+                TreeColors.Add(treeRow.Name, color);
+                return color;
             }
-
         }
 
         /// <summary>
