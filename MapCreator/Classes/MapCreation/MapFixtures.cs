@@ -221,6 +221,7 @@ namespace MapCreator.Classes.MapCreation
 
             using (var modelCanvas = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
             {
+                var drawables = new Drawables();
                 foreach (var drawableElement in fixture.DrawableElements)
                 {                    
                     var color = drawableElement.TextureColor?.ToMagickColor() ?? fixture.RendererConf.Color;
@@ -228,21 +229,21 @@ namespace MapCreator.Classes.MapCreation
                     // A Shaded model without lightning is not shaded... but just we add this just be flexible
                     if (fixture.RendererConf.HasLight)
                     {
-                        modelCanvas.Settings.FillColor = new MagickColor(
+                        drawables.FillColor(new MagickColor(
                             Convert.ToUInt16(drawableElement.Lightning * color.R),
                             Convert.ToUInt16(drawableElement.Lightning * color.G),
                             Convert.ToUInt16(drawableElement.Lightning * color.B)
-                        );
+                        ));
                     }
                     else
                     {
-                        modelCanvas.Settings.FillColor = color;
+                        drawables.FillColor(color);
                     }
 
-                    var polyDraw = new DrawablePolygon(drawableElement.Coordinates);
-                    modelCanvas.Draw(polyDraw);
-                    
+                    drawables.Polygon(drawableElement.Coordinates);
                 }
+
+                DrawBatch(modelCanvas, drawables);
 
                 if (fixture.RendererConf.HasShadow)
                 {
@@ -278,12 +279,14 @@ namespace MapCreator.Classes.MapCreation
 
             using (var modelCanvas = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
             {
+                var drawables = new Drawables();
                 foreach (var drawableElement in fixture.DrawableElements)
                 {
-                    modelCanvas.Settings.FillColor = drawableElement.TextureColor?.ToMagickColor() ?? fixture.RendererConf.Color;
-                    var polyDraw = new DrawablePolygon(drawableElement.Coordinates);
-                    modelCanvas.Draw(polyDraw);
+                    drawables.FillColor(drawableElement.TextureColor?.ToMagickColor() ?? fixture.RendererConf.Color);
+                    drawables.Polygon(drawableElement.Coordinates);
                 }
+
+                DrawBatch(modelCanvas, drawables);
 
                 if (fixture.RendererConf.HasShadow)
                 {
@@ -408,18 +411,19 @@ namespace MapCreator.Classes.MapCreation
                     {
                         using (var modelShaped = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
                         {
+                            var drawables = new Drawables();
                             foreach (var drawableElement in fixture.DrawableElements)
                             {
                                 var light = 1 - drawableElement.Lightning;
-                                modelShaped.Settings.FillColor = new MagickColor(
+                                drawables.FillColor(new MagickColor(
                                     Convert.ToUInt16(ushort.MaxValue * light),
                                     Convert.ToUInt16(ushort.MaxValue * light),
                                     Convert.ToUInt16(ushort.MaxValue * light)
-                                );
-
-                                var polyDraw = new DrawablePolygon(drawableElement.Coordinates);
-                                modelShaped.Draw(polyDraw);
+                                ));
+                                drawables.Polygon(drawableElement.Coordinates);
                             }
+
+                            DrawBatch(modelShaped, drawables);
 
                             using(var modelMask = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
                             {
@@ -602,17 +606,18 @@ namespace MapCreator.Classes.MapCreation
 
                     using (var modelCanvas = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
                     {
+                        var drawables = new Drawables();
                         foreach (var drawableElement in fixture.DrawableElements)
                         {
-                            modelCanvas.Settings.FillColor = new MagickColor(
+                            drawables.FillColor(new MagickColor(
                                 Convert.ToUInt16(128 * 256 * drawableElement.Lightning),
                                 Convert.ToUInt16(128 * 256 * drawableElement.Lightning),
                                 Convert.ToUInt16(128 * 256 * drawableElement.Lightning)
-                            );
-
-                            var polyDraw = new DrawablePolygon(drawableElement.Coordinates);
-                            modelCanvas.Draw(polyDraw);
+                            ));
+                            drawables.Polygon(drawableElement.Coordinates);
                         }
+
+                        DrawBatch(modelCanvas, drawables);
 
                         modelCanvas.Composite(treeCluster, Gravity.Center, CompositeOperator.DstIn);
                         treeCluster.Composite(modelCanvas, Gravity.Center, CompositeOperator.Overlay);
@@ -642,6 +647,15 @@ namespace MapCreator.Classes.MapCreation
 
                     overlay.Composite(treeCluster, Convert.ToInt32(fixture.CanvasX - extendedWidth/2), Convert.ToInt32(fixture.CanvasY - extendedHeight/2), CompositeOperator.SrcOver);
                 }
+            }
+        }
+
+        // One draw call per model: ImageMagick sets up a full draw pass for every call
+        private static void DrawBatch(MagickImage canvas, Drawables drawables)
+        {
+            if (drawables.Any())
+            {
+                drawables.Draw(canvas);
             }
         }
 
