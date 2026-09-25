@@ -7,32 +7,32 @@ Labels from zNNN.labels.json (written by MapCreator) are drawn after scaling, so
 import json
 import sys
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 FONTS = Path(r"C:\Windows\Fonts")
 
 # Muted colors that sit in the map instead of on top of it
 TEXT = (238, 230, 207)
-HALO = (22, 18, 12, 215)
+HALO = (16, 12, 8, 255)
 REALM_TEXT = {1: (232, 168, 152), 2: (170, 198, 232), 3: (170, 214, 150)}
 NEIGHBOR_TEXT = (228, 204, 140)
 ICON_FILL = {"entrance": (70, 58, 44), "portal": (60, 70, 96), "boss": (150, 60, 40), "dock": (60, 80, 100)}
 
 # Pixel sizes at 512; smaller maps scale down and drop labels with a higher priority number
 STYLE = {
-    "keep": ("segoeuib.ttf", 11),
-    "place": ("segoeuii.ttf", 9),
-    "neighbor": ("segoeuiz.ttf", 10),
-    "entrance": ("segoeui.ttf", 9),
-    "portal": ("segoeuib.ttf", 9),
-    "boss": ("segoeuib.ttf", 9),
-    "dock": ("segoeuii.ttf", 8),
+    "keep": ("tahomabd.ttf", 11),
+    "place": ("tahomabd.ttf", 10),
+    "neighbor": ("tahomabd.ttf", 11),
+    "entrance": ("tahomabd.ttf", 10),
+    "portal": ("tahomabd.ttf", 10),
+    "boss": ("tahomabd.ttf", 10),
+    "dock": ("tahomabd.ttf", 9),
 }
 
 
 def font(kind, size):
-    name, points = STYLE.get(kind, ("segoeui.ttf", 9))
-    return ImageFont.truetype(str(FONTS / name), max(6, round(points * size / 512)))
+    name, points = STYLE.get(kind, ("tahomabd.ttf", 10))
+    return ImageFont.truetype(str(FONTS / name), max(8, round(points * size / 512)))
 
 
 def overlaps(box, boxes):
@@ -56,14 +56,14 @@ def draw_arrow(draw, edge, x, y, r, color):
     draw.polygon(points, fill=color, outline=HALO)
 
 
-# Labels are drawn at this multiple of the map size and scaled down, for smooth edges
-SUPERSAMPLE = 4
+# Small text stays crisp only when drawn at its final pixel size with a hard outline
+SUPERSAMPLE = 1
 
 
 def draw_labels(img, labels):
     max_priority = 1 if img.size[0] < 512 else 2
     size = img.size[0] * SUPERSAMPLE
-    stroke = SUPERSAMPLE * (2 if img.size[0] >= 512 else 1)
+    stroke = 1
     layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     halo = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
@@ -116,9 +116,7 @@ def draw_labels(img, labels):
             boxes.append(box)
             break
 
-    # Soft halo under crisp text, both scaled down to the map size
-    halo = halo.filter(ImageFilter.GaussianBlur(SUPERSAMPLE * 0.8))
-    labels_layer = Image.alpha_composite(halo, layer).resize(img.size, Image.LANCZOS)
+    labels_layer = Image.alpha_composite(halo, layer)
     return Image.alpha_composite(img.convert("RGBA"), labels_layer).convert("RGB")
 
 
