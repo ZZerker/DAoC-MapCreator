@@ -61,7 +61,7 @@ namespace MapCreator.Classes.MapCreation
 
         public void Draw(MagickImage map)
         {
-            MainForm.ProgressStart("Drawing lightmap ...");
+            this.zoneConfiguration.Reporter.ProgressStart("Drawing lightmap ...");
 
             // Get the heightmap
             var heightmap = this.zoneConfiguration.Heightmap.Heightmap;
@@ -127,12 +127,12 @@ namespace MapCreator.Classes.MapCreation
                             }
 
                             var percent = 100 * y / (int)lightmap.Height;
-                            MainForm.ProgressUpdate(percent);
+                            this.zoneConfiguration.Reporter.ProgressUpdate(percent);
                         }
                     }
                 }
 
-                MainForm.ProgressStartMarquee("Merging...");
+                this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging...");
                 lightmap.Blur(0.0, 0.5);
 
                 lightmap.VirtualPixelMethod = VirtualPixelMethod.Transparent;
@@ -142,7 +142,7 @@ namespace MapCreator.Classes.MapCreation
                 // Apply the bumpmap using ColorDodge
                 map.Composite(lightmap, 0, 0, CompositeOperator.ColorDodge);
 
-                MainForm.ProgressReset();
+                this.zoneConfiguration.Reporter.ProgressReset();
             }
         }
     }

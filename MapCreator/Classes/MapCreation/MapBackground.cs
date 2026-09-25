@@ -64,7 +64,7 @@ namespace MapCreator.Classes.MapCreation
 
         public MagickImage Draw()
         {
-            MainForm.ProgressStart("Rendering background ...");
+            this.zoneConfiguration.Reporter.ProgressStart("Rendering background ...");
 
             if(!this.DrawBackground)
             {
@@ -104,7 +104,7 @@ namespace MapCreator.Classes.MapCreation
 
             if (string.IsNullOrEmpty(tileTemplate))
             {
-                MainForm.Log(string.Format("Zone {0}: No background textures found!", this.zoneConfiguration.ZoneId), MainForm.LogLevel.Error);
+                this.zoneConfiguration.Reporter.Log(string.Format("Zone {0}: No background textures found!", this.zoneConfiguration.ZoneId), LogLevel.Error);
                 return null;
             }
 
@@ -133,10 +133,10 @@ namespace MapCreator.Classes.MapCreation
                 }
 
                 var percent = 100 * col / 8;
-                MainForm.ProgressUpdate(percent);
+                this.zoneConfiguration.Reporter.ProgressUpdate(percent);
             }
 
-            MainForm.ProgressStartMarquee("Merging ...");
+            this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging ...");
 
             // Flip if set
             if (this.flipX) map.Flop();
@@ -145,7 +145,7 @@ namespace MapCreator.Classes.MapCreation
             // Sharpen (tested a lot, seems to be the best values)
             map.Sharpen(4, 3);
 
-            MainForm.ProgressReset();
+            this.zoneConfiguration.Reporter.ProgressReset();
 
             return map;
         }

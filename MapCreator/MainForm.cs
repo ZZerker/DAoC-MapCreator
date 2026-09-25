@@ -31,13 +31,8 @@ using MapCreator.Classes.Rendering;
 namespace MapCreator
 {
 
-    public partial class MainForm : Form
+    public partial class MainForm : Form, IRenderReporter
     {
-        /// <summary>
-        /// Self reference
-        /// </summary>
-        private static MainForm self = null;
-
         /// <summary>
         /// The Zones to draw
         /// </summary>
@@ -89,7 +84,7 @@ namespace MapCreator
             System.Threading.Thread.CurrentThread.CurrentUICulture = ci;
 
             this.InitializeComponent();
-            self = this;
+            AppLog.Reporter = this;
             this.Initialize();
 
             // Load last selected zones
@@ -233,25 +228,13 @@ namespace MapCreator
         #region Logging
 
         /// <summary>
-        /// Log Levels
-        /// </summary>
-        public enum LogLevel
-        {
-            Normal = 1,
-            Success = 2,
-            Notice = 3,
-            Warning = 4,
-            Error = 5
-        }
-
-        /// <summary>
         /// Logs somthing
         /// </summary>
         /// <param name="text"></param>
         /// <param name="logLevel"></param>
-        public static void Log(string text, LogLevel logLevel = LogLevel.Normal)
+        public void Log(string text, LogLevel logLevel = LogLevel.Normal)
         {
-            self.LogText(text, logLevel);
+            this.LogText(text, logLevel);
         }
 
         /// <summary>
@@ -434,26 +417,24 @@ namespace MapCreator
 	            this.Invoke(new ResetProgressBarDelegate(this.ResetProgressBar));
         }
 
-        public static void ProgressReset()
+        public void ProgressReset()
         {
-            self.ResetProgressBar();
+            this.ResetProgressBar();
         }
 
-        public static void ProgressStartMarquee(string label)
+        public void ProgressStartMarquee(string label)
         {
-            self.InitProgressBarMarquee(label);
+            this.InitProgressBarMarquee(label);
         }
 
-        public static void ProgressStart(string label)
+        public void ProgressStart(string label)
         {
-            self.InitProgressBar(label);
+            this.InitProgressBar(label);
         }
 
-        public static void ProgressUpdate(int percent)
+        public void ProgressUpdate(int percent)
         {
-            if (percent < 0) percent = 0;
-            if (percent > 100) percent = 100;
-            self.SetProgressBarValue(percent);
+            this.SetProgressBarValue(Math.Clamp(percent, 0, 100));
         }
 
         #endregion
@@ -680,190 +661,32 @@ namespace MapCreator
         /// <param name="e"></param>
         private void drawMapBackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            /*
-            try
-            {
-            */
             var (zone, settings) = ((ZoneSelection, RenderSettings))e.Argument;
 
-            // Start BackgroundWorker
-            Log(string.Format("Start creating map for zone {0} ...", zone.Id), LogLevel.Notice);
-
-            // The filename
-            var targetFileDirectory = settings.DirectoryPattern;
-            if (string.IsNullOrEmpty(targetFileDirectory)) targetFileDirectory = "maps";
-
-            targetFileDirectory = targetFileDirectory.Replace("{id}", zone.Id);
-            targetFileDirectory = targetFileDirectory.Replace("{name}", zone.Name);
-            targetFileDirectory = targetFileDirectory.Replace("{realm}", zone.Realm);
-            targetFileDirectory = targetFileDirectory.Replace("{expansion}", zone.Expansion);
-            targetFileDirectory = targetFileDirectory.Replace("{type}", zone.Type);
-            targetFileDirectory = targetFileDirectory.Replace("{size}", settings.MapSize.ToString());
-            targetFileDirectory = Tools.MakeValidDirectoryName(targetFileDirectory);
-
-            var targetFileName = settings.FilePattern;
-            if (string.IsNullOrEmpty(targetFileName)) targetFileName = "zone{id}_{size}";
-
-            // Replace some values
-            targetFileName = targetFileName.Replace("{id}", zone.Id);
-            targetFileName = targetFileName.Replace("{name}", zone.Name);
-            targetFileName = targetFileName.Replace("{realm}", zone.Realm);
-            targetFileName = targetFileName.Replace("{expansion}", zone.Expansion);
-            targetFileName = targetFileName.Replace("{type}", zone.Type);
-            targetFileName = targetFileName.Replace("{size}", settings.MapSize.ToString());
-            targetFileName = Tools.MakeValidFileName(targetFileName);
-
-            var fileExtension = settings.FileType == "PNG" ? "png" : "jpg";
-
-            // The Target File
-            var mapFile = new FileInfo(string.Format("{0}\\{3}\\{1}.{2}", settings.TargetPath, targetFileName, fileExtension, targetFileDirectory));
-            if (!Directory.Exists(mapFile.DirectoryName))
+            var mapFile = new ZoneRenderer(settings, this).Render(zone);
+            if (mapFile == null)
             {
-                Directory.CreateDirectory(mapFile.DirectoryName);
-            }
-
-            if (settings.SkipIfFileExists && mapFile.Exists)
-            {
-                Log(string.Format("The target file \"{0}/{1}.{2}\" already exists. Skipping.", targetFileDirectory, targetFileName, fileExtension));
                 return;
             }
 
-            var drawFixtures = settings.DrawFixtures;
-            var drawFixturesBelowWater = settings.DrawFixturesBelowWater;
-            var drawTrees = settings.DrawTrees;
-
-            // Generate the map
-            using (var conf = new ZoneConfiguration(zone.Id, settings.MapSize))
+            if (mapFile.Exists)
             {
-                // Create Background
-                var background = new MapBackground(conf)
-                                 {
-		                                 DrawBackground = settings.DrawBackground
-                                 };
-
-                MainForm.Log("Rendering background ...", LogLevel.Notice);
-                using (var map = background.Draw())
-                {
-                    if (map != null)
-                    {
-                        MainForm.Log("Finished background rendering!", LogLevel.Success);
-
-                        // Create lightmap
-                        if (settings.Lightmap)
-                        {
-                            MainForm.Log("Rendering lightmap ...", LogLevel.Notice);
-                            var lightmapGenerator = new MapLightmap(conf)
-                                                    {
-		                                                    ZScale = settings.LightmapZScale,
-		                                                    LightMin = settings.LightmapLightMin,
-		                                                    LightMax = settings.LightmapLightMax,
-		                                                    ZVector = (double[])settings.LightmapZVector.Clone()
-                                                    };
-                            lightmapGenerator.RecalculateLights();
-                            lightmapGenerator.Draw(map);
-                            MainForm.Log("Finished lightmap rendering!", LogLevel.Success);
-                        }
-
-                        // We need this for fixtures
-                        MainForm.Log("Loading water configurations ...", LogLevel.Notice);
-                        var river = new MapWater(conf);
-                        MainForm.Log("Finished loading water configurations!", LogLevel.Success);
-
-                        MapFixtures fixturesGenerator = null;
-                        if (drawFixtures || drawFixturesBelowWater || drawTrees)
-                        {
-                            MainForm.Log("Loading fixtures ...", LogLevel.Notice);
-                            fixturesGenerator = new MapFixtures(conf, river.WaterAreas);
-                            fixturesGenerator.DrawFixtures = drawFixtures || drawFixturesBelowWater;
-                            fixturesGenerator.DrawTrees = drawTrees;
-                            fixturesGenerator.DrawTreesAsImages = settings.TreesAsImages;
-                            fixturesGenerator.TreeTransparency = settings.TreeTransparency;
-                            fixturesGenerator.Start();
-                            MainForm.Log("Finished loading fixtures!", LogLevel.Success);
-                        }
-
-                        // Draw Fixtures below water
-                        if (drawFixturesBelowWater)
-                        {
-                            MainForm.Log("Rendering fixtures below water level ...", LogLevel.Notice);
-                            fixturesGenerator.Draw(map, true);
-                            MainForm.Log("Finished rendering fixtures below water level!", LogLevel.Success);
-                        }
-
-                        // Create Rivers
-                        if (settings.Rivers)
-                        {
-                            MainForm.Log("Rendering water ...", LogLevel.Notice);
-                            river.WaterColor = settings.RiversColor;
-                            river.WaterTransparency = settings.RiverOpacity;
-                            river.UseClientColors = settings.RiversUseDefaultColor;
-                            river.Draw(map);
-                            MainForm.Log("Finished water rendering!", LogLevel.Success);
-                        }
-
-                        // Draw Fixtures above water
-                        if (drawFixtures || drawTrees)
-                        {
-                            MainForm.Log("Rendering fixtures above water level ...", LogLevel.Notice);
-                            fixturesGenerator.Draw(map, false);
-                            MainForm.Log("Finished rendering fixtures above water level!", LogLevel.Success);
-                        }
-
-                        if (fixturesGenerator != null)
-                        {
-                            fixturesGenerator.Dispose();
-                        }
-
-                        // Create bounds
-                        if (settings.Bounds)
-                        {
-                            MainForm.Log("Adding zone bounds ...", LogLevel.Notice);
-                            var mapBounds = new MapBounds(conf)
-                                            {
-		                                            BoundsColor = settings.BoundsColor,
-		                                            Transparency = settings.BoundsOpacity,
-		                                            ExcludeFromMap = settings.ExcludeBoundsFromMap
-                                            };
-                            mapBounds.Draw(map);
-                            MainForm.Log("Finished zone bunds!", LogLevel.Success);
-                        }
-
-                        MainForm.Log(string.Format("Writing map image {0} ...", mapFile.Name));
-                        ProgressStartMarquee("Writing map image ...");
-                        map.Quality = settings.Quality;
-                        map.Depth = 8;
-                        map.Write(mapFile.FullName);
-                    }
-                }
-            }
-
-            if (File.Exists(mapFile.FullName))
-            {
-	            this.LoadImage(mapFile.FullName);
-                ProgressReset();
+                this.LoadImage(mapFile.FullName);
+                this.ProgressReset();
             }
             else
             {
-                Log("Errors during progress!", LogLevel.Error);
+                this.Log("Errors during progress!", LogLevel.Error);
             }
-            /*
-            }
-            catch (Exception ex)
-            {
-                MainForm.Log("Unhandled Exception thrown!", LogLevel.error);
-                MainForm.Log(ex.Message, LogLevel.error);
-                MainForm.Log(ex.StackTrace, LogLevel.error);
-            }
-            */
         }
 
         private void drawMapBackgroundWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             if (e.Error != null)
             {
-                MainForm.Log("Unhandled Exception thrown!", LogLevel.Error);
-                MainForm.Log(e.Error.Message, LogLevel.Error);
-                MainForm.Log(e.Error.StackTrace, LogLevel.Error);    
+                this.Log("Unhandled Exception thrown!", LogLevel.Error);
+                this.Log(e.Error.Message, LogLevel.Error);
+                this.Log(e.Error.StackTrace, LogLevel.Error);    
             }
             else
             {

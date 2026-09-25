@@ -34,7 +34,7 @@ namespace MapCreator.Classes
             var checkFile = string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "camelot.exe");
             if (!File.Exists(checkFile))
             {
-                MainForm.Log("camelot.exe not found in gamepath!");
+                AppLog.Log("camelot.exe not found in gamepath!");
                 return false;
             }
 

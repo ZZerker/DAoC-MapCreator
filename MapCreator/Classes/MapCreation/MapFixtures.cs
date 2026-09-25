@@ -66,7 +66,7 @@ namespace MapCreator.Classes.MapCreation
         public void Start()
         {
             if (this.fixtures.Count == 0) return;
-            MainForm.ProgressStartMarquee("Sorting fixtures ....");
+            this.zoneConfiguration.Reporter.ProgressStartMarquee("Sorting fixtures ....");
 
             // Create paths out of the rivers
             var riverPaths = new Dictionary<WaterConfiguration, System.Drawing.Drawing2D.GraphicsPath>();
@@ -129,26 +129,26 @@ namespace MapCreator.Classes.MapCreation
             // Dispose all paths
             riverPaths.Select(d => d.Value).ToList().ForEach(r => r.Dispose());
 
-            MainForm.ProgressReset();
+            this.zoneConfiguration.Reporter.ProgressReset();
         }
 
         public void Draw(MagickImage map, bool underwater)
         {
             if (underwater)
             {
-                MainForm.Log(string.Format("There are {0} fixtures to draw.", this.fixturesUnderWater.Count), MainForm.LogLevel.Notice);
+                this.zoneConfiguration.Reporter.Log(string.Format("There are {0} fixtures to draw.", this.fixturesUnderWater.Count), LogLevel.Notice);
                 this.Draw(map, this.fixturesUnderWater);
             }
             else
             {
-                MainForm.Log(string.Format("There are {0} fixtures to draw.", this.fixturesAboveWater.Count), MainForm.LogLevel.Notice);
+                this.zoneConfiguration.Reporter.Log(string.Format("There are {0} fixtures to draw.", this.fixturesAboveWater.Count), LogLevel.Notice);
                 this.Draw(map, this.fixturesAboveWater);
             }
         }
 
         private void Draw(MagickImage map, List<DrawableFixture> fixtures)
         {
-            MainForm.ProgressStart(string.Format("Drawing fixtures ({0}) ...", fixtures.Count));
+            this.zoneConfiguration.Reporter.ProgressStart(string.Format("Drawing fixtures ({0}) ...", fixtures.Count));
             var timer = Stopwatch.StartNew();
 
             using (var modelsOverlay = MagickWrapper.NewImage(MagickColors.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
@@ -179,11 +179,11 @@ namespace MapCreator.Classes.MapCreation
                         }
 
                         var percent = 100 * processCounter / fixtures.Count();
-                        MainForm.ProgressUpdate(percent);
+                        this.zoneConfiguration.Reporter.ProgressUpdate(percent);
                         processCounter++;
                     }
 
-                    MainForm.ProgressStartMarquee("Merging ...");
+                    this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging ...");
 
                     var treeImagesRConf = FixtureRendererConfigurations.GetRendererById("TreeImage");
                     if (treeImagesRConf.HasShadow)
@@ -212,13 +212,13 @@ namespace MapCreator.Classes.MapCreation
             }
 
             timer.Stop();
-            MainForm.Log(string.Format("Finished in {0} seconds.", timer.Elapsed.TotalSeconds), MainForm.LogLevel.Success);
-            MainForm.ProgressReset();
+            this.zoneConfiguration.Reporter.Log(string.Format("Finished in {0} seconds.", timer.Elapsed.TotalSeconds), LogLevel.Success);
+            this.zoneConfiguration.Reporter.ProgressReset();
         }
 
         private void DrawShaded(MagickImage overlay, DrawableFixture fixture)
         {
-            //MainForm.Log(string.Format("Shaded: {0} ({1}) ...", fixture.Name, fixture.NifName), MainForm.LogLevel.notice);
+            //this.zoneConfiguration.Reporter.Log(string.Format("Shaded: {0} ({1}) ...", fixture.Name, fixture.NifName), LogLevel.notice);
 
             using (var modelCanvas = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
             {
@@ -275,7 +275,7 @@ namespace MapCreator.Classes.MapCreation
 
         private void DrawFlat(MagickImage overlay, DrawableFixture fixture)
         {
-            //MainForm.Log(string.Format("Flat: {0} ({1}) ...", fixture.Name, fixture.NifName), MainForm.LogLevel.notice);
+            //this.zoneConfiguration.Reporter.Log(string.Format("Flat: {0} ({1}) ...", fixture.Name, fixture.NifName), LogLevel.notice);
 
             using (var modelCanvas = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
             {
@@ -316,7 +316,7 @@ namespace MapCreator.Classes.MapCreation
 
         private void DrawImage(MagickImage overlay, DrawableFixture fixture)
         {
-            //MainForm.Log(string.Format("Image: {0} ({1}) ...", fixture.Name, fixture.NifName), MainForm.LogLevel.notice);
+            //this.zoneConfiguration.Reporter.Log(string.Format("Image: {0} ({1}) ...", fixture.Name, fixture.NifName), LogLevel.notice);
             var fileName = System.IO.Path.GetFileNameWithoutExtension(fixture.NifName);
             var defaultTree = "elm1";
 
@@ -360,7 +360,7 @@ namespace MapCreator.Classes.MapCreation
                 {
                     if (fixture.IsTree)
                     {
-                        MainForm.Log(string.Format("Can not find image for tree {0} ({1}), using default tree", fixture.Name, fixture.NifName), MainForm.LogLevel.Warning);
+                        this.zoneConfiguration.Reporter.Log(string.Format("Can not find image for tree {0} ({1}), using default tree", fixture.Name, fixture.NifName), LogLevel.Warning);
                         this.modelImages.Add(fileName, this.modelImages[defaultTree]);
                     }
                     else this.modelImages.Add(fileName, null);
@@ -373,7 +373,7 @@ namespace MapCreator.Classes.MapCreation
                 var orginalNif = FixturesLoader.NifRows.FirstOrDefault(n => n.NifId == fixture.FixtureRow.NifId);
                 if (orginalNif == null)
                 {
-                    MainForm.Log(string.Format("Error with imaged nif ({0})!", fixture.FixtureRow.TextualName), MainForm.LogLevel.Warning);
+                    this.zoneConfiguration.Reporter.Log(string.Format("Error with imaged nif ({0})!", fixture.FixtureRow.TextualName), LogLevel.Warning);
                 }
 
                 var objectSize = orginalNif.GetSize(0, 0);
@@ -545,7 +545,7 @@ namespace MapCreator.Classes.MapCreation
 
         private void DrawTreeCluster(MagickImage overlay, DrawableFixture fixture)
         {
-            //MainForm.Log(string.Format("Image: {0} ({1}) ...", fixture.Name, fixture.TreeCluster.Tree), MainForm.LogLevel.notice);
+            //this.zoneConfiguration.Reporter.Log(string.Format("Image: {0} ({1}) ...", fixture.Name, fixture.TreeCluster.Tree), LogLevel.notice);
             var fileName = System.IO.Path.GetFileNameWithoutExtension(fixture.TreeCluster.Tree);
             var defaultTree = "elm1";
 
@@ -561,7 +561,7 @@ namespace MapCreator.Classes.MapCreation
                 }
                 else
                 {
-                    MainForm.Log(string.Format("Can not find image for tree {0} ({1}), using default tree", fixture.TreeCluster.Tree, fixture.NifName), MainForm.LogLevel.Warning);
+                    this.zoneConfiguration.Reporter.Log(string.Format("Can not find image for tree {0} ({1}), using default tree", fixture.TreeCluster.Tree, fixture.NifName), LogLevel.Warning);
                     this.modelImages.Add(fileName, this.modelImages[defaultTree]);
                 }
             }

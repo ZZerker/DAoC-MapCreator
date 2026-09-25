@@ -57,9 +57,12 @@ namespace MapCreator.Classes
         public string TexMpk { get; }
         #endregion
 
-        public ZoneConfiguration(string zoneId, int mapSize)
+        public IRenderReporter Reporter { get; }
+
+        public ZoneConfiguration(string zoneId, int mapSize, IRenderReporter reporter)
         {
             this.ZoneId = zoneId;
+            this.Reporter = reporter;
 
             // Get expansion from zones.xml
             this.Expansion = DataWrapper.GetExpansionByZone(zoneId);

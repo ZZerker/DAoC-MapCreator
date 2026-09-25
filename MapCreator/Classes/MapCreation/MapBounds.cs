@@ -351,7 +351,7 @@ namespace MapCreator.Classes.MapCreation
         public void Draw(MagickImage map)
         {
             if (this.bounds.Count == 0) return;
-            MainForm.ProgressStart("Drawing zone bounds ...");
+            this.zoneConfiguration.Reporter.ProgressStart("Drawing zone bounds ...");
 
             // Sort the polygons
             var polygons = new List<List<PointD>>();
@@ -386,7 +386,7 @@ namespace MapCreator.Classes.MapCreation
 
                     progressCounter++;
                     var percent = 100 * progressCounter / this.bounds.Count();
-                    MainForm.ProgressUpdate(percent);
+                    this.zoneConfiguration.Reporter.ProgressUpdate(percent);
                 }
 
                 if (negatedPolygons.Count > 0)
@@ -402,13 +402,13 @@ namespace MapCreator.Classes.MapCreation
 
                             progressCounter++;
                             var percent = 100 * progressCounter / this.bounds.Count();
-                            MainForm.ProgressUpdate(percent);
+                            this.zoneConfiguration.Reporter.ProgressUpdate(percent);
                         }
                         boundMap.Composite(negatedBoundMap, 0, 0, CompositeOperator.DstOut);
                     }
                 }
 
-                MainForm.ProgressStartMarquee("Merging ...");
+                this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging ...");
                 if (this.ExcludeFromMap)
                 {
                     map.Composite(boundMap, 0, 0, CompositeOperator.DstOut);
@@ -431,13 +431,13 @@ namespace MapCreator.Classes.MapCreation
                 this.DebugMaps();
             }
 
-            MainForm.ProgressReset();
+            this.zoneConfiguration.Reporter.ProgressReset();
         }
 
         private void DebugMaps()
         {
-            MainForm.Log("Drawing debug bound images ...", MainForm.LogLevel.Warning);
-            MainForm.ProgressStartMarquee("Debug bound images ...");
+            this.zoneConfiguration.Reporter.Log("Drawing debug bound images ...", LogLevel.Warning);
+            this.zoneConfiguration.Reporter.ProgressStartMarquee("Debug bound images ...");
 
             var debugDir = new DirectoryInfo(string.Format("{0}\\debug\\bound\\{1}", System.Windows.Forms.Application.StartupPath, this.zoneConfiguration.ZoneId));
             if (!debugDir.Exists) debugDir.Create();
@@ -489,7 +489,7 @@ namespace MapCreator.Classes.MapCreation
                 }
             }
 
-            MainForm.ProgressReset();
+            this.zoneConfiguration.Reporter.ProgressReset();
         }
     }
 }

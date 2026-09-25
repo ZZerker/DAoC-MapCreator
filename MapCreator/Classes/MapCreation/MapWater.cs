@@ -43,8 +43,8 @@ namespace MapCreator.Classes.MapCreation
 
         public MapWater(ZoneConfiguration zoneConfiguration)
         {
-            MainForm.ProgressStartMarquee("Loading water configurations ...");
             this.zoneConfiguration = zoneConfiguration;
+            this.zoneConfiguration.Reporter.ProgressStartMarquee("Loading water configurations ...");
 
             var riversFound = true;
             var riverIndex = 0;
@@ -122,7 +122,7 @@ namespace MapCreator.Classes.MapCreation
                 riverIndex++;
             }
 
-            MainForm.ProgressReset();
+            this.zoneConfiguration.Reporter.ProgressReset();
         }
 
         private MagickImage waterTexture = null;
@@ -161,7 +161,7 @@ namespace MapCreator.Classes.MapCreation
 
         public void Draw(MagickImage map)
         {
-            MainForm.ProgressStart("Rendering water ...");
+            this.zoneConfiguration.Reporter.ProgressStart("Rendering water ...");
 
 
             using (IPixelCollection<ushort> heightmapPixels = this.zoneConfiguration.Heightmap.HeightmapScaled.GetPixelsUnsafe())
@@ -172,7 +172,7 @@ namespace MapCreator.Classes.MapCreation
 
                     foreach (var river in this.WaterAreas)
                     {
-                        MainForm.Log(river.Name + "...", MainForm.LogLevel.Notice);
+                        this.zoneConfiguration.Reporter.Log(river.Name + "...", LogLevel.Notice);
 
                         MagickColor fillColor;
                         if (this.UseClientColors) fillColor = river.Color.ToMagickColor();
@@ -231,11 +231,11 @@ namespace MapCreator.Classes.MapCreation
                         }
 
                         var percent = 100 * progressCounter / this.WaterAreas.Count();
-                        MainForm.ProgressUpdate(percent);
+                        this.zoneConfiguration.Reporter.ProgressUpdate(percent);
                         progressCounter++;
                     }
 
-                    MainForm.ProgressStartMarquee("Merging...");
+                    this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging...");
 
                     if (this.WaterTransparency != 0)
                     {
@@ -250,7 +250,7 @@ namespace MapCreator.Classes.MapCreation
             }
             
 
-            MainForm.ProgressReset();
+            this.zoneConfiguration.Reporter.ProgressReset();
         }
 
         private void DebugRiver(int index, WaterConfiguration river, List<PointD> riverCoordinates)

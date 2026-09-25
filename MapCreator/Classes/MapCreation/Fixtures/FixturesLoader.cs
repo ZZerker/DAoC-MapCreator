@@ -73,7 +73,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Load all required CSV data
         /// </summary>
         private static void LoadCsvData() {
-            MainForm.ProgressStartMarquee("Loading fixture data ...");
+            zoneConf.Reporter.ProgressStartMarquee("Loading fixture data ...");
 
             var nifsCsvRows = DataWrapper.GetFileContent(zoneConf.CvsMpk, "nifs.csv");
             var fixturesRows = DataWrapper.GetFileContent(zoneConf.CvsMpk, "fixtures.csv");
@@ -207,7 +207,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
             }
 
-            MainForm.ProgressReset();
+            zoneConf.Reporter.ProgressReset();
         }
 
         private static readonly Dictionary<string, System.Drawing.Color> TreeColors = new Dictionary<string,System.Drawing.Color>();
@@ -221,14 +221,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var textureName = string.IsNullOrEmpty(treeRow.LeafTexture) ? treeRow.BarkTexture : treeRow.LeafTexture;
             if (string.IsNullOrEmpty(textureName))
             {
-                MainForm.Log(string.Format("Tree {0} has no texture in Treemap.csv. Using default color.", treeRow.Name));
+                zoneConf.Reporter.Log(string.Format("Tree {0} has no texture in Treemap.csv. Using default color.", treeRow.Name));
                 return DefaultTreeColor;
             }
 
             var treeTextureFile = Path.Combine(Properties.Settings.Default.game_path, "zones", "trees", textureName);
             if (!File.Exists(treeTextureFile))
             {
-                MainForm.Log(string.Format("Texture {0} for tree {1} not found. Using default color.", textureName, treeRow.Name), MainForm.LogLevel.Warning);
+                zoneConf.Reporter.Log(string.Format("Texture {0} for tree {1} not found. Using default color.", textureName, treeRow.Name), LogLevel.Warning);
                 return DefaultTreeColor;
             }
 
@@ -274,8 +274,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         {
 
             // MainForm progress
-            MainForm.Log("Loading polygons ...", MainForm.LogLevel.Notice);
-            MainForm.ProgressStart("Loading polygons ...");
+            zoneConf.Reporter.Log("Loading polygons ...", LogLevel.Notice);
+            zoneConf.Reporter.ProgressStart("Loading polygons ...");
 
             var polysDirectory = new DirectoryInfo(string.Format("{0}\\data\\polys", System.Windows.Forms.Application.StartupPath));
             if (!polysDirectory.Exists) polysDirectory.Create();
@@ -316,7 +316,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     {
                         if (nifFileFromNpk != null)
                         {
-                            MainForm.Log(string.Format("Processing {0}...", nifRow.TextualName), MainForm.LogLevel.Notice);
+                            zoneConf.Reporter.Log(string.Format("Processing {0}...", nifRow.TextualName), LogLevel.Notice);
 
                             // Create a new poly and add to mpk
                             polyMpkModified = true;
@@ -334,7 +334,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                             }
                             catch (Exception ex)
                             {
-                                MainForm.Log(string.Format("Skipping {0} ({1}): {2}", nifRow.TextualName, nifArchivePath, ex.Message), MainForm.LogLevel.Warning);
+                                zoneConf.Reporter.Log(string.Format("Skipping {0} ({1}): {2}", nifRow.TextualName, nifArchivePath, ex.Message), LogLevel.Warning);
                                 nifRow.Polygons = Array.Empty<Polygon>();
                                 continue;
                             }
@@ -355,11 +355,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 var percent = 100 * progressCounter / nifRows.Count;
-                MainForm.ProgressUpdate(percent);
+                zoneConf.Reporter.ProgressUpdate(percent);
                 progressCounter++;
             }
 
-            MainForm.ProgressStartMarquee("Saving polygons ...");
+            zoneConf.Reporter.ProgressStartMarquee("Saving polygons ...");
 
             // Save the mpk
             if (polyMpkModified)
@@ -370,8 +370,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             // Delete polys directory
             Directory.Delete(polysDirectory.FullName, true);
 
-            MainForm.Log("Polygons loaded!", MainForm.LogLevel.Success);
-            MainForm.ProgressReset();
+            zoneConf.Reporter.Log("Polygons loaded!", LogLevel.Success);
+            zoneConf.Reporter.ProgressReset();
         }
 
         private static bool NifParser_IsNodeDrawable(NifRow nifRow, Niflib.NiAVObject node)
@@ -409,8 +409,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var drawables = new List<DrawableFixture>();
 
             // MainForm progress
-            MainForm.Log("Preparing fixtures ...", MainForm.LogLevel.Notice);
-            MainForm.ProgressStart("Preparing fixtures ...");
+            zoneConf.Reporter.Log("Preparing fixtures ...", LogLevel.Notice);
+            zoneConf.Reporter.ProgressStart("Preparing fixtures ...");
 
             var progressCounter = 0;
             foreach (var fixtureRow in FixtureRows)
@@ -505,23 +505,23 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     }
                     else
                     {
-                        MainForm.Log(string.Format("Fixture {0} (x: {1}, y: {2}, z: {3}) is too small to get drawn.", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z));
+                        zoneConf.Reporter.Log(string.Format("Fixture {0} (x: {1}, y: {2}, z: {3}) is too small to get drawn.", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z));
                     }
 
                     progressCounter++;
                     var percent = 100 * progressCounter / FixtureRows.Count;
-                    MainForm.ProgressUpdate(percent);
+                    zoneConf.Reporter.ProgressUpdate(percent);
                 }
                 catch
                 {
                     // TODO: Send meesage to client
-                    MainForm.Log(string.Format("Error in fixture row of {0} (x: {1}, y: {2}, z: {3})", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z));
+                    zoneConf.Reporter.Log(string.Format("Error in fixture row of {0} (x: {1}, y: {2}, z: {3})", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z));
                     continue;
                 }
             }
 
-            MainForm.Log("Fixtures prepared!", MainForm.LogLevel.Success);
-            MainForm.ProgressReset();
+            zoneConf.Reporter.Log("Fixtures prepared!", LogLevel.Success);
+            zoneConf.Reporter.ProgressReset();
 
             return drawables;
         }
@@ -543,17 +543,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
             // Search NPKs
             var archiveName = Path.GetFileNameWithoutExtension(nifRow.Filename) + ".npk";
-            //MainForm.Log(string.Format("Searching for {0}", archiveName), MainForm.LogLevel.notice);
+            //zoneConf.Reporter.Log(string.Format("Searching for {0}", archiveName), LogLevel.notice);
             foreach (var dir in NifSearchPaths)
             {
                 if (File.Exists(Path.Combine(dir, archiveName)))
                 {
-                    //MainForm.Log(string.Format("Found {0} in {1}!", archiveName, dir), MainForm.LogLevel.success);
+                    //zoneConf.Reporter.Log(string.Format("Found {0} in {1}!", archiveName, dir), LogLevel.success);
                     return string.Format("{0}\\{1}", dir, archiveName);
                 }
             }
 
-            MainForm.Log(string.Format("Unable to find nif \"{0}\"!", nifRow.Filename), MainForm.LogLevel.Warning);
+            zoneConf.Reporter.Log(string.Format("Unable to find nif \"{0}\"!", nifRow.Filename), LogLevel.Warning);
             return null;
         }
 

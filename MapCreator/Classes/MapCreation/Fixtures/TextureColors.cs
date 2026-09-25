@@ -93,7 +93,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
             catch (Exception ex) when (ex is ImageMagick.MagickException or IOException)
             {
-                MainForm.Log(string.Format("Unable to read texture {0}: {1}", file, ex.Message), MainForm.LogLevel.Warning);
+                AppLog.Log(string.Format("Unable to read texture {0}: {1}", file, ex.Message), LogLevel.Warning);
                 return null;
             }
         }

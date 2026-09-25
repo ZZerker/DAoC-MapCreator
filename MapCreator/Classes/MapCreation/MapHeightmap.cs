@@ -42,9 +42,8 @@ namespace MapCreator.Classes.MapCreation
 
         public MapHeightmap(ZoneConfiguration zoneConfiguration)
         {
-            MainForm.Log("Preloading zone heightmap ...", MainForm.LogLevel.Notice);
-
             this.zoneConfiguration = zoneConfiguration;
+            this.zoneConfiguration.Reporter.Log("Preloading zone heightmap ...", LogLevel.Notice);
             this.terrainfactor = Convert.ToInt32(zoneConfiguration.SectorDat.Get("terrain", "scalefactor"));
             this.offsetfactor = Convert.ToInt32(zoneConfiguration.SectorDat.Get("terrain", "offsetfactor"));
             this.heightmapFile = new FileInfo(string.Format("{0}\\data\\heightmaps\\zone{1}_heightmap.png", System.Windows.Forms.Application.StartupPath, zoneConfiguration.ZoneId));
@@ -61,7 +60,7 @@ namespace MapCreator.Classes.MapCreation
         private void GenerateHeightmap()
         {
             if(this.heightmapGenerated) return;
-            MainForm.ProgressStart("Processing heightmap ...");
+            this.zoneConfiguration.Reporter.ProgressStart("Processing heightmap ...");
 
             using (var offsetmap = this.zoneConfiguration.GetOffsetMap())
             {
@@ -86,13 +85,13 @@ namespace MapCreator.Classes.MapCreation
                             }
 
                             var percent = 100 * x / (int)offsetmap.Width;
-                            MainForm.ProgressUpdate(percent);
+                            this.zoneConfiguration.Reporter.ProgressUpdate(percent);
                         }
 
                         //heightmapPixels.Write();    
                     }
 
-                    MainForm.ProgressStartMarquee("Merging ...");
+                    this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging ...");
 
                     this.heightmap.Quality = 100;
                     this.heightmap.Write(this.heightmapFile.FullName);
@@ -104,7 +103,7 @@ namespace MapCreator.Classes.MapCreation
             }
 
             this.heightmapGenerated = true;
-            MainForm.ProgressReset();
+            this.zoneConfiguration.Reporter.ProgressReset();
         }
 
         /// <summary>

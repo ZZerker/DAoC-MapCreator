@@ -96,7 +96,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var patternNode = fixture.Descendants("pattern");
                 if (!patternNode.Any() || string.IsNullOrEmpty(patternNode.First().Value))
                 {
-                    MainForm.Log(string.Format("Fixtures: Error in fixtures.xml, no file pattern set."), MainForm.LogLevel.Error);
+                    AppLog.Log(string.Format("Fixtures: Error in fixtures.xml, no file pattern set."), LogLevel.Error);
                     continue;
                 }
 
@@ -107,14 +107,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
                 catch
                 {
-                    MainForm.Log(string.Format("Fixtures: Error in fixtures.xml, the pattern \"{0}\" is not valid.", patternNode.First().Value), MainForm.LogLevel.Error);
+                    AppLog.Log(string.Format("Fixtures: Error in fixtures.xml, the pattern \"{0}\" is not valid.", patternNode.First().Value), LogLevel.Error);
                     continue;
                 }
 
                 var categoryNode = fixture.Descendants("category");
                 if (!patternNode.Any() || string.IsNullOrEmpty(patternNode.First().Value))
                 {
-                    MainForm.Log(string.Format("Fixtures: Error in fixtures.xml, no category set."), MainForm.LogLevel.Error);
+                    AppLog.Log(string.Format("Fixtures: Error in fixtures.xml, no category set."), LogLevel.Error);
                     continue;
                 }
 
@@ -189,8 +189,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
             catch(Exception ex)
             {
-                MainForm.Log("Error in fixtures XML", MainForm.LogLevel.Error);
-                MainForm.Log(ex.Message, MainForm.LogLevel.Error);
+                AppLog.Log("Error in fixtures XML", LogLevel.Error);
+                AppLog.Log(ex.Message, LogLevel.Error);
                 return null;
             }
         }
@@ -210,7 +210,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
             catch
             {
-                MainForm.Log(string.Format("The renderer \"{0}\" is invalid!", name), MainForm.LogLevel.Error);
+                AppLog.Log(string.Format("The renderer \"{0}\" is invalid!", name), LogLevel.Error);
             }
 
             return renderer;
@@ -228,7 +228,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var parts = lightVector.Split(',');
             if (parts.Length != 3)
             {
-                MainForm.Log(string.Format("LightVector \"{0}\" is invalid.", lightVector), MainForm.LogLevel.Warning);
+                AppLog.Log(string.Format("LightVector \"{0}\" is invalid.", lightVector), LogLevel.Warning);
                 return new SharpDX.Vector3(1f, 1f, -1f);
             }
 
@@ -238,7 +238,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
             catch
             {
-                MainForm.Log(string.Format("LightVector \"{0}\" is invalid.", lightVector), MainForm.LogLevel.Warning);
+                AppLog.Log(string.Format("LightVector \"{0}\" is invalid.", lightVector), LogLevel.Warning);
                 return new SharpDX.Vector3(1f, 1f, -1f);
             }
         }
