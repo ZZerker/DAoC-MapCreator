@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using System.Collections;
+using System.ComponentModel;
 using MapCreator.Classes;
 using MapCreator.data;
 
@@ -29,6 +30,7 @@ namespace MapCreator
 {
 	internal partial class SelectMapsForm : Form
     {
+	    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
 	    public List<ZoneSelection> SelectedZones { get; set; } = new List<ZoneSelection>();
 
 	    private readonly List<TreeNode> AllNodes = new List<TreeNode>();

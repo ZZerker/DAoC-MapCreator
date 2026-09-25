@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Resources;
+using System.Runtime.Versioning;
 
 [assembly: AssemblyTitle("MapCreator")]
 [assembly: AssemblyDescription("Generate Dark Age of Camelot (DAoC) maps using the game client.")]
@@ -15,3 +16,4 @@ using System.Resources;
 [assembly: AssemblyVersion("1.0.0.1")]
 [assembly: AssemblyFileVersion("1.5.0.0")]
 [assembly: NeutralResourcesLanguageAttribute("en")]
+[assembly: SupportedOSPlatform("windows")]

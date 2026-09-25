@@ -45,6 +45,7 @@ namespace MapCreator
         /// <summary>
         /// The Zones to draw
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<ZoneSelection> SelectedZones
         {
             get => this.selectedZones;
@@ -59,6 +60,7 @@ namespace MapCreator
         /// <summary>
         /// Current Game Expansion
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public GameExpansion Expansion
         {
             get => this.expansion;
@@ -68,6 +70,7 @@ namespace MapCreator
         /// <summary>
         /// The target map size
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int TargetMapSize
         {
             get => Convert.ToInt32(this.widthTextBox.Value);
@@ -888,7 +891,12 @@ namespace MapCreator
 
         private void dawnOfLightToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start(@"http://www.dolserver.net");
+            OpenUrl(@"http://www.dolserver.net");
+        }
+
+        private static void OpenUrl(string url)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
         }
 
         private void aboutMapCreatorToolStripMenuItem_Click(object sender, EventArgs e)
@@ -898,7 +906,7 @@ namespace MapCreator
 
         private void reportABugToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start(@"http://www.dolserver.net/viewtopic.php?f=69&t=21710");
+            OpenUrl(@"http://www.dolserver.net/viewtopic.php?f=69&t=21710");
         }
 
         private void createShapedNIFToolStripMenuItem_Click(object sender, EventArgs e)

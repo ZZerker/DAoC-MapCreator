@@ -58,12 +58,12 @@
             // 
             // mapsTreeView
             // 
-            this.mapsTreeView.CheckedNodes = ((System.Collections.Hashtable)(resources.GetObject("mapsTreeView.CheckedNodes")));
+            this.mapsTreeView.CheckedNodes = new System.Collections.Hashtable();
             this.mapsTreeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.mapsTreeView.HideSelection = false;
             this.mapsTreeView.Location = new System.Drawing.Point(3, 3);
             this.mapsTreeView.Name = "mapsTreeView";
-            this.mapsTreeView.SelNodes = ((System.Collections.Hashtable)(resources.GetObject("mapsTreeView.SelNodes")));
+            this.mapsTreeView.SelNodes = new System.Collections.Hashtable();
             this.mapsTreeView.Size = new System.Drawing.Size(281, 583);
             this.mapsTreeView.TabIndex = 0;
             this.mapsTreeView.NodeMouseDoubleClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.mapsTreeView_NodeMouseDoubleClick);
