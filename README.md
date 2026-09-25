@@ -21,11 +21,17 @@ This is a fork of [Merec/DAoC-MapCreator](https://github.com/Merec/DAoC-MapCreat
 - Code cleanup: naming rules enforced by `.editorconfig`, no build warnings
 
 ## Roadmap
-- Dungeons without level data: split into levels by floor height
-- Brighter rendering of dark dungeon textures, correct overlap of ramps and bridges within a level
-- Names, points of interest and mods on the maps
-- Check which zones Eden has patched and need a new render
-- Later: towers and keeps, replace the old .NET Framework libraries (Niflib, MPKLib)
+- [x] Zone list read from the client's `zones.dat`, so all zones are available, including Eden's own zones
+- [x] Textured buildings instead of plain white shapes
+- [x] City maps
+- [x] Dungeon maps, one map per level for dungeons listed in `areas.dat`
+- [x] City and dungeon maps in the same frame as the client maps
+- [ ] Dungeons without level data: split into levels by floor height
+- [ ] Brighter rendering of dark dungeon textures, correct overlap of ramps and bridges within a level
+- [ ] Names, points of interest and mods on the maps
+- [ ] Check which zones Eden has patched and need a new render
+- [ ] Later: towers and keeps
+- [ ] Later: replace the old .NET Framework libraries (Niflib, MPKLib)
 
 ## Requirements
 - Windows x64
