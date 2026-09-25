@@ -50,6 +50,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// </summary>
         public Matrix? PlacementRotation;
 
+        /// <summary>
+        /// Keeps only triangles whose mean height lies in (Bottom, Top], in placement heights. Null keeps all.
+        /// </summary>
+        public (double Bottom, double Top)? HeightBand;
+
         public IEnumerable<Polygon> RawPolygons;
         public readonly List<Polygon> ProcessedPolygons = new List<Polygon>();
         public IEnumerable<DrawableElement> DrawableElements = new List<DrawableElement>();
@@ -89,11 +94,18 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 this.FixtureRow.Z = this.ZoneConf.Heightmap.GetHeight(this.FixtureRow.X, this.FixtureRow.Y);
             }
+            var baseZ = this.FixtureRow.Z;
             this.FixtureRow.Z = this.RawPolygons.SelectMany(p => p.Vectors).Max(p => p.Z) + this.FixtureRow.Z;
             this.CanvasZ = this.ZoneConf.ZoneCoordinateToMapCoordinate(this.FixtureRow.Z);
 
             // Transform Polygons
-            this.TransformPolygons();
+            this.TransformPolygons(baseZ);
+
+            // Within a level the pieces are ordered by the top of what is left of them
+            if (this.HeightBand != null && this.ProcessedPolygons.Any())
+            {
+                this.CanvasZ = this.ZoneConf.ZoneCoordinateToMapCoordinate(baseZ) + this.ProcessedPolygons.SelectMany(p => p.Vectors).Max(p => p.Z);
+            }
             return this.GenerateCanvas();
         }
 
@@ -166,7 +178,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             return true;
         }
 
-        private void TransformPolygons()
+        private void TransformPolygons(double baseZ)
         {
             this.Scale = ((this.FixtureRow.Scale / 100f) * this.ZoneConf.LocScale);
 
@@ -192,6 +204,15 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var p1 = Vector3.TransformCoordinate(poly.P1, rotation);
                 var p2 = Vector3.TransformCoordinate(poly.P2, rotation);
                 var p3 = Vector3.TransformCoordinate(poly.P3, rotation);
+
+                if (this.HeightBand is var (bottom, top))
+                {
+                    var height = baseZ + (p1.Z + p2.Z + p3.Z) / 3d;
+                    if (height <= bottom || height > top)
+                    {
+                        continue;
+                    }
+                }
 
                 if (this.Scale != 1)
                 {

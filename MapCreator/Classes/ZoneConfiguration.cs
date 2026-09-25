@@ -18,6 +18,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using MapCreator.Classes.MapCreation;
 
@@ -65,6 +66,11 @@ namespace MapCreator.Classes
         /// </summary>
         public bool IsDungeon { get; }
 
+        /// <summary>
+        /// Levels of a multi level dungeon from areas.dat, empty for all other zones
+        /// </summary>
+        public IReadOnlyList<MapLevel> Levels { get; } = new List<MapLevel>();
+
         #region MPK files
         public string DatMpk { get; }
 
@@ -103,6 +109,11 @@ namespace MapCreator.Classes
             if (!this.HasTerrain && !this.IsCity && !this.IsDungeon)
             {
                 throw new NotSupportedException(string.Format("Zone {0} has no terrain, city or dungeon data, not supported yet.", zoneId));
+            }
+
+            if (this.IsDungeon)
+            {
+                this.Levels = MapLevel.Load(Properties.Settings.Default.game_path, zoneId);
             }
 
             // Check if file exists, else map to datXXX.mpk

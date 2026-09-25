@@ -82,6 +82,25 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // Rotation of each dungeon placement by fixture row id
         private readonly Dictionary<int, SharpDX.Matrix> placementRotations = new Dictionary<int, SharpDX.Matrix>();
 
+        // Placement height by fixture row id; drawing overwrites FixtureRow.Z, so every level starts from here
+        private readonly Dictionary<int, double> placementHeights = new Dictionary<int, double>();
+
+        // Zone heights are dungeon.place heights plus this (every zone jump of Darkness Falls sits 16000 above its hall)
+        private const double DUNGEON_Z_OFFSET = 16000;
+
+        /// <summary>
+        /// Level to draw, null for the whole zone
+        /// </summary>
+        public MapLevel Level { get; set; }
+
+        /// <summary>
+        /// Placement heights a level shows
+        /// </summary>
+        private (double Bottom, double Top) GetHeightBand(MapLevel level)
+        {
+            return (level.Z - DUNGEON_Z_OFFSET, level.Z + level.Depth - DUNGEON_Z_OFFSET);
+        }
+
         // On the client maps city and dungeon x grows to the left and y downwards
         private static readonly SharpDX.Matrix TurnAroundMatrix = SharpDX.Matrix.RotationZ((float)Math.PI);
 
@@ -116,6 +135,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var rotation = values[3] == 0 || axis.LengthSquared() == 0 ? SharpDX.Matrix.Identity : SharpDX.Matrix.RotationAxis(SharpDX.Vector3.Normalize(axis), -(float)values[3]);
 
                 this.placementRotations[id] = rotation;
+                this.placementHeights[id] = values[2];
                 this.fixtureRows.Add(new FixtureRow { Id = id, NifId = chunk, TextualName = chunks.ElementAtOrDefault(chunk), X = values[0], Y = values[1], Z = values[2], Scale = 100 });
                 id++;
             }
@@ -150,7 +170,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 return;
             }
 
-            var side = Math.Max(maxX - minX, maxY - minY) * (1 + 2 * CITY_MARGIN);
+            // areas.dat gives the frame size of the client maps (Darkness Falls: the extent of all rooms)
+            var extent = Math.Max(maxX - minX, maxY - minY);
+            var side = this.zoneConf.Levels.Count > 0 ? Math.Max(extent, this.zoneConf.Levels.Max(l => l.Width)) : extent * (1 + 2 * CITY_MARGIN);
             var left = (minX + maxX) / 2d - side / 2d;
             var bottom = (minY + maxY) / 2d - side / 2d;
             this.zoneConf.SetZoneSize(side);
@@ -365,6 +387,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     var nifRow = this.NifRows.FirstOrDefault(n => n.NifId == fixtureRow.NifId);
                     if (nifRow == null) continue;
 
+                    if (this.placementHeights.TryGetValue(fixtureRow.Id, out var placementHeight))
+                    {
+                        fixtureRow.Z = placementHeight;
+                    }
+
                     var fixture = new DrawableFixture
                                   {
                                       PlacementRotation = this.placementRotations.TryGetValue(fixtureRow.Id, out var placementRotation) ? placementRotation : null,
@@ -375,6 +402,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 		                                  FixtureRow = fixtureRow,
 		                                  ZoneConf = this.zoneConf
                                   };
+
+                    if (this.Level != null)
+                    {
+                        fixture.HeightBand = this.GetHeightBand(this.Level);
+                    }
 
                     // Get renderer configuration
                     var rConf = FixtureRendererConfigurations.GetFixtureRendererConfiguration(nifRow.Filename);
@@ -443,7 +475,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     {
                         drawables.Add(fixture);
                     }
-                    else
+                    else if (this.Level == null)
                     {
                         this.zoneConf.Reporter.Log(string.Format("Fixture {0} (x: {1}, y: {2}, z: {3}) is too small to get drawn.", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z));
                     }
