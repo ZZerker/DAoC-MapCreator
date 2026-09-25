@@ -108,6 +108,73 @@ namespace MapCreator
             }
         }
 
+        /// <summary>
+        /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log]
+        /// </summary>
+        private bool batchMode = false;
+
+        private string batchLogFile = null;
+
+        public MainForm(string[] args) : this()
+        {
+            List<string> batchZoneIds = new List<string>();
+            int batchSize = 0;
+            string batchDirectory = null;
+            string batchLogName = "render.log";
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                switch (args[i].ToLower())
+                {
+                    case "--render":
+                        batchZoneIds.AddRange(args[i + 1].Split(',').Select(z => z.Trim()).Where(z => z.Length > 0));
+                        break;
+                    case "--size":
+                        batchSize = Convert.ToInt32(args[i + 1]);
+                        break;
+                    case "--dir":
+                        batchDirectory = args[i + 1];
+                        break;
+                    case "--log":
+                        batchLogName = args[i + 1];
+                        break;
+                }
+            }
+
+            if (batchZoneIds.Count == 0)
+            {
+                return;
+            }
+
+            batchMode = true;
+            SelectedZones = batchZoneIds.Select(z => DataWrapper.GetZoneSelectionByZoneId(z)).ToList();
+            UpdateSelectedZoneListBox();
+
+            string logDirectory = !string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath) ? Properties.Settings.Default.targetMapPath : Application.StartupPath;
+            Directory.CreateDirectory(logDirectory);
+            batchLogFile = Path.Combine(logDirectory, batchLogName);
+            File.WriteAllText(batchLogFile, "");
+
+            // Settings bindings overwrite control values on load
+            this.Shown += (sender, e) =>
+            {
+                if (batchSize > 0)
+                {
+                    TargetMapSize = batchSize;
+                }
+                if (batchDirectory != null)
+                {
+                    directoryPatternTextBox.Text = batchDirectory;
+                }
+                fileTypeComboBox.Text = "PNG";
+                filePatternTextBox.Text = "z{id}";
+                enableLogCheckBox.Checked = true;
+                enableResultPreview.Checked = false;
+
+                renderButton_Click(null, null);
+                Close();
+            };
+        }
+
         public void Initialize()
         {
             // Set river color
@@ -214,6 +281,11 @@ namespace MapCreator
             {
                 this.Invoke(new LogDelegate(LogText), text, logLevel);
                 return;
+            }
+
+            if (batchLogFile != null)
+            {
+                File.AppendAllText(batchLogFile, string.Format("{0:HH:mm:ss} {1,-7} {2}{3}", DateTime.Now, logLevel, text, Environment.NewLine));
             }
 
             // Cut on 3000 rows
@@ -394,6 +466,12 @@ namespace MapCreator
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (batchMode)
+            {
+                Properties.Settings.Default.Reload();
+                return;
+            }
+
             Properties.Settings.Default.Save();
         }
 
