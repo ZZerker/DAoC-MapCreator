@@ -135,6 +135,8 @@ namespace MapCreator.Classes.Rendering
                     map.Depth = 8;
                     map.Write(mapFile.FullName);
                 }
+
+                MapLabels.Write(zone.Id, mapFile);
             }
 
             mapFile.Refresh();

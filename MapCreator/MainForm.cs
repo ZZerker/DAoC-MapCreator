@@ -106,7 +106,7 @@ namespace MapCreator
         }
 
         /// <summary>
-        /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4]
+        /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--labels-only]
         /// </summary>
         private readonly bool batchMode = false;
 
@@ -161,6 +161,22 @@ namespace MapCreator
 
             this.SelectedZones = knownZoneIds.Select(DataWrapper.GetZoneSelectionByZoneId).ToList();
             this.UpdateSelectedZoneListBox();
+
+            if (args.Any(a => string.Equals(a, "--labels-only", StringComparison.OrdinalIgnoreCase)))
+            {
+                var labelDirectory = Path.Combine(logDirectory, batchDirectory ?? "maps");
+                Directory.CreateDirectory(labelDirectory);
+                this.Shown += (sender, e) =>
+                {
+                    foreach (var zoneId in knownZoneIds)
+                    {
+                        MapLabels.Write(zoneId, new FileInfo(Path.Combine(labelDirectory, "z" + zoneId + ".png")));
+                        this.Log(string.Format("Labels written for zone {0}", zoneId), LogLevel.Success);
+                    }
+                    this.Close();
+                };
+                return;
+            }
 
             // Settings bindings overwrite control values on load
             this.Shown += async (sender, e) =>

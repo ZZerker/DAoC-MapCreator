@@ -94,7 +94,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="data\prerendered\**\*.png;data\textures\*;data\Zones.xml;data\MapFrames.csv;data\Keeps.csv;fixtures.xml;fixtures.xsd">
+    <None Update="data\prerendered\**\*.png;data\textures\*;data\Zones.xml;data\MapFrames.csv;data\Keeps.csv;data\Landmarks.csv;fixtures.xml;fixtures.xsd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -1,0 +1,26 @@
+# Landmarks baked into the maps, in zone coordinates. kind: place, dock, entrance, portal, boss. priority 1 = always shown, 2 = dropped on small maps
+# Sources: Eden war map (places, docks, Ellan Vannin sites), client zonejump.csv (entrances, portal keeps). Keeps and neighbor zones are added automatically.
+zone;x;y;kind;label;priority
+163;4004;24643;dock;West Ellan Dock;2
+163;5490;46771;place;Tower of Graoch;1
+163;13818;52071;entrance;Labyrinth;1
+163;30828;15912;place;Tower of Deifrang;1
+163;33178;31761;place;Knoc Meayll;1
+163;59853;46569;place;Tower of Korazh;1
+163;61723;27918;dock;East Ellan Dock;2
+167;45000;40000;place;The Trellebourg;1
+168;11235;28283;entrance;RvR Dungeon;1
+169;60125;3986;portal;Vindsaul Faste;1
+170;62294;18637;portal;Svasud Faste;1
+171;3784;57936;entrance;Labyrinth;1
+171;43000;40000;place;Moydruim Castle;1
+172;14768;36296;entrance;RvR Dungeon;1
+173;36005;61853;portal;Druim Ligen;1
+174;6432;58206;portal;Druim Cain;1
+175;27000;5000;place;Lucan's Summit;1
+175;59625;56788;portal;Snowdonia Fortress;1
+176;31410;60630;portal;Castle Sauvage;1
+177;30000;5000;place;Brough Ruins;1
+177;61039;29082;entrance;RvR Dungeon;1
+178;30012;62230;entrance;Labyrinth;1
+178;48000;40000;place;Folley Lake;1
