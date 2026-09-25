@@ -166,13 +166,13 @@ namespace MapCreator.Classes.MapCreation
 
                         switch (fixture.RendererConf.Renderer)
                         {
-                            case FixtureRenderererType.Shaded:
+                            case FixtureRendererType.Shaded:
                                 this.DrawShaded((fixture.IsTree || fixture.IsTreeCluster) ? treeOverlay : modelsOverlay, fixture);
                                 break;
-                            case FixtureRenderererType.Flat:
+                            case FixtureRendererType.Flat:
                                 this.DrawFlat((fixture.IsTree || fixture.IsTreeCluster) ? treeOverlay : modelsOverlay, fixture);
                                 break;
-                            case FixtureRenderererType.Image:
+                            case FixtureRendererType.Image:
                                 //DrawShaded((fixture.IsTree || fixture.IsTreeCluster) ? treeOverlay : modelsOverlay, fixture);
                                 this.DrawImage((fixture.IsTree || fixture.IsTreeCluster) ? treeOverlay : modelsOverlay, fixture);
                                 break;

@@ -199,13 +199,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        private static FixtureRenderererType GetRendererType(string name)
+        private static FixtureRendererType GetRendererType(string name)
         {
             // Parse the textual representation of the renderer to its enum value
-            var renderer = FixtureRenderererType.Shaded;
+            var renderer = FixtureRendererType.Shaded;
             try
             {
-                renderer = (FixtureRenderererType)Enum.Parse(typeof(FixtureRenderererType), name);
+                renderer = (FixtureRendererType)Enum.Parse(typeof(FixtureRendererType), name);
             }
             catch
             {
@@ -248,7 +248,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 	internal struct FixtureRendererConfiguration2
     {
         public string Name;
-        public FixtureRenderererType Renderer;
+        public FixtureRendererType Renderer;
         public ImageMagick.MagickColor Color;
         public int Transparency;
 
@@ -269,7 +269,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public FixtureRendererConfiguration2(string name)
         {
             this.Name = name;
-            this.Renderer = FixtureRenderererType.Shaded;
+            this.Renderer = FixtureRendererType.Shaded;
             this.Color = new ImageMagick.MagickColor("#FFF");
             this.Transparency = 0;
 

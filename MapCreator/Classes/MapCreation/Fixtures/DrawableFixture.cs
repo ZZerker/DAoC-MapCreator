@@ -63,7 +63,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public bool Calc()
         {
             // Do nothig if we don't want to draw the nif
-            if (this.RendererConf.Renderer == FixtureRenderererType.None)
+            if (this.RendererConf.Renderer == FixtureRendererType.None)
             {
                 return false;
             }

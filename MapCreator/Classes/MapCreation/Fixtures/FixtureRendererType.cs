@@ -1,6 +1,6 @@
 ﻿namespace MapCreator.Classes.MapCreation.Fixtures
 {
-	internal enum FixtureRenderererType
+	internal enum FixtureRendererType
 	{
 		None,
 		Shaded,
