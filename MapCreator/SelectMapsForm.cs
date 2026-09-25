@@ -33,7 +33,7 @@ namespace MapCreator
 	    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
 	    public List<ZoneSelection> SelectedZones { get; set; } = new List<ZoneSelection>();
 
-	    private readonly List<TreeNode> AllNodes = new List<TreeNode>();
+	    private readonly List<TreeNode> allNodes = new List<TreeNode>();
 
         public SelectMapsForm()
         {
@@ -91,7 +91,7 @@ namespace MapCreator
 		                                           Tag = currentZone
                                            };
 
-                            this.AllNodes.Add(zoneNode);
+                            this.allNodes.Add(zoneNode);
                             mapTypeNode.Nodes.Add(zoneNode);
                         }
 
@@ -216,7 +216,7 @@ namespace MapCreator
 
             foreach (var zoneId in preset.Zones.Split(','))
             {
-                var result = this.AllNodes.Where(n => ((ZoneSelection)n.Tag).Id == zoneId).Select(n => (ZoneSelection)n.Tag);
+                var result = this.allNodes.Where(n => ((ZoneSelection)n.Tag).Id == zoneId).Select(n => (ZoneSelection)n.Tag);
                 if (result.Any())
 	                this.SelectedZones.Add(result.First());
             }

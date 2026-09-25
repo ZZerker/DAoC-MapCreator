@@ -1,0 +1,33 @@
+root = true
+
+[*.cs]
+dotnet_diagnostic.IDE1006.severity = warning
+
+# Naming: constants UPPER_SNAKE_CASE
+dotnet_naming_symbols.constants.applicable_kinds = field, local
+dotnet_naming_symbols.constants.required_modifiers = const
+dotnet_naming_style.upper_snake.capitalization = all_upper
+dotnet_naming_style.upper_snake.word_separator = _
+dotnet_naming_rule.constants_upper_snake.symbols = constants
+dotnet_naming_rule.constants_upper_snake.style = upper_snake
+dotnet_naming_rule.constants_upper_snake.severity = warning
+
+# Naming: private static readonly fields PascalCase
+dotnet_naming_symbols.private_static_readonly_fields.applicable_kinds = field
+dotnet_naming_symbols.private_static_readonly_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_static_readonly_fields.required_modifiers = static, readonly
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_rule.private_static_readonly_fields_pascal.symbols = private_static_readonly_fields
+dotnet_naming_rule.private_static_readonly_fields_pascal.style = pascal_case
+dotnet_naming_rule.private_static_readonly_fields_pascal.severity = warning
+
+# Naming: other private fields camelCase, no prefix
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.camel_case.capitalization = camel_case
+dotnet_naming_rule.private_fields_camel.symbols = private_fields
+dotnet_naming_rule.private_fields_camel.style = camel_case
+dotnet_naming_rule.private_fields_camel.severity = warning
+
+[*.Designer.cs]
+generated_code = true

@@ -15,6 +15,7 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <ApplicationDefaultFont>Microsoft Sans Serif, 8.25pt</ApplicationDefaultFont>
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
