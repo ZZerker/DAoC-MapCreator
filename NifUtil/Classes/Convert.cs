@@ -66,6 +66,7 @@ namespace NifUtil.Classes
 
             this.IgnoreNodeNames.AddRange(new List<string> {
 		                                                           "collidee",
+		                                                           "pickee",
 		                                                           "bounding",
 		                                                           "climb",
 		                                                           "!lod_cullme",
