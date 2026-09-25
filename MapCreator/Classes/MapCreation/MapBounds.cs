@@ -171,6 +171,7 @@ namespace MapCreator.Classes.MapCreation
             if (this.zoneConfiguration.ZoneId == "262") polygons[0].Reverse();
 
             //polygons = CombinePolygons(polygons);
+            polygons = JoinInnerChains(polygons);
 
             // 015 old hadrians wall
             if (this.zoneConfiguration.ZoneId == "015")
@@ -226,6 +227,42 @@ namespace MapCreator.Classes.MapCreation
             }
 
             return polygons;
+        }
+
+        /// <summary>
+        /// Some zones split a closed inner bound into several chains (Ellan Vannin around Agramon). Each chain alone
+        /// would be closed by a straight line, so chains that meet end to start away from the zone border are joined.
+        /// </summary>
+        private static List<List<PointF>> JoinInnerChains(List<List<PointF>> polygons)
+        {
+            const float JOIN_DISTANCE = 20;
+            bool IsInner(PointF p) => p.X > 0 && p.Y > 0 && p.X < 65535 && p.Y < 65535;
+            bool Meets(PointF a, PointF b) => Math.Abs(a.X - b.X) <= JOIN_DISTANCE && Math.Abs(a.Y - b.Y) <= JOIN_DISTANCE;
+
+            var chains = polygons.ToList();
+            var joined = true;
+            while (joined)
+            {
+                joined = false;
+                foreach (var chain in chains)
+                {
+                    var last = chain.Last();
+                    if (!IsInner(last) || Meets(chain.First(), last))
+                    {
+                        continue;
+                    }
+
+                    var next = chains.FirstOrDefault(c => c != chain && Meets(last, c.First()) && IsInner(c.First()));
+                    if (next != null)
+                    {
+                        chain.AddRange(next.Skip(1));
+                        chains.Remove(next);
+                        joined = true;
+                        break;
+                    }
+                }
+            }
+            return chains;
         }
 
         private bool IsNextTo(PointF p1, PointF p2, int distance = 50)
