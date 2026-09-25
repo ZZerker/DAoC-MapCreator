@@ -152,6 +152,11 @@ namespace MapCreator
             
             MagickImage tex = new MagickImage(textureFile);
             tex.ColorSpace = ColorSpace.Gray;
+            tex.Normalize();
+            tex.Evaluate(Channels.RGB, EvaluateOperator.Multiply, 0.3);
+            tex.Evaluate(Channels.RGB, EvaluateOperator.Add, Quantum.Max * 0.7);
+            // Back to RGB, otherwise the tint is lost
+            tex.ColorSpace = ColorSpace.sRGB;
             double texResize = (1 - 256.0 / zoneConfiguration.TargetMapSize) * (zoneConfiguration.TargetMapSize * 0.0001);
             if (texResize < 0) texResize = 0.1;
             tex.Resize(new Percentage(texResize));
@@ -199,12 +204,13 @@ namespace MapCreator
                         List<PointD> riverCoordinates = river.GetCoordinates().Select(c => new PointD(c.X * zoneConfiguration.MapScale, c.Y * zoneConfiguration.MapScale)).ToList();
 
                         // Texture
-                        using (MagickImage texture = new MagickImage((river.Type.ToLower() == "lava") ? GetLavaTexture() : GetWateryTexture()))
+                        bool isLava = river.Type.ToLower() == "lava";
+                        using (MagickImage texture = new MagickImage(isLava ? GetLavaTexture() : GetWateryTexture()))
                         {
                             using (MagickImage pattern = new MagickImage(fillColor, texture.Width, texture.Height))
                             {
                                 texture.Composite(pattern, 0, 0, CompositeOperator.DstIn);
-                                texture.Composite(pattern, 0, 0, CompositeOperator.ColorDodge);
+                                texture.Composite(pattern, 0, 0, isLava ? CompositeOperator.ColorDodge : CompositeOperator.Multiply);
 
                                 water.Settings.FillPattern = texture;
                                 DrawablePolygon poly = new DrawablePolygon(riverCoordinates);
