@@ -31,3 +31,7 @@ dotnet_naming_rule.private_fields_camel.severity = warning
 
 [*.Designer.cs]
 generated_code = true
+
+# Typed DataSet designers emit the obsolete serialization constructors
+[MapCreator/data/*.Designer.cs]
+dotnet_diagnostic.SYSLIB0051.severity = none

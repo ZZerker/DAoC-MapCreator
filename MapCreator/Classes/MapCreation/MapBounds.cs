@@ -250,15 +250,6 @@ namespace MapCreator.Classes.MapCreation
             // |  /   \  |
             // | /  s  \ |
             // -----------
-            var northTriangle = new GraphicsPath();
-            northTriangle.AddLines(new PointF[] { new PointF(0, 0), new PointF(65536, 0), new PointF(32768, 32768) }); // the north triangle; Note: we use 65536 else 65535 will not be visible
-            var eastTriangle = new GraphicsPath();
-            eastTriangle.AddLines(new PointF[] { new PointF(65536, 0), new PointF(65536, 65536), new PointF(32768, 32768) }); // the east triangle
-            var southTriangle = new GraphicsPath();
-            southTriangle.AddLines(new PointF[] { new PointF(65536, 65536), new PointF(0, 65536), new PointF(32768, 32768) }); // the south triangle
-            var westTriangle = new GraphicsPath();
-            westTriangle.AddLines(new PointF[] { new PointF(0, 65536), new PointF(0, 0), new PointF(32768, 32768) }); // the west triangle
-
             var first = new PointF((float)points.First().X, (float)points.First().Y); // there are some shapes wich use 65536 as max X or Y
             var last = new PointF((float)points.Last().X, (float)points.Last().Y); // there are some shapes wich use 65536 as max X or Y
 
@@ -278,28 +269,27 @@ namespace MapCreator.Classes.MapCreation
             var firstLastDistance = Tools.GetPointDistance(first, last);
 
             // Go the next map border at n, e, s, w
-            var pointToPrepend = PointF.Empty;
-            if (northTriangle.IsVisible(first)) pointToPrepend = new PointF(first.X, 0); // to north border
-            else if (eastTriangle.IsVisible(first)) pointToPrepend = new PointF(65535, first.Y); // to east border
-            else if (southTriangle.IsVisible(first)) pointToPrepend = new PointF(first.X, 65535); // to south border
-            else if (westTriangle.IsVisible(first)) pointToPrepend = new PointF(0, first.Y); // to west border
+            var pointToPrepend = GetNearestBorderPoint(first);
+            if (pointToPrepend.HasValue && firstLastDistance < Tools.GetPointDistance(pointToPrepend.Value, first))
+            {
+                return;
+            }
 
-            var newFirstDistance = Tools.GetPointDistance(pointToPrepend, first);
-            if (pointToPrepend != null && firstLastDistance < newFirstDistance) return;
-
-            // Do the same for last point
-            var pointToAppend = PointF.Empty;
-            if (northTriangle.IsVisible(last)) pointToAppend = new PointF(last.X, 0); // to north border
-            else if (eastTriangle.IsVisible(last)) pointToAppend = new PointF(65535, last.Y); // to east border
-            else if (southTriangle.IsVisible(last)) pointToAppend = new PointF(last.X, 65535); // to south border
-            else if (westTriangle.IsVisible(last)) pointToAppend = new PointF(0, last.Y); // to west border
-
-            var newLastDistance = Tools.GetPointDistance(last, pointToAppend);
-            if (pointToAppend != null && firstLastDistance < newLastDistance) return;
+            var pointToAppend = GetNearestBorderPoint(last);
+            if (pointToAppend.HasValue && firstLastDistance < Tools.GetPointDistance(last, pointToAppend.Value))
+            {
+                return;
+            }
 
             // Okay, we need to fill
-            if (pointToPrepend != null) points.Insert(0, pointToPrepend);
-            if (pointToAppend != null) points.Add(pointToAppend);
+            if (pointToPrepend.HasValue)
+            {
+                points.Insert(0, pointToPrepend.Value);
+            }
+            if (pointToAppend.HasValue)
+            {
+                points.Add(pointToAppend.Value);
+            }
 
             // No we have first and last at least with one of 0/65535 on x and y
 
@@ -318,6 +308,40 @@ namespace MapCreator.Classes.MapCreation
                 else if (first.X == 0 && first.Y != 0 && (last.X != 0 || first.Y < last.Y)) points.Insert(0, new PointF(0, 0)); // to north-west corner
                 else break;
             }
+        }
+
+        // 65536 instead of 65535, else points on the border are not visible
+        private static readonly GraphicsPath NorthTriangle = CreateTriangle(new PointF(0, 0), new PointF(65536, 0));
+        private static readonly GraphicsPath EastTriangle = CreateTriangle(new PointF(65536, 0), new PointF(65536, 65536));
+        private static readonly GraphicsPath SouthTriangle = CreateTriangle(new PointF(65536, 65536), new PointF(0, 65536));
+        private static readonly GraphicsPath WestTriangle = CreateTriangle(new PointF(0, 65536), new PointF(0, 0));
+
+        private static GraphicsPath CreateTriangle(PointF corner1, PointF corner2)
+        {
+            var path = new GraphicsPath();
+            path.AddLines(new[] { corner1, corner2, new PointF(32768, 32768) });
+            return path;
+        }
+
+        private static PointF? GetNearestBorderPoint(PointF point)
+        {
+            if (NorthTriangle.IsVisible(point))
+            {
+                return new PointF(point.X, 0);
+            }
+            if (EastTriangle.IsVisible(point))
+            {
+                return new PointF(65535, point.Y);
+            }
+            if (SouthTriangle.IsVisible(point))
+            {
+                return new PointF(point.X, 65535);
+            }
+            if (WestTriangle.IsVisible(point))
+            {
+                return new PointF(0, point.Y);
+            }
+            return null;
         }
 
         /// <summary>

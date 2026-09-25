@@ -15,7 +15,6 @@ namespace MapCreator.Classes.MapCreation
 		public int Height;
 		public int Bankpoints;
 		public Color Color;
-		public Color BaseColor;
 		public string ExtendPosX;
 		public string ExtendPosY;
 		public string ExtendNegX;
