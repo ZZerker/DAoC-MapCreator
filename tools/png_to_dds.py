@@ -1,13 +1,13 @@
 r"""Convert MapCreator PNG renders (z{id}.png) to DXT1 DDS maps for the TokaZerk UI.
 
-Usage: python png_to_dds.py <render dir> <dds dir> [size] [--no-labels]
+Usage: python png_to_dds.py <render dir> <dds dir> [size] [--no-labels] [--uncompressed]
 Writes <dds dir>\zNNN.dds, optionally downscaled to <size> x <size>.
 Labels from zNNN.labels.json (written by MapCreator) are drawn after scaling, so text stays sharp at the final size.
 """
 import json
 import sys
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 FONTS = Path(r"C:\Windows\Fonts")
 
@@ -56,12 +56,18 @@ def draw_arrow(draw, edge, x, y, r, color):
     draw.polygon(points, fill=color, outline=HALO)
 
 
+# Labels are drawn at this multiple of the map size and scaled down, for smooth edges
+SUPERSAMPLE = 4
+
+
 def draw_labels(img, labels):
-    size = img.size[0]
-    max_priority = 1 if size < 512 else 2
-    stroke = 2 if size >= 512 else 1
-    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    max_priority = 1 if img.size[0] < 512 else 2
+    size = img.size[0] * SUPERSAMPLE
+    stroke = SUPERSAMPLE * (2 if img.size[0] >= 512 else 1)
+    layer = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    halo = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
+    halo_draw = ImageDraw.Draw(halo)
     boxes = []
     margin = max(4, size // 96)
 
@@ -105,16 +111,22 @@ def draw_labels(img, labels):
                 cx = text_x
             elif kind not in ("keep", "place"):
                 draw_icon(draw, kind, x, y, max(2, round(3 * size / 512)))
-            draw.text((cx, cy), text, font=f, fill=color, stroke_width=stroke, stroke_fill=HALO)
+            halo_draw.text((cx, cy), text, font=f, fill=HALO, stroke_width=stroke, stroke_fill=HALO)
+            draw.text((cx, cy), text, font=f, fill=color)
             boxes.append(box)
             break
 
-    return Image.alpha_composite(img.convert("RGBA"), layer).convert("RGB")
+    # Soft halo under crisp text, both scaled down to the map size
+    halo = halo.filter(ImageFilter.GaussianBlur(SUPERSAMPLE * 0.8))
+    labels_layer = Image.alpha_composite(halo, layer).resize(img.size, Image.LANCZOS)
+    return Image.alpha_composite(img.convert("RGBA"), labels_layer).convert("RGB")
 
 
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     labels_on = "--no-labels" not in sys.argv
+    # DXT1 blurs fine text into 4x4 blocks; uncompressed is 6 times larger
+    pixel_format = None if "--uncompressed" in sys.argv else "DXT1"
     source = Path(args[0])
     target = Path(args[1])
     size = int(args[2]) if len(args) > 2 else None
@@ -133,7 +145,7 @@ def main():
             if labels_on and labels_file.exists():
                 img = draw_labels(img, json.loads(labels_file.read_text(encoding="utf-8"))["labels"])
             dds = target / (png.stem + ".dds")
-            img.save(dds, "DDS", pixel_format="DXT1")
+            img.save(dds, "DDS", pixel_format=pixel_format) if pixel_format else img.save(dds, "DDS")
         print(f"{dds}  {img.size[0]}x{img.size[1]}  {dds.stat().st_size} bytes")
 
 
