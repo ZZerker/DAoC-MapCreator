@@ -37,6 +37,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures.Objects
         public int NifId { get; set; }
 
         public Polygon[] Polygons { get; set; }
+
+        /// <summary>
+        /// Folder of the .npk the model was loaded from, searched first for its textures
+        /// </summary>
+        public string ArchiveDirectory { get; set; }
         #endregion
 
         public NifRow()

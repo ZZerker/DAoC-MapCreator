@@ -280,13 +280,16 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var polysDirectory = new DirectoryInfo(string.Format("{0}\\data\\polys", System.Windows.Forms.Application.StartupPath));
             if (!polysDirectory.Exists) polysDirectory.Create();
 
-            var polysMpkFile = string.Format("{0}\\data\\polys.mpk", System.Windows.Forms.Application.StartupPath);
+            // polys2.mpk: .poly files with texture names, one entry per source archive
+            var polysMpkFile = string.Format("{0}\\data\\polys2.mpk", System.Windows.Forms.Application.StartupPath);
 
             var polyMpk = new MPAK();
             var polyMpkModified = false;
 
             if (!File.Exists(polysMpkFile)) polyMpkModified = true; // Create a new poyls.mpk
             else polyMpk = MpkWrapper.Open(polysMpkFile);
+
+            var cachedPolys = new HashSet<string>(polyMpk.Files.Select(f => f.Name), StringComparer.OrdinalIgnoreCase);
 
             // Loop all nifs from nifs.csv
             var progressCounter = 0;
@@ -296,15 +299,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var isTreeCluster = TreeClusterRows.Any(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
                 if(isTreeCluster) continue;
 
-                // The poly filename
-                var modelPolyFileName = Path.GetFileNameWithoutExtension(nifRow.Filename) + ".poly";
+                var nifArchivePath = FindNifArchive(nifRow);
+                if(string.IsNullOrEmpty(nifArchivePath)) continue;
+                nifRow.ArchiveDirectory = Path.GetDirectoryName(nifArchivePath);
+
+                // Zones ship their own variants of shared models, so the cache name contains the archive folder
+                var modelPolyFileName = Path.GetRelativePath(Properties.Settings.Default.game_path, Path.ChangeExtension(nifArchivePath, ".poly")).Replace('\\', '_').ToLowerInvariant();
                 var modelPolySavePath = string.Format("{0}\\{1}", polysDirectory, modelPolyFileName);
 
                 // MPK handling, cache .poly file for models
-                if (polyMpk.Files.All(f => f.Name.ToLower() != modelPolyFileName.ToLower()))
+                if (!cachedPolys.Contains(modelPolyFileName))
                 {
-                    var nifArchivePath = FindNifArchive(nifRow);
-                    if(string.IsNullOrEmpty(nifArchivePath)) continue;
 
                     // open the archive
                     using (var nifFileFromNpk = MpkWrapper.GetFileFromMpk(nifArchivePath, nifRow.Filename))
@@ -336,6 +341,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                             // Add file to polys.mpk
                             polyMpk.AddFile(modelPolySavePath);
+                            cachedPolys.Add(modelPolyFileName);
 
                             // Assign polys
                             nifRow.Polygons = nifParser.GetPolys();
@@ -456,7 +462,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         {
                             foreach (var treePolygon in baseTreePolygons)
                             {
-                                var newPolygon = new Polygon(treePolygon.P1, treePolygon.P2, treePolygon.P3);
+                                var newPolygon = new Polygon(treePolygon.P1, treePolygon.P2, treePolygon.P3, treePolygon.Texture);
                                 for (var i = 0; i < newPolygon.Vectors.Length; i++)
                                 {
                                     newPolygon.Vectors[i].X -= tree.X;
@@ -539,7 +545,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             //MainForm.Log(string.Format("Searching for {0}", archiveName), MainForm.LogLevel.notice);
             foreach (var dir in NifSearchPaths)
             {
-                if (Directory.Exists(dir) && Directory.GetFiles(dir, archiveName).Length > 0)
+                if (File.Exists(Path.Combine(dir, archiveName)))
                 {
                     //MainForm.Log(string.Format("Found {0} in {1}!", archiveName, dir), MainForm.LogLevel.success);
                     return string.Format("{0}\\{1}", dir, archiveName);

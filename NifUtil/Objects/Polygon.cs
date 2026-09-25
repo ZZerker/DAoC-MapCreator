@@ -31,12 +31,18 @@ namespace NifUtil.Objects
 
         public Vector3[] Vectors { get; set; }
 
-        public Polygon(Vector3 p1, Vector3 p2, Vector3 p3)
+        /// <summary>
+        /// File name of the base texture as stored in the NIF, null if the mesh has none
+        /// </summary>
+        public string Texture { get; set; }
+
+        public Polygon(Vector3 p1, Vector3 p2, Vector3 p3, string texture = null)
         {
             this.Vectors = new Vector3[3];
             this.Vectors.SetValue(p1, 0);
             this.Vectors.SetValue(p2, 1);
             this.Vectors.SetValue(p3, 2);
+            this.Texture = texture;
         }
     }
 }

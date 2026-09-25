@@ -19,6 +19,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Niflib;
 using NifUtil.Objects;
 using SharpDX;
@@ -81,7 +82,7 @@ namespace NifUtil.Classes
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
                 var transformationMatrix = this.ComputeWorldMatrix(shape);
-                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix);
+                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, this.GetTextureName(shape));
             }
         }
 
@@ -127,11 +128,31 @@ namespace NifUtil.Classes
             if (geometry.HasVertices && geometry.NumVertices >= 3)
             {
                 var transformationMatrix = this.ComputeWorldMatrix(strips);
-                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix);
+                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, this.GetTextureName(strips));
             }
         }
 
-        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation)
+        /// <summary>
+        /// Base texture of a mesh. Texturing properties are inherited from parent nodes.
+        /// </summary>
+        private string GetTextureName(NiAVObject node)
+        {
+            for (var current = node; current != null; current = current.Parent)
+            {
+                foreach (var property in current.Properties)
+                {
+                    if (property.IsValid() && property.Object is NiTexturingProperty texturing && texturing.BaseTexture?.Source != null
+                        && this.File.ObjectsByRef.TryGetValue(texturing.BaseTexture.Source.RefId, out var source)
+                        && source is NiSourceTexture sourceTexture && sourceTexture.FileName != null)
+                    {
+                        return sourceTexture.FileName.ToString();
+                    }
+                }
+            }
+            return null;
+        }
+
+        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation, string texture)
         {
             // Transaform all vertices
             var verticesTransformed = new List<Vector3>();
@@ -142,7 +163,8 @@ namespace NifUtil.Classes
                 var poly = new Polygon(
                                        new Vector3(verticesTransformed[triangle.X].X, verticesTransformed[triangle.X].Y, verticesTransformed[triangle.X].Z),
                                        new Vector3(verticesTransformed[triangle.Y].X, verticesTransformed[triangle.Y].Y, verticesTransformed[triangle.Y].Z),
-                                       new Vector3(verticesTransformed[triangle.Z].X, verticesTransformed[triangle.Z].Y, verticesTransformed[triangle.Z].Z)
+                                       new Vector3(verticesTransformed[triangle.Z].X, verticesTransformed[triangle.Z].Y, verticesTransformed[triangle.Z].Z),
+                                       texture
                                       );
                 this.Polys.Add(poly);
             }
@@ -172,8 +194,19 @@ namespace NifUtil.Classes
             {
                 using (var writer = new BinaryWriter(fs))
                 {
+                    var textures = this.Polys.Select(p => p.Texture).Where(t => t != null).Distinct().ToList();
+
+                    writer.Write(NifParser.POLY_FORMAT_MAGIC);
+                    writer.Write(textures.Count);
+                    foreach (var texture in textures)
+                    {
+                        writer.Write(texture);
+                    }
+
                     foreach (var poly in this.Polys)
                     {
+                        writer.Write(poly.Texture == null ? -1 : textures.IndexOf(poly.Texture));
+
                         writer.Write(poly.P1.X);
                         writer.Write(poly.P1.Y);
                         writer.Write(poly.P1.Z);

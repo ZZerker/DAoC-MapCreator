@@ -130,6 +130,11 @@ namespace NifUtil
             }
         }
 
+        /// <summary>
+        /// "PLY2" in little endian, starts a .poly file with texture names
+        /// </summary>
+        public const int POLY_FORMAT_MAGIC = 0x32594C50;
+
         public Polygon[] GetPolys()
         {
             if (this.polygons != null) return this.polygons;
@@ -160,6 +165,29 @@ namespace NifUtil
 
             using (var reader = new BinaryReader(polyFileReader.BaseStream))
             {
+                if (reader.BaseStream.Length >= 4 && reader.ReadInt32() == POLY_FORMAT_MAGIC)
+                {
+                    var textures = new string[reader.ReadInt32()];
+                    for (var i = 0; i < textures.Length; i++)
+                    {
+                        textures[i] = reader.ReadString();
+                    }
+
+                    while (reader.BaseStream.Position != reader.BaseStream.Length)
+                    {
+                        var textureIndex = reader.ReadInt32();
+                        polys.Add(new Polygon(
+                                              new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),
+                                              new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),
+                                              new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),
+                                              textureIndex >= 0 ? textures[textureIndex] : null
+                                             ));
+                    }
+                    return polys.ToArray();
+                }
+
+                // Format without header: 9 floats per triangle
+                reader.BaseStream.Position = 0;
                 var points = new List<float>();
 
                 while (reader.BaseStream.Position != reader.BaseStream.Length)
