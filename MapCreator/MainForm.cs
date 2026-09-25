@@ -147,6 +147,7 @@ namespace MapCreator
             }
 
             this.batchMode = true;
+            this.WindowState = FormWindowState.Minimized;
             var logDirectory = !string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath) ? Properties.Settings.Default.targetMapPath : Application.StartupPath;
             Directory.CreateDirectory(logDirectory);
             this.batchLogFile = Path.Combine(logDirectory, batchLogName);
@@ -740,7 +741,13 @@ namespace MapCreator
 
         private void MainForm_Resize(object sender, EventArgs e)
         {
-	        this.splitContainer1.SplitterDistance = this.flowLayoutSizerPanel.Location.X + this.flowLayoutSizerPanel.Width;
+            // A minimized window has no room for the splitter
+            if (this.WindowState == FormWindowState.Minimized)
+            {
+                return;
+            }
+
+	        this.splitContainer1.SplitterDistance =this.flowLayoutSizerPanel.Location.X + this.flowLayoutSizerPanel.Width;
         }
 
         private void treesAsShadedModel_CheckedChanged(object sender, EventArgs e)
