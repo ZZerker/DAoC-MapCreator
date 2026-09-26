@@ -39,6 +39,13 @@ namespace MapCreator.Classes.MapCreation
 
         public bool UseClientColors { get; set; } = true;
 
+        // Shallow water lets the ground show through, full opacity from this depth on
+        public bool DepthShaded { get; set; } = true;
+
+        private const double DEPTH_RANGE = 600.0;
+
+        private const double SHALLOW_OPACITY = 0.35;
+
         private readonly bool debug = false;
 
         public MapWater(ZoneConfiguration zoneConfiguration)
@@ -219,6 +226,13 @@ namespace MapCreator.Classes.MapCreation
                                     if (pixelHeight > river.Height)
                                     {
                                         riverPixelCollection.SetPixel(new Pixel(x, y, new ushort[] { 0, 0, 0, ushort.MinValue }));
+                                    }
+                                    else if (this.DepthShaded)
+                                    {
+                                        var pixel = riverPixelCollection.GetPixel(x, y);
+                                        var depth = Math.Min(1.0, (river.Height - pixelHeight) / DEPTH_RANGE);
+                                        pixel.SetChannel(3, (ushort)(pixel.GetChannel(3) * (SHALLOW_OPACITY + (1 - SHALLOW_OPACITY) * depth)));
+                                        riverPixelCollection.SetPixel(pixel);
                                     }
                                 }
                             }
