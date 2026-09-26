@@ -54,6 +54,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private readonly int[] heights;
         private readonly byte[][] levels;
 
+        private const double MIP_BIAS = 1.0;
+
         public int Width => this.widths[0];
 
         public int Height => this.heights[0];
@@ -80,11 +82,27 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         }
 
         /// <summary>
-        /// Color at the texture coordinate; texelsPerPixel selects the mip level
+        /// Color at the texture coordinate, blended between the two mip levels around texelsPerPixel
         /// </summary>
         public void Sample(double u, double v, double texelsPerPixel, out double r, out double g, out double b, out double a)
         {
-            var level = texelsPerPixel <= 1 ? 0 : Math.Min(this.levels.Length - 1, (int)Math.Log2(texelsPerPixel));
+            // The canvas is supersampled, the final map pixel covers one level more
+            var level = texelsPerPixel <= 0 ? 0 : Math.Clamp(Math.Log2(texelsPerPixel) + MIP_BIAS, 0, this.levels.Length - 1);
+            var lower = (int)level;
+            this.SampleLevel(lower, u, v, out r, out g, out b, out a);
+            var t = level - lower;
+            if (t > 0 && lower + 1 < this.levels.Length)
+            {
+                this.SampleLevel(lower + 1, u, v, out var r2, out var g2, out var b2, out var a2);
+                r += (r2 - r) * t;
+                g += (g2 - g) * t;
+                b += (b2 - b) * t;
+                a += (a2 - a) * t;
+            }
+        }
+
+        private void SampleLevel(int level, double u, double v, out double r, out double g, out double b, out double a)
+        {
             var width = this.widths[level];
             var height = this.heights[level];
             var pixels = this.levels[level];
