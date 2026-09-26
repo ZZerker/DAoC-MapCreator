@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator NifUtil Library
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
 //
@@ -20,7 +20,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Niflib;
-using SharpDX;
+using System.Numerics;
 
 namespace NifUtil.Classes
 {
@@ -93,7 +93,7 @@ namespace NifUtil.Classes
             return this.IsNodeDrawable == null||this.IsNodeDrawable(node);
         }
 
-        internal Matrix ComputeWorldMatrix(NiAVObject obj)
+        internal Matrix4x4 ComputeWorldMatrix(NiAVObject obj)
         {
             var path = new List<NiAVObject>();
             var current = obj;
@@ -102,12 +102,12 @@ namespace NifUtil.Classes
                 path.Add(current);
                 current = current.Parent;
             }
-            var worldMatrix = Matrix.Identity;
+            var worldMatrix = Matrix4x4.Identity;
             foreach(var node in path)
             {
-	            worldMatrix *= node.Rotation;
-	            worldMatrix *= Matrix.Scaling(node.Scale, node.Scale, node.Scale);
-	            worldMatrix *= Matrix.Translation(node.Translation.X, node.Translation.Y, node.Translation.Z);
+	            worldMatrix = NumericsTransform.Multiply(worldMatrix, node.Rotation);
+	            worldMatrix = NumericsTransform.Multiply(worldMatrix, Matrix4x4.CreateScale(node.Scale, node.Scale, node.Scale));
+	            worldMatrix = NumericsTransform.Multiply(worldMatrix, Matrix4x4.CreateTranslation(node.Translation.X, node.Translation.Y, node.Translation.Z));
             }
 
             return worldMatrix;

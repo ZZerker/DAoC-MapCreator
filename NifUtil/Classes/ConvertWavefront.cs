@@ -1,4 +1,4 @@
-﻿
+
 //
 // MapCreator NifUtil Library
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
@@ -25,7 +25,7 @@ using System.IO;
 using System.Linq;
 using ImageMagick;
 using Niflib;
-using SharpDX;
+using System.Numerics;
 
 namespace NifUtil.Classes
 {
@@ -261,12 +261,12 @@ namespace NifUtil.Classes
 
         }
 
-        private string PrintVertices(Vector3[] vertices, Matrix transformation)
+        private string PrintVertices(Vector3[] vertices, Matrix4x4 transformation)
         {
             var export = "";
             foreach (var verticle in vertices)
             {
-                var vectorTransformed = Vector3.TransformCoordinate(verticle, transformation);
+                var vectorTransformed = NumericsTransform.TransformCoordinate(verticle, transformation);
                 export += string.Format(CultureInfo.InvariantCulture, "v {0} {1} {2}", vectorTransformed.X, vectorTransformed.Y, vectorTransformed.Z) + Environment.NewLine;
             }
             return export;
@@ -284,12 +284,12 @@ namespace NifUtil.Classes
             return export;
         }
 
-        private string PrintNormals(Vector3[]normals, Matrix transformation)
+        private string PrintNormals(Vector3[]normals, Matrix4x4 transformation)
         {
             var export = "";
             foreach (var normal in normals)
             {
-                var vectorTransformed = Vector3.TransformNormal(normal, transformation);
+                var vectorTransformed = NumericsTransform.TransformNormal(normal, transformation);
                 export += string.Format(CultureInfo.InvariantCulture, "vn {0} {1} {2}", vectorTransformed.X, vectorTransformed.Y, vectorTransformed.Z) + Environment.NewLine;
             }
             return export;

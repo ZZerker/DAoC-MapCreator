@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
 //
@@ -23,7 +23,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MapCreator.Classes.MapCreation.Fixtures.Objects;
 using NifUtil.Objects;
-using SharpDX;
+using System.Numerics;
 
 namespace MapCreator.Classes.MapCreation.Fixtures
 {
@@ -53,7 +53,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// <summary>
         /// Full rotation of a placed model (dungeon pieces), replaces the fixture angle
         /// </summary>
-        public Matrix? PlacementRotation;
+        public Matrix4x4? PlacementRotation;
 
         /// <summary>
         /// Keeps only triangles whose mean height lies in (Bottom, Top], in placement heights. Null keeps all.
@@ -149,13 +149,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
             foreach (var poly in this.ProcessedPolygons)
             {
-                var n = Vector3.Normalize(this.GetNormal(poly.P1, poly.P2, poly.P3));
+                var n = Normalize(this.GetNormal(poly.P1, poly.P2, poly.P3));
 
                 // backface cull
-                if (n[2] < 0) continue;
+                if (n.Z < 0) continue;
 
                 // shade
-                double ndotl = this.RendererConf.LightVector[0] * n[0] + this.RendererConf.LightVector[1] * n[1] + this.RendererConf.LightVector[2] * n[2];
+                double ndotl = this.RendererConf.LightVector.X * n.X + this.RendererConf.LightVector.Y * n.Y + this.RendererConf.LightVector.Z * n.Z;
                 if (ndotl > 0) ndotl = 0;
 
                 // Lightning must be between 0 and 1, its multiplied with RGB and that must return a ushort
@@ -204,21 +204,21 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 angle = (360 - this.FixtureRow.A) * this.FixtureRow.AxisZ3D;
             }
 
-            var rotation = Matrix.Identity;
+            var rotation = Matrix4x4.Identity;
             if (this.PlacementRotation != null)
             {
                 rotation = this.PlacementRotation.Value;
             }
             else if (angle != 0)
             {
-                rotation *= Matrix.RotationZ(Convert.ToSingle(angle * Math.PI / 180.0));
+                rotation = Niflib.NumericsTransform.Multiply(rotation, Matrix4x4.CreateRotationZ(Convert.ToSingle(angle * Math.PI / 180.0)));
             }
 
             foreach (var poly in this.RawPolygons)
             {
-                var p1 = Vector3.TransformCoordinate(poly.P1, rotation);
-                var p2 = Vector3.TransformCoordinate(poly.P2, rotation);
-                var p3 = Vector3.TransformCoordinate(poly.P3, rotation);
+                var p1 = Niflib.NumericsTransform.TransformCoordinate(poly.P1, rotation);
+                var p2 = Niflib.NumericsTransform.TransformCoordinate(poly.P2, rotation);
+                var p3 = Niflib.NumericsTransform.TransformCoordinate(poly.P3, rotation);
 
                 if (this.HeightBand is var (bottom, top))
                 {
@@ -283,9 +283,24 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// <returns></returns>
         private Vector3 GetNormal(Vector3 p1, Vector3 p2, Vector3 p3)
         {
-            var v1 = new Vector3(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]);
-            var v2 = new Vector3(p3[0] - p2[0], p3[1] - p2[1], p3[2] - p2[2]);
+            var v1 = new Vector3(p2.X - p1.X, p2.Y - p1.Y, p2.Z - p1.Z);
+            var v2 = new Vector3(p3.X - p2.X, p3.Y - p2.Y, p3.Z - p2.Z);
             return Vector3.Cross(v1, v2);
+        }
+
+        private static Vector3 Normalize(Vector3 value)
+        {
+            var length = (float)Math.Sqrt(value.X * value.X + value.Y * value.Y + value.Z * value.Z);
+            if (Math.Abs(length) < 1e-6f)
+            {
+                return value;
+            }
+
+            var inverse = 1f / length;
+            value.X *= inverse;
+            value.Y *= inverse;
+            value.Z *= inverse;
+            return value;
         }
 
         public override string ToString()

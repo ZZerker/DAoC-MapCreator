@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator
 // Copyright(C) 2015 Stefan Schäfer <merec@merec.org>
 //
@@ -18,7 +18,7 @@
 //
 
 using System.Collections.Generic;
-using SharpDX;
+using System.Numerics;
 
 namespace MapCreator.Classes.MapCreation.Fixtures.Objects
 {

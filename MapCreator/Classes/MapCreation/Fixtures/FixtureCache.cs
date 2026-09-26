@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -263,7 +263,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                                      {
                                          Name = fields[0],
                                          Tree = fields[1],
-                                         TreeInstances = new List<SharpDX.Vector3>()
+                                         TreeInstances = new List<System.Numerics.Vector3>()
                                      };
                 for (var i = 2; i < fields.Length; i = i + 3)
                 {
@@ -274,7 +274,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     var z = Convert.ToSingle(fields[i + 2], provider);
                     if (x == 0 && y == 0 && z == 0) break;
 
-                    treeClusterRow.TreeInstances.Add(new SharpDX.Vector3(x, y, z));
+                    treeClusterRow.TreeInstances.Add(new System.Numerics.Vector3(x, y, z));
                 }
 
                 treeClusterRows.Add(treeClusterRow);

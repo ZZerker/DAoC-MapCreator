@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ImageMagick;
-using SharpDX;
+using System.Numerics;
 
 namespace MapCreator.Classes.MapCreation.Fixtures
 {

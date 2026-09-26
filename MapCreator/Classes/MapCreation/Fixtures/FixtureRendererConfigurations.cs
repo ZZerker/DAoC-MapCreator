@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator
 // Copyright(C) 2015 Stefan Schäfer <merec@merec.org>
 //
@@ -237,25 +237,25 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// </summary>
         /// <param name="lightVector"></param>
         /// <returns></returns>
-        private static SharpDX.Vector3 GetLightVector(string lightVector)
+        private static System.Numerics.Vector3 GetLightVector(string lightVector)
         {
-            if (lightVector == "") return new SharpDX.Vector3(1f, 1f, -1f);
+            if (lightVector == "") return new System.Numerics.Vector3(1f, 1f, -1f);
 
             var parts = lightVector.Split(',');
             if (parts.Length != 3)
             {
                 AppLog.Log(string.Format("LightVector \"{0}\" is invalid.", lightVector), LogLevel.Warning);
-                return new SharpDX.Vector3(1f, 1f, -1f);
+                return new System.Numerics.Vector3(1f, 1f, -1f);
             }
 
             try
             {
-                return new SharpDX.Vector3(Convert.ToSingle(parts[0]), Convert.ToSingle(parts[1]), Convert.ToSingle(parts[2]));
+                return new System.Numerics.Vector3(Convert.ToSingle(parts[0]), Convert.ToSingle(parts[1]), Convert.ToSingle(parts[2]));
             }
             catch
             {
                 AppLog.Log(string.Format("LightVector \"{0}\" is invalid.", lightVector), LogLevel.Warning);
-                return new SharpDX.Vector3(1f, 1f, -1f);
+                return new System.Numerics.Vector3(1f, 1f, -1f);
             }
         }
 
@@ -293,7 +293,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public bool HasLight;
         public double LightMin;
         public double LightMax;
-        public SharpDX.Vector3 LightVector;
+        public System.Numerics.Vector3 LightVector;
 
         // Shadow
         public bool HasShadow;
@@ -313,7 +313,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             this.HasLight = true;
             this.LightMin = 0.6;
             this.LightMax = 1.0;
-            this.LightVector = new SharpDX.Vector3(1f, 1f, -1f);
+            this.LightVector = new System.Numerics.Vector3(1f, 1f, -1f);
 
             this.HasShadow = true;
             this.ShadowColor = new ImageMagick.MagickColor("#000");

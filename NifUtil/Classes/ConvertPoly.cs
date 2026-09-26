@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator NifUtil Library
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
 //
@@ -23,7 +23,7 @@ using System.IO;
 using System.Linq;
 using Niflib;
 using NifUtil.Objects;
-using SharpDX;
+using System.Numerics;
 
 namespace NifUtil.Classes
 {
@@ -422,11 +422,11 @@ namespace NifUtil.Classes
             return uvSet.Length == geometry.Vertices.Length ? uvSet : null;
         }
 
-        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation, string texture, Vector2[] uvSet, string texture2, Vector2[] uvSet2, float[] textureBlend, Color4[] vertexColors, int materialColor)
+        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix4x4 transformation, string texture, Vector2[] uvSet, string texture2, Vector2[] uvSet2, float[] textureBlend, Color4[] vertexColors, int materialColor)
         {
             // Transaform all vertices
             var verticesTransformed = new List<Vector3>();
-            foreach (var vector in vertices) verticesTransformed.Add(Vector3.TransformCoordinate(vector, transformation));
+            foreach (var vector in vertices) verticesTransformed.Add(NumericsTransform.TransformCoordinate(vector, transformation));
 
             foreach (var triangle in trianlges)
             {

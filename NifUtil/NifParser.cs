@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator NifUtil Library
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
 //
@@ -24,7 +24,7 @@ using System.IO;
 using Niflib;
 using NifUtil.Classes;
 using NifUtil.Objects;
-using SharpDX;
+using System.Numerics;
 
 namespace NifUtil
 {

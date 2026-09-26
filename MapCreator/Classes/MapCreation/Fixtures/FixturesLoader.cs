@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
 //
@@ -95,7 +95,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 // Clockwise on the map; model y points north
-                this.placementRotations[piece.Fixture.Id] = SharpDX.Matrix.RotationZ(-(float)(piece.Heading * Math.PI / 180d));
+                this.placementRotations[piece.Fixture.Id] = System.Numerics.Matrix4x4.CreateRotationZ(-(float)(piece.Heading * Math.PI / 180d));
                 this.placementHeights[piece.Fixture.Id] = piece.Fixture.Z;
                 this.fixtureRows.Add(piece.Fixture);
             }
@@ -157,7 +157,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private const double CITY_MARGIN = 0.02;
 
         // Rotation of each dungeon placement by fixture row id
-        private readonly Dictionary<int, SharpDX.Matrix> placementRotations = new Dictionary<int, SharpDX.Matrix>();
+        private readonly Dictionary<int, System.Numerics.Matrix4x4> placementRotations = new Dictionary<int, System.Numerics.Matrix4x4>();
 
         // Placement height by fixture row id; drawing overwrites FixtureRow.Z, so every level starts from here
         private readonly Dictionary<int, double> placementHeights = new Dictionary<int, double>();
@@ -198,7 +198,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         }
 
         // On the client maps city and dungeon x grows to the left and y downwards
-        private static readonly SharpDX.Matrix TurnAroundMatrix = SharpDX.Matrix.RotationZ((float)Math.PI);
+        private static readonly System.Numerics.Matrix4x4 TurnAroundMatrix = System.Numerics.Matrix4x4.CreateRotationZ((float)Math.PI);
 
         /// <summary>
         /// dungeon.chunk lists the room models by index, dungeon.place places them:
@@ -226,9 +226,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 var values = fields.Skip(1).Take(7).Select(f => double.Parse(f, culture)).ToArray();
-                var axis = new SharpDX.Vector3((float)values[4], (float)values[5], (float)values[6]);
-                // The angle turns the other way than SharpDX (checked on the curved halls of Keltoi Fogou)
-                var rotation = values[3] == 0 || axis.LengthSquared() == 0 ? SharpDX.Matrix.Identity : SharpDX.Matrix.RotationAxis(SharpDX.Vector3.Normalize(axis), -(float)values[3]);
+                var axis = new System.Numerics.Vector3((float)values[4], (float)values[5], (float)values[6]);
+                // The source angle uses the opposite sign (checked on the curved halls of Keltoi Fogou)
+                var rotation = values[3] == 0 || axis.LengthSquared() == 0 ? System.Numerics.Matrix4x4.Identity : System.Numerics.Matrix4x4.CreateFromAxisAngle(Normalize(axis), -(float)values[3]);
 
                 this.placementRotations[id] = rotation;
                 this.placementHeights[id] = values[2];
@@ -253,7 +253,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                 foreach (var vector in nifRow.Polygons.SelectMany(p => p.Vectors))
                 {
-                    var placed = SharpDX.Vector3.TransformCoordinate(vector, this.placementRotations[fixtureRow.Id]);
+                    var placed = Niflib.NumericsTransform.TransformCoordinate(vector, this.placementRotations[fixtureRow.Id]);
                     minX = Math.Min(minX, placed.X + fixtureRow.X);
                     maxX = Math.Max(maxX, placed.X + fixtureRow.X);
                     minY = Math.Min(minY, placed.Y + fixtureRow.Y);
@@ -277,7 +277,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
             foreach (var fixtureRow in this.fixtureRows)
             {
-                this.placementRotations[fixtureRow.Id] *= TurnAroundMatrix;
+                this.placementRotations[fixtureRow.Id] = Niflib.NumericsTransform.Multiply(this.placementRotations[fixtureRow.Id], TurnAroundMatrix);
                 fixtureRow.X = left + side - fixtureRow.X;
                 fixtureRow.Y = fixtureRow.Y - bottom;
             }
@@ -335,7 +335,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 var pieceVectors = nifRow.Polygons.SelectMany(p => p.Vectors).ToList();
-                var center = new SharpDX.Vector3((pieceVectors.Min(v => v.X) + pieceVectors.Max(v => v.X)) / 2f, (pieceVectors.Min(v => v.Y) + pieceVectors.Max(v => v.Y)) / 2f, 0);
+                var center = new System.Numerics.Vector3((pieceVectors.Min(v => v.X) + pieceVectors.Max(v => v.X)) / 2f, (pieceVectors.Min(v => v.Y) + pieceVectors.Max(v => v.Y)) / 2f, 0);
 
                 // A copy, the cached polygons are shared with other zones. Turned by 180 degrees: on the client maps
                 // city x grows to the left and y downwards (checked against the Camelot, Jordheim and Tir na Nog maps).
@@ -449,9 +449,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             FixtureCache.LoadPolygons(models, this.zoneConf.Reporter);
         }
 
-        private static SharpDX.Vector3 TurnAround(SharpDX.Vector3 vector, SharpDX.Vector3 center)
+        private static System.Numerics.Vector3 TurnAround(System.Numerics.Vector3 vector, System.Numerics.Vector3 center)
         {
-            return new SharpDX.Vector3(center.X - vector.X, center.Y - vector.Y, vector.Z);
+            return new System.Numerics.Vector3(center.X - vector.X, center.Y - vector.Y, vector.Z);
         }
 
         /// <summary>
@@ -614,6 +614,21 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
             this.zoneConf.Reporter.Log(string.Format("Unable to find nif \"{0}\"!", nifRow.Filename), LogLevel.Warning);
             return null;
+        }
+
+        private static System.Numerics.Vector3 Normalize(System.Numerics.Vector3 value)
+        {
+            var length = (float)Math.Sqrt(value.X * value.X + value.Y * value.Y + value.Z * value.Z);
+            if (Math.Abs(length) < 1e-6f)
+            {
+                return value;
+            }
+
+            var inverse = 1f / length;
+            value.X *= inverse;
+            value.Y *= inverse;
+            value.Z *= inverse;
+            return value;
         }
     }
 }

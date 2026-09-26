@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator NifUtil Library
 // Copyright(C) 2015 Stefan Schäfer <merec@merec.org>
 //
@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-using SharpDX;
+using System.Numerics;
 
 namespace NifUtil.Objects
 {
