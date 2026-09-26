@@ -77,7 +77,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 this.LoadCsvData();
                 this.ApplyModelProxies();
-                this.LoadKeepPieces();
+                if (this.zoneConf.DrawKeeps)
+                {
+                    this.LoadKeepPieces();
+                }
                 this.LoadPolygons();
             }
         }

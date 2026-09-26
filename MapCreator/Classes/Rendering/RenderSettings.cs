@@ -20,6 +20,9 @@ namespace MapCreator.Classes.Rendering
         public uint Quality { get; init; }
         public bool SkipIfFileExists { get; init; }
 
+        // Only write the zNNN.labels.json files, no images
+        public bool LabelsOnly { get; init; }
+
         public bool DrawBackground { get; init; }
 
         // Lightmap
@@ -34,6 +37,7 @@ namespace MapCreator.Classes.Rendering
         public bool RiversUseDefaultColor { get; init; }
         public Color RiversColor { get; init; }
         public int RiverOpacity { get; init; }
+        public bool DepthShadedWater { get; init; } = true;
 
         // Bounds
         public bool Bounds { get; init; }
@@ -44,6 +48,7 @@ namespace MapCreator.Classes.Rendering
         // Fixtures and trees
         public bool DrawFixtures { get; init; }
         public bool DrawFixturesBelowWater { get; init; }
+        public bool DrawKeeps { get; init; } = true;
         public bool DrawTrees { get; init; }
         public bool TreesAsImages { get; init; }
         public int TreeTransparency { get; init; }

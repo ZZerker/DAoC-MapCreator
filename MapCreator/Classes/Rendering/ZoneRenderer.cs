@@ -21,6 +21,13 @@ namespace MapCreator.Classes.Rendering
                 Directory.CreateDirectory(mapFile.DirectoryName);
             }
 
+            if (settings.LabelsOnly)
+            {
+                MapLabels.Write(zone.Id, mapFile, settings.DrawKeeps);
+                reporter.Log(string.Format("Labels written for zone {0}", zone.Id), LogLevel.Success);
+                return null;
+            }
+
             if (settings.SkipIfFileExists && mapFile.Exists)
             {
                 reporter.Log(string.Format("The target file \"{0}\" already exists. Skipping.", mapFile.FullName));
@@ -33,6 +40,7 @@ namespace MapCreator.Classes.Rendering
 
             using (var conf = new ZoneConfiguration(zone.Id, settings.MapSize, reporter))
             {
+                conf.DrawKeeps = settings.DrawKeeps;
                 if (conf.IsCity || conf.IsDungeon)
                 {
                     new ModelZoneRenderer(settings, reporter).Render(conf, mapFile);
@@ -103,6 +111,7 @@ namespace MapCreator.Classes.Rendering
                         river.WaterColor = settings.RiversColor;
                         river.WaterTransparency = settings.RiverOpacity;
                         river.UseClientColors = settings.RiversUseDefaultColor;
+                        river.DepthShaded = settings.DepthShadedWater;
                         river.Draw(map);
                         reporter.Log("Finished water rendering!", LogLevel.Success);
                     }
@@ -136,7 +145,7 @@ namespace MapCreator.Classes.Rendering
                     map.Write(mapFile.FullName);
                 }
 
-                MapLabels.Write(zone.Id, mapFile);
+                MapLabels.Write(zone.Id, mapFile, settings.DrawKeeps);
             }
 
             mapFile.Refresh();

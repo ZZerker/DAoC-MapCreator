@@ -106,7 +106,7 @@ namespace MapCreator
         }
 
         /// <summary>
-        /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--labels-only]
+        /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--labels-only] [--no-keeps] [--no-depth-water]
         /// </summary>
         private readonly bool batchMode = false;
 
@@ -162,21 +162,9 @@ namespace MapCreator
             this.SelectedZones = knownZoneIds.Select(DataWrapper.GetZoneSelectionByZoneId).ToList();
             this.UpdateSelectedZoneListBox();
 
-            if (args.Any(a => string.Equals(a, "--labels-only", StringComparison.OrdinalIgnoreCase)))
-            {
-                var labelDirectory = Path.Combine(logDirectory, batchDirectory ?? "maps");
-                Directory.CreateDirectory(labelDirectory);
-                this.Shown += (sender, e) =>
-                {
-                    foreach (var zoneId in knownZoneIds)
-                    {
-                        MapLabels.Write(zoneId, new FileInfo(Path.Combine(labelDirectory, "z" + zoneId + ".png")));
-                        this.Log(string.Format("Labels written for zone {0}", zoneId), LogLevel.Success);
-                    }
-                    this.Close();
-                };
-                return;
-            }
+            var labelsOnly = HasFlag(args, "--labels-only");
+            var noKeeps = HasFlag(args, "--no-keeps");
+            var noDepthWater = HasFlag(args, "--no-depth-water");
 
             // Settings bindings overwrite control values on load
             this.Shown += async (sender, e) =>
@@ -198,10 +186,24 @@ namespace MapCreator
                 this.filePatternTextBox.Text = "z{id}";
                 this.enableLogCheckBox.Checked = true;
                 this.enableResultPreview.Checked = false;
+                this.labelsOnlyCheckBox.Checked = labelsOnly;
+                if (noKeeps)
+                {
+                    this.drawKeepsCheckBox.Checked = false;
+                }
+                if (noDepthWater)
+                {
+                    this.depthShadedWaterCheckBox.Checked = false;
+                }
 
                 await this.RenderSelectedZonesAsync();
                 this.Close();
             };
+        }
+
+        private static bool HasFlag(string[] args, string flag)
+        {
+            return args.Any(a => string.Equals(a, flag, StringComparison.OrdinalIgnoreCase));
         }
 
         public void Initialize()
@@ -707,6 +709,7 @@ namespace MapCreator
                 FileType = this.fileTypeComboBox.Text,
                 Quality = Convert.ToUInt32(this.mapQualityTextBox.Value),
                 SkipIfFileExists = this.skipIfFileExistsCheckbox.Checked,
+                LabelsOnly = this.labelsOnlyCheckBox.Checked,
                 DrawBackground = this.createBackgroundCheckBox.Checked,
                 Lightmap = this.generateLightmapCheckBox.Checked,
                 LightmapZScale = Convert.ToDouble(this.heightmapZScaleTextBox.Value),
@@ -717,12 +720,14 @@ namespace MapCreator
                 RiversUseDefaultColor = this.riversUseDefaultColorCheckBox.Checked,
                 RiversColor = settings.mapRiverColor,
                 RiverOpacity = Convert.ToInt32(this.mapRiversOpacityTextBox.Value),
+                DepthShadedWater = this.depthShadedWaterCheckBox.Checked,
                 Bounds = this.generateBoundsCheckBox.Checked,
                 BoundsColor = settings.mapBoundsColor,
                 BoundsOpacity = Convert.ToInt32(this.mapBoundsOpacityTextBox.Text),
                 ExcludeBoundsFromMap = this.excludeBoundsFromMapCheckbox.Checked,
                 DrawFixtures = this.drawFixturesCheckBox.Checked,
                 DrawFixturesBelowWater = this.drawFixturesBelowWaterCheckBox.Checked,
+                DrawKeeps = this.drawKeepsCheckBox.Checked,
                 DrawTrees = this.drawTreesCheckBox.Checked,
                 TreesAsImages = this.treesAsImages.Checked,
                 TreeTransparency = Convert.ToInt32(this.mapTreeTransparencyTextBox.Value)

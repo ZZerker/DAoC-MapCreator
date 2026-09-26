@@ -21,14 +21,14 @@ namespace MapCreator.Classes
 
         private sealed record ZoneArea(string Id, string Name, int Region, int Type, double Left, double Top, double Width, double Height);
 
-        public static void Write(string zoneId, FileInfo mapFile)
+        public static void Write(string zoneId, FileInfo mapFile, bool keeps = true)
         {
-            var labels = Get(zoneId);
+            var labels = Get(zoneId, keeps);
             var file = Path.Combine(mapFile.DirectoryName, Path.GetFileNameWithoutExtension(mapFile.Name) + ".labels.json");
             File.WriteAllText(file, JsonSerializer.Serialize(new { zone = zoneId, labels }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
         }
 
-        public static List<Label> Get(string zoneId)
+        public static List<Label> Get(string zoneId, bool keeps = true)
         {
             var labels = new List<Label>();
             var zones = LoadZones();
@@ -39,7 +39,10 @@ namespace MapCreator.Classes
             }
 
             labels.AddRange(GetNeighbors(zone, zones));
-            labels.AddRange(GetKeeps(zone));
+            if (keeps)
+            {
+                labels.AddRange(GetKeeps(zone));
+            }
             labels.AddRange(GetLandmarks(zone));
             return labels;
         }

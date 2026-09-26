@@ -109,6 +109,9 @@
             this.treesAsShadedModel = new System.Windows.Forms.RadioButton();
             this.label1 = new System.Windows.Forms.Label();
             this.drawTreesCheckBox = new System.Windows.Forms.CheckBox();
+            this.drawKeepsCheckBox = new System.Windows.Forms.CheckBox();
+            this.depthShadedWaterCheckBox = new System.Windows.Forms.CheckBox();
+            this.labelsOnlyCheckBox = new System.Windows.Forms.CheckBox();
             this.drawFixturesCheckBox = new System.Windows.Forms.CheckBox();
             this.panel1 = new System.Windows.Forms.Panel();
             this.button1 = new System.Windows.Forms.Button();
@@ -769,6 +772,7 @@
             // 
             this.groupBox3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox3.Controls.Add(this.depthShadedWaterCheckBox);
             this.groupBox3.Controls.Add(this.riversUseDefaultColorCheckBox);
             this.groupBox3.Controls.Add(this.label17);
             this.groupBox3.Controls.Add(this.label16);
@@ -942,6 +946,7 @@
             // 
             // groupBox6
             // 
+            this.groupBox6.Controls.Add(this.drawKeepsCheckBox);
             this.groupBox6.Controls.Add(this.drawFixturesBelowWaterCheckBox);
             this.groupBox6.Controls.Add(this.label25);
             this.groupBox6.Controls.Add(this.mapTreeTransparencyTextBox);
@@ -1039,6 +1044,42 @@
             this.label1.TabIndex = 2;
             this.label1.Text = "Please see fixtures.xml for more settings";
             // 
+            // drawKeepsCheckBox
+            // 
+            this.drawKeepsCheckBox.AutoSize = true;
+            this.drawKeepsCheckBox.Checked = global::MapCreator.Properties.Settings.Default.mapDrawKeeps;
+            this.drawKeepsCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.drawKeepsCheckBox.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::MapCreator.Properties.Settings.Default, "mapDrawKeeps", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.drawKeepsCheckBox.Location = new System.Drawing.Point(190, 42);
+            this.drawKeepsCheckBox.Name = "drawKeepsCheckBox";
+            this.drawKeepsCheckBox.Size = new System.Drawing.Size(136, 17);
+            this.drawKeepsCheckBox.TabIndex = 32;
+            this.drawKeepsCheckBox.Text = "Draw keeps and towers";
+            this.drawKeepsCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // depthShadedWaterCheckBox
+            // 
+            this.depthShadedWaterCheckBox.AutoSize = true;
+            this.depthShadedWaterCheckBox.Checked = global::MapCreator.Properties.Settings.Default.mapDepthShadedWater;
+            this.depthShadedWaterCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.depthShadedWaterCheckBox.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::MapCreator.Properties.Settings.Default, "mapDepthShadedWater", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
+            this.depthShadedWaterCheckBox.Location = new System.Drawing.Point(230, 98);
+            this.depthShadedWaterCheckBox.Name = "depthShadedWaterCheckBox";
+            this.depthShadedWaterCheckBox.Size = new System.Drawing.Size(110, 17);
+            this.depthShadedWaterCheckBox.TabIndex = 30;
+            this.depthShadedWaterCheckBox.Text = "Depth shaded water";
+            this.depthShadedWaterCheckBox.UseVisualStyleBackColor = true;
+            // 
+            // labelsOnlyCheckBox
+            // 
+            this.labelsOnlyCheckBox.AutoSize = true;
+            this.labelsOnlyCheckBox.Location = new System.Drawing.Point(190, 173);
+            this.labelsOnlyCheckBox.Name = "labelsOnlyCheckBox";
+            this.labelsOnlyCheckBox.Size = new System.Drawing.Size(150, 17);
+            this.labelsOnlyCheckBox.TabIndex = 33;
+            this.labelsOnlyCheckBox.Text = "Only write labels (no image)";
+            this.labelsOnlyCheckBox.UseVisualStyleBackColor = true;
+            // 
             // drawTreesCheckBox
             // 
             this.drawTreesCheckBox.AutoSize = true;
@@ -1104,6 +1145,7 @@
             // 
             this.groupBox7.Controls.Add(this.enableLogCheckBox);
             this.groupBox7.Controls.Add(this.enableResultPreview);
+            this.groupBox7.Controls.Add(this.labelsOnlyCheckBox);
             this.groupBox7.Controls.Add(this.skipIfFileExistsCheckbox);
             this.groupBox7.Controls.Add(this.directoryPatternTextBox);
             this.groupBox7.Controls.Add(this.label26);
@@ -1502,6 +1544,9 @@
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.CheckBox drawTreesCheckBox;
+        private System.Windows.Forms.CheckBox drawKeepsCheckBox;
+        private System.Windows.Forms.CheckBox depthShadedWaterCheckBox;
+        private System.Windows.Forms.CheckBox labelsOnlyCheckBox;
         private System.Windows.Forms.CheckBox excludeBoundsFromMapCheckbox;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.RadioButton treesAsImages;

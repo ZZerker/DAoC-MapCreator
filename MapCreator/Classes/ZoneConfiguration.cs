@@ -72,6 +72,11 @@ namespace MapCreator.Classes
         public string DungeonFiles { get; }
 
         /// <summary>
+        /// Keeps and towers from data\Keeps.csv
+        /// </summary>
+        public bool DrawKeeps { get; set; } = true;
+
+        /// <summary>
         /// Levels of a multi level dungeon from areas.dat, empty for all other zones
         /// </summary>
         public IReadOnlyList<MapLevel> Levels { get; } = new List<MapLevel>();

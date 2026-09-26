@@ -442,5 +442,29 @@ namespace MapCreator.Properties {
                 this["mapDrawBuildingsBelowWater"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool mapDrawKeeps {
+            get {
+                return ((bool)(this["mapDrawKeeps"]));
+            }
+            set {
+                this["mapDrawKeeps"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool mapDepthShadedWater {
+            get {
+                return ((bool)(this["mapDepthShadedWater"]));
+            }
+            set {
+                this["mapDepthShadedWater"] = value;
+            }
+        }
     }
 }
