@@ -45,7 +45,7 @@ namespace MapCreator.Classes.MapCreation
 
         public bool DrawTrees { get; set; } = true;
 
-        public bool DrawTreesAsImages { get; set; } = true;
+        public bool DrawTreesAsImages { get; set; }
 
         public int TreeTransparency { get; set; } = 20;
         #endregion

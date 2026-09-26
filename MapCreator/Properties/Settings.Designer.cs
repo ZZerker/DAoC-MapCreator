@@ -277,7 +277,7 @@ namespace MapCreator.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool treesAsShadedModel {
             get {
                 return ((bool)(this["treesAsShadedModel"]));
@@ -289,7 +289,7 @@ namespace MapCreator.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool treesAsImages {
             get {
                 return ((bool)(this["treesAsImages"]));
