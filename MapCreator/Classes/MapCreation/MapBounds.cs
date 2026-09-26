@@ -194,6 +194,13 @@ namespace MapCreator.Classes.MapCreation
                 if (polygon.Count < 4) continue;
                 //if (zoneConfiguration.Expansion == GameExpansion.NewFrontiers && polygon.Count <= 6) continue;
 
+                // Pieces of a wall split by gates end inside the map; filling towards the nearest border is a guess
+                var open = polygon.First() != polygon.Last();
+                if (open && !IsNearBorder(polygon.First()) && !IsNearBorder(polygon.Last()))
+                {
+                    continue;
+                }
+
                 this.FillPolygon(polygon);
                 this.bounds.Add(polygon);
             }
@@ -263,6 +270,14 @@ namespace MapCreator.Classes.MapCreation
                 }
             }
             return chains;
+        }
+
+        // A sixteenth of the zone; bound pieces that reach the border stop a few hundred units before it
+        private const float BORDER_MARGIN = 4096;
+
+        private static bool IsNearBorder(PointF point)
+        {
+            return point.X < BORDER_MARGIN || point.Y < BORDER_MARGIN || point.X > 65535 - BORDER_MARGIN || point.Y > 65535 - BORDER_MARGIN;
         }
 
         private bool IsNextTo(PointF p1, PointF p2, int distance = 50)
