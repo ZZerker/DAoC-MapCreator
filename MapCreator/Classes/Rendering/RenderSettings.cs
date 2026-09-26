@@ -50,7 +50,6 @@ namespace MapCreator.Classes.Rendering
         public bool DrawFixturesBelowWater { get; init; }
         public bool DrawKeeps { get; init; } = true;
         public bool DrawTrees { get; init; }
-        public bool TreesAsImages { get; init; }
         public int TreeTransparency { get; init; }
     }
 }

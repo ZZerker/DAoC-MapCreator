@@ -730,7 +730,6 @@ namespace MapCreator
                 DrawFixturesBelowWater = this.drawFixturesBelowWaterCheckBox.Checked,
                 DrawKeeps = this.drawKeepsCheckBox.Checked,
                 DrawTrees = this.drawTreesCheckBox.Checked,
-                TreesAsImages = this.treesAsImages.Checked,
                 TreeTransparency = Convert.ToInt32(this.mapTreeTransparencyTextBox.Value)
             };
         }
@@ -772,20 +771,8 @@ namespace MapCreator
 	        this.splitContainer1.SplitterDistance =this.flowLayoutSizerPanel.Location.X + this.flowLayoutSizerPanel.Width;
         }
 
-        private void treesAsShadedModel_CheckedChanged(object sender, EventArgs e)
-        {
-	        this.treesAsImages.Checked = !this.treesAsShadedModel.Checked;
-        }
-
-        private void treesAsImages_CheckedChanged(object sender, EventArgs e)
-        {
-	        this.treesAsShadedModel.Checked = !this.treesAsImages.Checked;
-        }
-
         private void drawTreesCheckBox_CheckedChanged(object sender, EventArgs e)
         {
-	        this.treesAsImages.Enabled = this.drawTreesCheckBox.Checked;
-	        this.treesAsShadedModel.Enabled = this.drawTreesCheckBox.Checked;
         }
 
         private void dawnOfLightToolStripMenuItem_Click(object sender, EventArgs e)

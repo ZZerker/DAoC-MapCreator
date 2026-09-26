@@ -514,7 +514,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     fixture.IsTree = trees.Any(t => t.Name.ToLower() == nifRow.Filename.ToLower());
                     fixture.IsTreeCluster = treeClusters.Any(tc => tc.Name.ToLower() == nifRow.Filename.ToLower());
 
-                    if (rConf != null && (rConf.Value.Name == "TreeShaded" || rConf.Value.Name == "TreeImage"))
+                    if (rConf != null && rConf.Value.Name == "TreeShaded")
                     {
                         fixture.IsTree = true;
                     }
@@ -528,7 +528,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                             SetModelTreeColor(fixture.Tree, nifRow);
                         }
 
-                        fixture.RendererConf = rConf ?? FixtureRendererConfigurations.GetRendererById("TreeImage");
+                        fixture.RendererConf = rConf ?? FixtureRendererConfigurations.GetRendererById("TreeShaded");
                     }
                     else if (fixture.IsTreeCluster)
                     {
@@ -557,7 +557,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         }
                         fixture.RawPolygons = treeClusterPolygons;
 
-                        if (rConf == null) fixture.RendererConf = FixtureRendererConfigurations.GetRendererById("TreeImage");
+                        if (rConf == null) fixture.RendererConf = FixtureRendererConfigurations.GetRendererById("TreeShaded");
                         else fixture.RendererConf = rConf.GetValueOrDefault();
                     }
                     else

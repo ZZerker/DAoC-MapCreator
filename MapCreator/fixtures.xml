@@ -61,25 +61,14 @@
     <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">true</shadow>
   </FixtureCategory>
 
-  <!-- TreeShaded: UI option; do not remove/rename. Trees use their Treemap.csv color, color is the fallback. -->
+  <!-- TreeShaded: all trees; do not remove/rename. Trees use their Treemap.csv color, color is the fallback. The shadow is cast once for the whole tree layer. -->
   <FixtureCategory is_default="false">
     <id>TreeShaded</id>
     <renderer>Shaded</renderer>
-    <light min="0.6" max="1.0" direction="1.0,1.0,-1.0">true</light>
+    <light min="0.5" max="1.0" direction="1.0,1.0,-1.0">true</light>
     <color>#064c07</color>
     <texture>none</texture>
     <transparency>20</transparency>
-    <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">false</shadow>
-  </FixtureCategory>
-
-  <!-- TreeImage: UI option, used by default for trees; do not remove/rename. Draws elm1 if a tree has no image. -->
-  <FixtureCategory is_default="false">
-    <id>TreeImage</id>
-    <renderer>Image</renderer>
-    <!-- This will create a light overlay on the image, creates more realistic results -->
-    <light min="0.5" max="1.0" direction="1.0,1.0,-1.0">true</light>
-    <color>#000</color>
-    <transparency>40</transparency>
     <shadow color="#000" offset_x="0" offset_y="2" size="4" transparency="55">true</shadow>
   </FixtureCategory>
 
@@ -87,17 +76,17 @@
   <!-- Lamfhota's Sound -->
   <Fixture>
     <pattern>hOldGrove</pattern>
-    <category>TreeImage</category>
+    <category>TreeShaded</category>
   </Fixture>
   <!-- Iarnwood -->
   <Fixture>
     <pattern>Iarnwood</pattern>
-    <category>TreeImage</category>
+    <category>TreeShaded</category>
   </Fixture>
   <!-- Grenlocks Sound -->
   <Fixture>
     <pattern>creepywebPine</pattern>
-    <category>TreeImage</category>
+    <category>TreeShaded</category>
   </Fixture>
 
   <!-- Effects: mist, fog and glow meshes around towns and zone borders (Silvermine Mts. ghostRealm_mist01) -->

@@ -105,8 +105,6 @@
             this.label25 = new System.Windows.Forms.Label();
             this.mapTreeTransparencyTextBox = new System.Windows.Forms.NumericUpDown();
             this.label24 = new System.Windows.Forms.Label();
-            this.treesAsImages = new System.Windows.Forms.RadioButton();
-            this.treesAsShadedModel = new System.Windows.Forms.RadioButton();
             this.label1 = new System.Windows.Forms.Label();
             this.drawTreesCheckBox = new System.Windows.Forms.CheckBox();
             this.drawKeepsCheckBox = new System.Windows.Forms.CheckBox();
@@ -951,14 +949,12 @@
             this.groupBox6.Controls.Add(this.label25);
             this.groupBox6.Controls.Add(this.mapTreeTransparencyTextBox);
             this.groupBox6.Controls.Add(this.label24);
-            this.groupBox6.Controls.Add(this.treesAsImages);
-            this.groupBox6.Controls.Add(this.treesAsShadedModel);
             this.groupBox6.Controls.Add(this.label1);
             this.groupBox6.Controls.Add(this.drawTreesCheckBox);
             this.groupBox6.Controls.Add(this.drawFixturesCheckBox);
             this.groupBox6.Location = new System.Drawing.Point(3, 577);
             this.groupBox6.Name = "groupBox6";
-            this.groupBox6.Size = new System.Drawing.Size(350, 180);
+            this.groupBox6.Size = new System.Drawing.Size(350, 140);
             this.groupBox6.TabIndex = 31;
             this.groupBox6.TabStop = false;
             this.groupBox6.Text = "Fixtures";
@@ -979,7 +975,7 @@
             // label25
             // 
             this.label25.AutoSize = true;
-            this.label25.Location = new System.Drawing.Point(186, 133);
+            this.label25.Location = new System.Drawing.Point(186, 93);
             this.label25.Name = "label25";
             this.label25.Size = new System.Drawing.Size(15, 13);
             this.label25.TabIndex = 28;
@@ -993,7 +989,7 @@
             0,
             0,
             0});
-            this.mapTreeTransparencyTextBox.Location = new System.Drawing.Point(116, 128);
+            this.mapTreeTransparencyTextBox.Location = new System.Drawing.Point(116, 88);
             this.mapTreeTransparencyTextBox.Name = "mapTreeTransparencyTextBox";
             this.mapTreeTransparencyTextBox.Size = new System.Drawing.Size(69, 20);
             this.mapTreeTransparencyTextBox.TabIndex = 6;
@@ -1002,43 +998,16 @@
             // label24
             // 
             this.label24.AutoSize = true;
-            this.label24.Location = new System.Drawing.Point(17, 130);
+            this.label24.Location = new System.Drawing.Point(17, 90);
             this.label24.Name = "label24";
             this.label24.Size = new System.Drawing.Size(93, 13);
             this.label24.TabIndex = 5;
             this.label24.Text = "Tree transparency";
             // 
-            // treesAsImages
-            // 
-            this.treesAsImages.AutoSize = true;
-            this.treesAsImages.Checked = global::MapCreator.Properties.Settings.Default.treesAsImages;
-            this.treesAsImages.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::MapCreator.Properties.Settings.Default, "treesAsImages", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.treesAsImages.Location = new System.Drawing.Point(20, 105);
-            this.treesAsImages.Name = "treesAsImages";
-            this.treesAsImages.Size = new System.Drawing.Size(136, 17);
-            this.treesAsImages.TabIndex = 4;
-            this.treesAsImages.TabStop = true;
-            this.treesAsImages.Text = "with image replacement";
-            this.treesAsImages.UseVisualStyleBackColor = true;
-            this.treesAsImages.CheckedChanged += new System.EventHandler(this.treesAsImages_CheckedChanged);
-            // 
-            // treesAsShadedModel
-            // 
-            this.treesAsShadedModel.AutoSize = true;
-            this.treesAsShadedModel.Checked = global::MapCreator.Properties.Settings.Default.treesAsShadedModel;
-            this.treesAsShadedModel.DataBindings.Add(new System.Windows.Forms.Binding("Checked", global::MapCreator.Properties.Settings.Default, "treesAsShadedModel", true, System.Windows.Forms.DataSourceUpdateMode.OnPropertyChanged));
-            this.treesAsShadedModel.Location = new System.Drawing.Point(20, 85);
-            this.treesAsShadedModel.Name = "treesAsShadedModel";
-            this.treesAsShadedModel.Size = new System.Drawing.Size(105, 17);
-            this.treesAsShadedModel.TabIndex = 3;
-            this.treesAsShadedModel.Text = "as shaded model";
-            this.treesAsShadedModel.UseVisualStyleBackColor = true;
-            this.treesAsShadedModel.CheckedChanged += new System.EventHandler(this.treesAsShadedModel_CheckedChanged);
-            // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 157);
+            this.label1.Location = new System.Drawing.Point(3, 117);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(193, 13);
             this.label1.TabIndex = 2;
@@ -1549,8 +1518,6 @@
         private System.Windows.Forms.CheckBox labelsOnlyCheckBox;
         private System.Windows.Forms.CheckBox excludeBoundsFromMapCheckbox;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.RadioButton treesAsImages;
-        private System.Windows.Forms.RadioButton treesAsShadedModel;
         private System.Windows.Forms.GroupBox groupBox7;
         private System.Windows.Forms.NumericUpDown mapQualityTextBox;
         private System.Windows.Forms.Label label5;

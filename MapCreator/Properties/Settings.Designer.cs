@@ -274,30 +274,8 @@ namespace MapCreator.Properties {
                 this["removeBoundsFromMap"] = value;
             }
         }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool treesAsShadedModel {
-            get {
-                return ((bool)(this["treesAsShadedModel"]));
-            }
-            set {
-                this["treesAsShadedModel"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool treesAsImages {
-            get {
-                return ((bool)(this["treesAsImages"]));
-            }
-            set {
-                this["treesAsImages"] = value;
-            }
-        }
+
+
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]

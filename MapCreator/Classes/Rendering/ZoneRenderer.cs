@@ -91,7 +91,6 @@ namespace MapCreator.Classes.Rendering
                                             {
                                                 DrawFixtures = drawFixtures || drawFixturesBelowWater,
                                                 DrawTrees = drawTrees,
-                                                DrawTreesAsImages = settings.TreesAsImages,
                                                 TreeTransparency = settings.TreeTransparency
                                             };
                         fixturesGenerator.Start();
