@@ -21,6 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using MapCreator.Classes.MapCreation.Fixtures.Objects;
 using NifUtil.Objects;
 
@@ -604,16 +605,22 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private string FindNifArchive(NifRow nifRow)
         {
             var archiveName = Path.GetFileNameWithoutExtension(nifRow.Filename) + ".npk";
-            foreach (var dir in this.nifSearchPaths)
+            var archives = this.nifSearchPaths.Select(dir => string.Format("{0}\\{1}", dir, archiveName)).Where(File.Exists).ToList();
+            if (archives.Count == 0)
             {
-                if (File.Exists(Path.Combine(dir, archiveName)))
-                {
-                    return string.Format("{0}\\{1}", dir, archiveName);
-                }
+                this.zoneConf.Reporter.Log(string.Format("Unable to find nif \"{0}\"!", nifRow.Filename), LogLevel.Warning);
+                return null;
             }
 
-            this.zoneConf.Reporter.Log(string.Format("Unable to find nif \"{0}\"!", nifRow.Filename), LogLevel.Warning);
-            return null;
+            // Zone 002 ships NIF 3.03 copies that Niflib cannot read; the global copy of the same model is newer
+            return archives.Count == 1 ? archives[0] : archives.FirstOrDefault(archive => IsReadableNif(archive, nifRow.Filename)) ?? archives[0];
+        }
+
+        private static bool IsReadableNif(string archive, string filename)
+        {
+            using var reader = MpkWrapper.GetFileFromMpk(archive, filename);
+            var match = Regex.Match(reader?.ReadLine() ?? "", @"Version (\d+)\.");
+            return match.Success && int.Parse(match.Groups[1].Value) >= 4;
         }
 
         private static System.Numerics.Vector3 Normalize(System.Numerics.Vector3 value)
