@@ -61,9 +61,7 @@ Everything comes from the game client, except:
 - [x] Renderer quality: relief shading, blended ground layers, vertex lighting, depth shaded water, shadows
 - [x] New Frontiers keeps and towers
 - [x] Names and points of interest on the New Frontiers maps
-- [ ] Labels for cities, dungeons and the other outdoor zones
 - [ ] Maps for all dungeons, including the ones without a client map
-- [ ] Export of city and dungeon maps to the UI
 - [ ] Later: Old Frontiers keeps, re-render zones Eden has patched, replace the old .NET Framework libraries (Niflib, MPKLib)
 
 ## Requirements
@@ -83,15 +81,39 @@ Start `MapCreator.exe`, select the zones and click create. Settings (map size, w
 
 Batch mode renders without user input, starts minimized and closes when done:
 ```
-MapCreator.exe --render 163,171 [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--no-keeps] [--no-depth-water] [--labels-only]
+MapCreator.exe --render <zones> [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--no-keeps] [--no-depth-water] [--labels-only]
 ```
+
+### Zone groups
+`<zones>` is a comma separated list of zone ids and groups. The groups come from the same data as the zone selection in the window.
+
+| Group | Examples |
+|---|---|
+| Everything | `all` |
+| Realm | `alb`, `mid`, `hib` (or `albion`, `midgard`, `hibernia`) |
+| Expansion | `nf`, `of`, `si`, `toa`, `cata`, `dr`, `lotm`, `classic`, `foundations`, `tutorial` (or the full name, e.g. `new-frontiers`) |
+| Zone type | `outdoor`, `city`, `dungeon`, `instance`, `bg`, `indoor` |
+| Client zones not in the curated list | `client` |
+| Preset | the name of a preset saved in the zone selection |
+
+`+` intersects groups, a comma adds them up. Case, spaces and dashes don't matter.
+
+| Example | Renders |
+|---|---|
+| `--render nf+outdoor` | the 14 New Frontiers zones, without the battlegrounds |
+| `--render alb+dungeon` | all Albion dungeons |
+| `--render city` | Camelot, Jordheim, Tir na Nog |
+| `--render 163,nf+bg` | zone 163 and the New Frontiers battlegrounds |
+| `--render all` | every zone |
+
+Unknown names are logged as a warning and skipped.
 
 `tools\render_nf.ps1` renders all New Frontiers zones and converts them to DXT1 DDS files (`zNNN.dds`) with the labels drawn in:
 ```
 .\tools\render_nf.ps1 -Size 2048 -Parallel 4 [-Zones 163,171] [-DdsSize 512]
 ```
 
-`tools\render_all_shutdown.ps1` builds, renders every zone, converts New Frontiers to DDS and shuts the computer down (`-NoShutdown` to keep it running).
+`tools\render_all_shutdown.ps1` builds, renders every zone (or `-Zones`), converts New Frontiers to DDS and shuts the computer down (`-NoShutdown` to keep it running).
 
 ### Please note
 - Rendering is CPU and memory heavy, depending on the map size and the number of parallel zones.
