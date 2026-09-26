@@ -54,12 +54,10 @@
     <Reference Include="MWControls">
       <HintPath>..\libs\MWControls.dll</HintPath>
     </Reference>
-    <Reference Include="Niflib.SharpDX">
-      <HintPath>..\libs\Niflib.SharpDX.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\external\niflib.net\Niflib.csproj" />
     <ProjectReference Include="..\NifUtil\NifUtil.csproj" />
   </ItemGroup>
 

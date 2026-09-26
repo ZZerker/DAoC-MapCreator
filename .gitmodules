@@ -1,0 +1,3 @@
+[submodule "external/niflib.net"]
+	path = external/niflib.net
+	url = https://github.com/ZZerker/niflib.net
