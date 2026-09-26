@@ -122,9 +122,17 @@ Unknown names are logged as a warning and skipped.
 ### Please note
 - Rendering is CPU and memory heavy, depending on the map size and the number of parallel zones.
 - Use map sizes that are a power of 2: 512, 1024, 2048, 4096. The terrain textures have a native resolution of 4096 pixels.
-- The first render converts the models and fills the cache (`data\polys5.mpk`); later renders are faster.
+- The first render converts the models and fills the cache (`data\polys6.mpk`); later renders are faster.
 
 ## Changelog
+**2.1.0** (2026-09-26)
+- Baked lighting (dark maps) on buildings and city floors
+- Zone groups in batch mode (`all`, realms, expansions, zone types), so every playable dungeon renders in one run
+- Niflib built from source as a .NET 10 fork, SharpDX removed
+- Zoomed area maps (`zNNN_AA.dds`) and PNG previews in the DDS script
+- Fixes: no guessed fill for bound pieces inside the map, Dun Crimthain heading, old NIF 3.03 models fall back to their newer copy
+- Trees are always drawn from their models; the prerendered tree images are gone
+
 **2.0.0** (2026-09-26): first release of the fork, everything listed above.
 
 ## Original changelog (Merec)

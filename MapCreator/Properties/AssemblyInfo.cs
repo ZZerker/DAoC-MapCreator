@@ -15,7 +15,7 @@ using System.Runtime.Versioning;
 [assembly: Guid("aa6c129e-6bad-4fce-bc5d-a9a6b3f299ed")]
 // Stays 1.0.0.1: the settings folder is keyed by it and would start empty
 [assembly: AssemblyVersion("1.0.0.1")]
-[assembly: AssemblyFileVersion("2.0.0.0")]
-[assembly: AssemblyInformationalVersion("2.0.0")]
+[assembly: AssemblyFileVersion("2.1.0.0")]
+[assembly: AssemblyInformationalVersion("2.1.0")]
 [assembly: NeutralResourcesLanguageAttribute("en")]
 [assembly: SupportedOSPlatform("windows")]
