@@ -134,7 +134,7 @@ namespace NifUtil.Classes
                 var transformationMatrix = this.ComputeWorldMatrix(shape);
                 var textures = this.ApplyTextureResolver(shape, this.GetTextures(shape));
                 var first = this.Polys.Count;
-                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetVertexColors(shape, geometry), this.GetMaterialColor(shape));
+                this.ComputePolys(geometry.Triangles, geometry, transformationMatrix, textures, this.GetVertexColors(shape, geometry), this.GetMaterialColor(shape));
                 this.MarkWaterProxy(shape, first);
             }
         }
@@ -183,14 +183,14 @@ namespace NifUtil.Classes
                 var transformationMatrix = this.ComputeWorldMatrix(strips);
                 var textures = this.ApplyTextureResolver(strips, this.GetTextures(strips));
                 var first = this.Polys.Count;
-                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetVertexColors(strips, geometry), this.GetMaterialColor(strips));
+                this.ComputePolys(triangles.ToArray(), geometry, transformationMatrix, textures, this.GetVertexColors(strips, geometry), this.GetMaterialColor(strips));
                 this.MarkWaterProxy(strips, first);
             }
         }
 
         private sealed record BaseTexture(string Name, int UvSetIndex);
 
-        private sealed record TextureLayers(BaseTexture Texture1, BaseTexture Texture2);
+        private sealed record TextureLayers(BaseTexture Texture1, BaseTexture Texture2, BaseTexture Dark = null);
 
         private sealed record ShaderTexture(uint SourceRef, int UvSetIndex, uint MapId);
 
@@ -210,14 +210,14 @@ namespace NifUtil.Classes
                         && TryGetIndex(node, "Texture1Index", out var first)
                         && TryGetIndex(node, "Texture2Index", out var second))
                     {
-                        return new TextureLayers(this.Resolve(maps, first), this.Resolve(maps, second));
+                        var dark = TryGetIndex(node, "DarkIndex", out var darkIndex) ? this.Resolve(maps, darkIndex) : null;
+                        return new TextureLayers(this.Resolve(maps, first), this.Resolve(maps, second), dark);
                     }
 
-                    if (texturing.BaseTexture?.Source != null
-                        && this.File.ObjectsByRef.TryGetValue(texturing.BaseTexture.Source.RefId, out var source)
-                        && source is NiSourceTexture sourceTexture && sourceTexture.FileName != null)
+                    var baseTexture = this.GetTexture(texturing.BaseTexture);
+                    if (baseTexture != null)
                     {
-                        return new TextureLayers(new BaseTexture(sourceTexture.FileName.ToString(), (int)texturing.BaseTexture.UVSetIndex), null);
+                        return new TextureLayers(baseTexture, null, this.GetTexture(texturing.DarkTexture));
                     }
 
                     if (texturing.NumShaderTextures > 0
@@ -229,6 +229,17 @@ namespace NifUtil.Classes
                 }
             }
             return new TextureLayers(null, null);
+        }
+
+        private BaseTexture GetTexture(TexDesc description)
+        {
+            if (description?.Source != null
+                && this.File.ObjectsByRef.TryGetValue(description.Source.RefId, out var source)
+                && source is NiSourceTexture sourceTexture && sourceTexture.FileName != null)
+            {
+                return new BaseTexture(sourceTexture.FileName.ToString(), (int)description.UVSetIndex);
+            }
+            return null;
         }
 
         private TextureLayers ApplyTextureResolver(NiAVObject node, TextureLayers textures)
@@ -422,11 +433,20 @@ namespace NifUtil.Classes
             return uvSet.Length == geometry.Vertices.Length ? uvSet : null;
         }
 
-        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix4x4 transformation, string texture, Vector2[] uvSet, string texture2, Vector2[] uvSet2, float[] textureBlend, Color4[] vertexColors, int materialColor)
+        private void ComputePolys(Triangle[] trianlges, NiGeometryData geometry, Matrix4x4 transformation, TextureLayers textures, Color4[] vertexColors, int materialColor)
         {
+            var texture = textures.Texture1?.Name;
+            var uvSet = GetUvSet(geometry, textures.Texture1);
+            var texture2 = textures.Texture2?.Name;
+            var uvSet2 = GetUvSet(geometry, textures.Texture2);
+            var textureBlend = GetBlend(geometry, textures.Texture2);
+            // A dark map on the base texture's coordinates would be wrong, so no fallback to set 0
+            var darkUvSet = textures.Dark != null && textures.Dark.UvSetIndex < (geometry.UVSets?.Length ?? 0) ? GetUvSet(geometry, textures.Dark) : null;
+            var darkTexture = darkUvSet != null ? textures.Dark.Name : null;
+
             // Transaform all vertices
             var verticesTransformed = new List<Vector3>();
-            foreach (var vector in vertices) verticesTransformed.Add(NumericsTransform.TransformCoordinate(vector, transformation));
+            foreach (var vector in geometry.Vertices) verticesTransformed.Add(NumericsTransform.TransformCoordinate(vector, transformation));
 
             foreach (var triangle in trianlges)
             {
@@ -441,6 +461,8 @@ namespace NifUtil.Classes
                                Texture2 = texture2,
                                Uvs2 = uvSet2 == null ? null : new[] { uvSet2[triangle.X], uvSet2[triangle.Y], uvSet2[triangle.Z] },
                                TextureBlend = textureBlend == null ? null : new[] { textureBlend[triangle.X], textureBlend[triangle.Y], textureBlend[triangle.Z] },
+                               DarkTexture = darkTexture,
+                               DarkUvs = darkUvSet == null ? null : new[] { darkUvSet[triangle.X], darkUvSet[triangle.Y], darkUvSet[triangle.Z] },
                                VertexColors = vertexColors == null ? null : new[] { vertexColors[triangle.X], vertexColors[triangle.Y], vertexColors[triangle.Z] }.SelectMany(c => new[] { c.Red, c.Green, c.Blue }).ToArray(),
                                MaterialColor = materialColor
                            };
@@ -472,9 +494,9 @@ namespace NifUtil.Classes
             {
                 using (var writer = new BinaryWriter(fs))
                 {
-                    var textures = this.Polys.SelectMany(p => new[] { p.Texture, p.Texture2 }).Where(t => t != null).Distinct().ToList();
+                    var textures = this.Polys.SelectMany(p => new[] { p.Texture, p.Texture2, p.DarkTexture }).Where(t => t != null).Distinct().ToList();
 
-                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V5);
+                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V6);
                     writer.Write(textures.Count);
                     foreach (var texture in textures)
                     {
@@ -485,6 +507,7 @@ namespace NifUtil.Classes
                     {
                         writer.Write(poly.Texture == null ? -1 : textures.IndexOf(poly.Texture));
                         writer.Write(poly.Texture2 == null ? -1 : textures.IndexOf(poly.Texture2));
+                        writer.Write(poly.DarkTexture == null ? -1 : textures.IndexOf(poly.DarkTexture));
 
                         writer.Write(poly.P1.X);
                         writer.Write(poly.P1.Y);
@@ -531,6 +554,15 @@ namespace NifUtil.Classes
                             foreach (var value in poly.VertexColors)
                             {
                                 writer.Write(value);
+                            }
+                        }
+                        writer.Write(poly.DarkUvs != null);
+                        if (poly.DarkUvs != null)
+                        {
+                            foreach (var uv in poly.DarkUvs)
+                            {
+                                writer.Write(uv.X);
+                                writer.Write(uv.Y);
                             }
                         }
                     }

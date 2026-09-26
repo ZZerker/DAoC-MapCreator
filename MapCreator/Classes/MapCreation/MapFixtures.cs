@@ -148,7 +148,7 @@ namespace MapCreator.Classes.MapCreation
                 foreach (var drawableElement in fixture.DrawableElements)
                 {
                     canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1,
-                                        drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths, fixture.CanvasX, fixture.CanvasY, fixture.BaseCanvasZ, drawableElement.VertexColors);
+                                        drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths, fixture.CanvasX, fixture.CanvasY, fixture.BaseCanvasZ, drawableElement.VertexColors, drawableElement.Dark, drawableElement.DarkUvs);
                 }
             }
 
@@ -437,7 +437,7 @@ namespace MapCreator.Classes.MapCreation
                 var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight);
                 foreach (var drawableElement in fixture.DrawableElements)
                 {
-                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths, vertexColors: drawableElement.VertexColors);
+                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths, vertexColors: drawableElement.VertexColors, dark: drawableElement.Dark, darkUvs: drawableElement.DarkUvs);
                 }
                 return canvas.ToImage();
             }

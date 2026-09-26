@@ -16,6 +16,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private const int ALPHA_THRESHOLD = 128;
 
+        // Dark maps are authored far below white (medians 40 to 140); 1.5 keeps roofs from going black without bleaching cities
+        private const double DARK_MAP_SCALE = 1.5;
+
         private readonly int width;
         private readonly int height;
         private readonly int bufferWidth;
@@ -41,7 +44,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Depths are corner heights; the offsets place a model's canvas coordinates on a shared canvas.
         /// </summary>
         public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null,
-                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null)
+                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null)
         {
             var points = coordinates.Select(p => new PointD((p.X + offsetX) * SUPER_SAMPLING, (p.Y + offsetY) * SUPER_SAMPLING)).ToArray();
             if (points.Length != 3)
@@ -61,6 +64,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 var uvArea = Math.Abs((uvs[1].X - uvs[0].X) * (uvs[2].Y - uvs[0].Y) - (uvs[2].X - uvs[0].X) * (uvs[1].Y - uvs[0].Y)) * texture.Width * texture.Height;
                 texelsPerPixel = Math.Sqrt(uvArea / Math.Abs(area));
+            }
+
+            var darkened = textured && dark != null && darkUvs != null;
+            var darkTexelsPerPixel = 0d;
+            if (darkened)
+            {
+                var darkUvArea = Math.Abs((darkUvs[1].X - darkUvs[0].X) * (darkUvs[2].Y - darkUvs[0].Y) - (darkUvs[2].X - darkUvs[0].X) * (darkUvs[1].Y - darkUvs[0].Y)) * dark.Width * dark.Height;
+                darkTexelsPerPixel = Math.Sqrt(darkUvArea / Math.Abs(area));
             }
 
             var solidR = color.R / 257d * light;
@@ -115,6 +126,16 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         if (a < ALPHA_THRESHOLD)
                         {
                             continue;
+                        }
+
+                        if (darkened)
+                        {
+                            var du = w0 * darkUvs[0].X + w1 * darkUvs[1].X + w2 * darkUvs[2].X;
+                            var dv = w0 * darkUvs[0].Y + w1 * darkUvs[1].Y + w2 * darkUvs[2].Y;
+                            dark.Sample(du, dv, darkTexelsPerPixel, out var dr, out var dg, out var db, out _);
+                            r *= dr * DARK_MAP_SCALE / 255d;
+                            g *= dg * DARK_MAP_SCALE / 255d;
+                            b *= db * DARK_MAP_SCALE / 255d;
                         }
 
                         r *= light;

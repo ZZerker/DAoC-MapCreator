@@ -182,7 +182,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var texture2Name = poly.Texture2 != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.Texture2), out var proxy2) ? proxy2 : poly.Texture2;
                 var texture = textureMode == TextureMode.Map && poly.Uvs != null ? TextureCache.Get(textureName, this.TextureDirectory) : null;
                 var texture2 = textureMode == TextureMode.Map && poly.Uvs2 != null ? TextureCache.Get(texture2Name, this.TextureDirectory) : null;
-                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors });
+                var darkName = poly.DarkTexture != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.DarkTexture), out var darkProxy) ? darkProxy : poly.DarkTexture;
+                var dark = textureMode == TextureMode.Map && poly.DarkUvs != null ? TextureCache.Get(darkName, this.TextureDirectory) : null;
+                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors, Dark = dark, DarkUvs = poly.DarkUvs });
             }
 
             this.DrawableElements = drawlist.OrderBy(o => o.Order);
@@ -245,7 +247,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 // Check visibility of polygons
-                var newPolygon = new Polygon(p1, p2, p3, poly.Texture, poly.Uvs) { Texture2 = poly.Texture2, Uvs2 = poly.Uvs2, TextureBlend = poly.TextureBlend, VertexColors = poly.VertexColors, MaterialColor = poly.MaterialColor };
+                var newPolygon = poly with { Vectors = new[] { p1, p2, p3 } };
                 if (this.PolygonArea(newPolygon.Vectors) > 0.01)
                 {
                     this.ProcessedPolygons.Add(newPolygon);
@@ -339,6 +341,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Baked lighting of the corners as r, g, b each, multiplied into the color
         /// </summary>
         public float[] VertexColors;
+
+        /// <summary>
+        /// Dark map (baked lighting) multiplied into the color, null if the mesh has none
+        /// </summary>
+        public TextureImage Dark;
+
+        public Vector2[] DarkUvs;
 
         public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates, System.Drawing.Color? textureColor = null, TextureImage texture = null, Vector2[] uvs = null, TextureImage texture2 = null, Vector2[] uvs2 = null, float[] textureBlend = null)
         {

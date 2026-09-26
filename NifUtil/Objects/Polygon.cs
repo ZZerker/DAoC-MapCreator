@@ -48,6 +48,13 @@ namespace NifUtil.Objects
         public float[] TextureBlend { get; set; }
 
         /// <summary>
+        /// Dark map (baked lighting texture) multiplied into the color, with its own texture coordinates
+        /// </summary>
+        public string DarkTexture { get; set; }
+
+        public Vector2[] DarkUvs { get; set; }
+
+        /// <summary>
         /// Vertex colors (baked lighting) of the three corners as r, g, b each, null if the mesh has none
         /// </summary>
         public float[] VertexColors { get; set; }
@@ -68,6 +75,8 @@ namespace NifUtil.Objects
             this.Texture2 = null;
             this.Uvs2 = null;
             this.TextureBlend = null;
+            this.DarkTexture = null;
+            this.DarkUvs = null;
             this.MaterialColor = -1;
         }
     }
