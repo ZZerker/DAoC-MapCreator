@@ -11,7 +11,7 @@ Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/
 - Terrain textures with relief shading computed from the height map at full map size
 - Rivers, lakes and lava; shallow water lets the ground show through, so shores fade into the water
 - Trees drawn from their models, colored from their leaf or bark texture
-- Buildings and objects with their real textures and a soft drop shadow
+- Buildings and objects with their real textures, their baked lighting (dark maps) and a soft drop shadow
 - Zone bounds
 
 **New Frontiers keeps and towers**
@@ -34,7 +34,8 @@ City and dungeon maps use the same frame as the client and bestiary maps, so a p
 - Written as `zNNN.labels.json` next to each map and drawn at the final size by the DDS script, so the text stays sharp
 
 ## Changes in this fork
-- Runs on .NET 10 (was .NET Framework 4.0) with Magick.NET 14 and SharpDX 4.2
+- Runs on .NET 10 (was .NET Framework 4.0) with Magick.NET 14 and `System.Numerics`
+- Niflib built from source: [ZZerker/niflib.net](https://github.com/ZZerker/niflib.net), a .NET 10 fork without SharpDX, included as a git submodule
 - Own triangle rasterizer with textures, trilinear filtering, 2x supersampling and a depth buffer, so every pixel shows the top surface
 - Models use the texture layers and vertex lighting they name, not just their fallback texture
 - All client zones are available; the ones missing in the curated list come from the client's `zones.dat`
@@ -62,7 +63,8 @@ Everything comes from the game client, except:
 - [x] New Frontiers keeps and towers
 - [x] Names and points of interest on the New Frontiers maps
 - [ ] Maps for all dungeons, including the ones without a client map
-- [ ] Later: Old Frontiers keeps, re-render zones Eden has patched, replace the old .NET Framework libraries (Niflib, MPKLib)
+- [x] Niflib on .NET 10, built from source
+- [ ] Later: Old Frontiers keeps, re-render zones Eden has patched, replace the remaining .NET Framework libraries (MPKLib, tree view control)
 
 ## Requirements
 - Windows x64
@@ -71,7 +73,9 @@ Everything comes from the game client, except:
 - For the DDS conversion: Python with Pillow, optionally `texconv.exe` from [DirectXTex](https://github.com/microsoft/DirectXTex/releases) in `tools\bin` for better DXT1 quality
 
 ## Build
+Niflib is a git submodule, so clone with `--recursive` (or run `git submodule update --init` in an existing clone):
 ```
+git clone --recursive https://github.com/ZZerker/DAoC-MapCreator.git
 dotnet build MapCreator.sln -c Release
 ```
 The program is written to `Releases\MapCreator.exe`. Pushing a tag `v*` builds and publishes a GitHub release.
