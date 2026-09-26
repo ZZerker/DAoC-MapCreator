@@ -62,7 +62,7 @@ Everything comes from the game client, except:
 - [x] Renderer quality: relief shading, blended ground layers, vertex lighting, depth shaded water, shadows
 - [x] New Frontiers keeps and towers
 - [x] Names and points of interest on the New Frontiers maps
-- [ ] Maps for all dungeons, including the ones without a client map
+- [ ] Maps for every playable dungeon, including those the game itself has no map for
 - [x] Niflib on .NET 10, built from source
 - [ ] Later: Old Frontiers keeps, re-render zones Eden has patched, replace the remaining .NET Framework libraries (MPKLib, tree view control)
 
