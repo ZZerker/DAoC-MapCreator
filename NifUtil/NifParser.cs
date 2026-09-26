@@ -38,8 +38,6 @@ namespace NifUtil
 
         private Polygon[] polygons;
 
-        private byte[] nifData;
-
         #region Events
         public event IsNodeDrawableEventHandler IsNodeDrawable;
         #endregion
@@ -88,13 +86,6 @@ namespace NifUtil
         /// </summary>
         private void ReadNifFile()
         {
-            using (var data = new MemoryStream())
-            {
-                this.fileReader.BaseStream.CopyTo(data);
-                this.nifData = data.ToArray();
-                this.fileReader.BaseStream.Position = 0;
-            }
-
             using (var br = new BinaryReader(this.fileReader.BaseStream))
             {
 	            this.nifFile = new NiFile(br);
@@ -125,7 +116,7 @@ namespace NifUtil
                     break;
                 case ConvertType.PolyText:
                 case ConvertType.Poly:
-                    var conv = new ConvertPoly(this.nifFile, this.nifData) { ResolveTexture = this.ResolveTexture };
+                    var conv = new ConvertPoly(this.nifFile) { ResolveTexture = this.ResolveTexture };
                     if (this.IsNodeDrawable != null)
                     {
                         conv.IsNodeDrawable += delegate (NiAVObject node)
@@ -170,7 +161,7 @@ namespace NifUtil
         {
             if (this.polygons != null) return this.polygons;
 
-            var conv = new ConvertPoly(this.nifFile, this.nifData);
+            var conv = new ConvertPoly(this.nifFile);
             return conv.Polys.ToArray();
         }
 

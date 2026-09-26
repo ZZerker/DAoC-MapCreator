@@ -29,8 +29,6 @@ namespace NifUtil.Classes
 {
 	internal class ConvertPoly : Convert
     {
-	    private readonly IReadOnlyDictionary<uint, ShaderTexture[]> shaderTextures;
-
 	    internal List<Polygon> Polys { get; set; } = new List<Polygon>();
 
 	    // Water proxies (placeholders the engine replaces with its water) as ranges of Polys
@@ -38,10 +36,9 @@ namespace NifUtil.Classes
 
 	    internal Func<string, string, string> ResolveTexture { get; set; }
 
-        public ConvertPoly(NiFile niFile, byte[] nifData)
+        public ConvertPoly(NiFile niFile)
             :base(niFile)
         {
-            this.shaderTextures = ReadShaderTextures(niFile, nifData);
         }
 
         public void Start()
@@ -192,8 +189,6 @@ namespace NifUtil.Classes
 
         private sealed record TextureLayers(BaseTexture Texture1, BaseTexture Texture2, BaseTexture Dark = null);
 
-        private sealed record ShaderTexture(uint SourceRef, int UvSetIndex, uint MapId);
-
         private TextureLayers GetTextures(NiAVObject node)
         {
             for (var current = node; current != null; current = current.Parent)
@@ -206,7 +201,8 @@ namespace NifUtil.Classes
                     }
 
                     // Shader maps named by the mesh win over the base texture, which is only the fallback for old hardware
-                    if (this.shaderTextures.TryGetValue(property.RefId, out var maps)
+                    var maps = texturing.ShaderTextures;
+                    if (maps.Length > 0
                         && TryGetIndex(node, "Texture1Index", out var first)
                         && TryGetIndex(node, "Texture2Index", out var second))
                     {
@@ -220,11 +216,10 @@ namespace NifUtil.Classes
                         return new TextureLayers(baseTexture, null, this.GetTexture(texturing.DarkTexture));
                     }
 
-                    if (texturing.NumShaderTextures > 0
-                        && this.File.ObjectsByRef.TryGetValue(property.RefId + 1, out var next)
-                        && next is NiSourceTexture shaderTexture && shaderTexture.FileName != null)
+                    var firstMap = maps.Select(map => this.GetTexture(map?.Map)).FirstOrDefault(texture => texture != null);
+                    if (firstMap != null)
                     {
-                        return new TextureLayers(new BaseTexture(shaderTexture.FileName.ToString(), 0), null);
+                        return new TextureLayers(firstMap, null);
                     }
                 }
             }
@@ -267,15 +262,9 @@ namespace NifUtil.Classes
             return null;
         }
 
-        private BaseTexture Resolve(IEnumerable<ShaderTexture> maps, uint mapId)
+        private BaseTexture Resolve(IEnumerable<ShaderTexDesc> maps, uint mapId)
         {
-            var map = maps.FirstOrDefault(m => m?.MapId == mapId);
-            if (map != null && this.File.ObjectsByRef.TryGetValue(map.SourceRef, out var source)
-                && source is NiSourceTexture texture && texture.FileName != null)
-            {
-                return new BaseTexture(texture.FileName.ToString(), map.UvSetIndex);
-            }
-            return null;
+            return this.GetTexture(maps.FirstOrDefault(m => m?.MapID == mapId)?.Map);
         }
 
         private static bool TryGetIndex(NiAVObject node, string name, out uint value)
@@ -291,80 +280,6 @@ namespace NifUtil.Classes
             }
             value = 0;
             return false;
-        }
-
-        // Niflib skips shader texture lists, so scan the raw NIF for their descriptors.
-        private static IReadOnlyDictionary<uint, ShaderTexture[]> ReadShaderTextures(NiFile file, byte[] bytes)
-        {
-            var properties = file.ObjectsByRef.Where(item => item.Value is NiTexturingProperty property && property.NumShaderTextures > 0).OrderBy(item => item.Key).ToArray();
-            var candidates = new List<ShaderTexture[]>();
-            for (var offset = 0; offset <= bytes.Length - 4; offset++)
-            {
-                var count = BitConverter.ToUInt32(bytes, offset);
-                if (count > 0 && count <= 16 && properties.Any(item => ((NiTexturingProperty)item.Value).NumShaderTextures == count)
-                    && TryReadShaderTextures(file, bytes, offset + 4, (int)count, out var maps))
-                {
-                    candidates.Add(maps);
-                    offset += 3;
-                }
-            }
-
-            var result = new Dictionary<uint, ShaderTexture[]>();
-            var next = 0;
-            foreach (var property in properties)
-            {
-                var count = ((NiTexturingProperty)property.Value).NumShaderTextures;
-                while (next < candidates.Count && candidates[next].Length != count)
-                {
-                    next++;
-                }
-                if (next < candidates.Count)
-                {
-                    result[property.Key] = candidates[next++];
-                }
-            }
-            return result;
-        }
-
-        private static bool TryReadShaderTextures(NiFile file, byte[] bytes, int offset, int count, out ShaderTexture[] maps)
-        {
-            maps = new ShaderTexture[count];
-            for (var i = 0; i < count; i++)
-            {
-                if (offset >= bytes.Length)
-                {
-                    return false;
-                }
-                var hasMap = bytes[offset++];
-                if (hasMap == 0)
-                {
-                    continue;
-                }
-                if (hasMap != 1)
-                {
-                    return false;
-                }
-                if (offset + 25 > bytes.Length)
-                {
-                    return false;
-                }
-
-                var sourceRef = BitConverter.ToUInt32(bytes, offset);
-                var clamp = BitConverter.ToUInt32(bytes, offset + 4);
-                var filter = BitConverter.ToUInt32(bytes, offset + 8);
-                var uvSet = BitConverter.ToUInt32(bytes, offset + 12);
-                var transform = bytes[offset + 20];
-                var mapId = BitConverter.ToUInt32(bytes, offset + 21);
-                if (!file.ObjectsByRef.TryGetValue(sourceRef, out var source) || source is not NiSourceTexture
-                    || clamp > 3 || filter > 5 || uvSet > 15 || transform != 0 || mapId >= count)
-                {
-                    return false;
-                }
-                maps[i] = new ShaderTexture(sourceRef, (int)uvSet, mapId);
-                offset += 25;
-            }
-            var usedMaps = maps.Where(map => map != null).ToArray();
-            return usedMaps.Length > 0 && usedMaps.Select(map => map.MapId).Distinct().Count() == usedMaps.Length;
         }
 
         private static float[] GetBlend(NiGeometryData geometry, BaseTexture texture2)
