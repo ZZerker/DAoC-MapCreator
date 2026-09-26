@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using ImageMagick;
@@ -22,6 +22,9 @@ namespace MapCreator.Classes.Rendering
         private const double TARGET_BRIGHTNESS = 0.85;
 
         private const double MAX_GAIN = 3.0;
+
+        // Tiled floor textures repeat visibly (Jordheim grass); a soft brightness variation over several tiles breaks the pattern
+        private const double VARIATION = 0.15;
 
         public void Render(ZoneConfiguration conf, FileInfo mapFile)
         {
@@ -75,7 +78,65 @@ namespace MapCreator.Classes.Rendering
                 reporter.Log("Rendering models ...", LogLevel.Notice);
                 models.DrawShared(layer);
             }
+            BreakUpTiling(layer, conf.ZoneId);
             return layer;
+        }
+
+        /// <summary>
+        /// Multiplies the drawn pixels by smooth noise of two scales, the same for every map of the zone
+        /// </summary>
+        private static void BreakUpTiling(MagickImage layer, string zoneId)
+        {
+            var size = (int)layer.Width;
+            var random = new Random(int.Parse(zoneId));
+            var noise = new double[size * size];
+            foreach (var (cells, weight) in new[] { (12, 0.5), (40, 0.3), (120, 0.2) })
+            {
+                var grid = new double[(cells + 1) * (cells + 1)];
+                for (var i = 0; i < grid.Length; i++)
+                {
+                    grid[i] = random.NextDouble() * 2 - 1;
+                }
+
+                for (var y = 0; y < size; y++)
+                {
+                    var gy = (double)y * cells / size;
+                    var y0 = (int)gy;
+                    var fy = SmoothStep(gy - y0);
+                    for (var x = 0; x < size; x++)
+                    {
+                        var gx = (double)x * cells / size;
+                        var x0 = (int)gx;
+                        var fx = SmoothStep(gx - x0);
+                        var top = grid[y0 * (cells + 1) + x0] * (1 - fx) + grid[y0 * (cells + 1) + x0 + 1] * fx;
+                        var bottom = grid[(y0 + 1) * (cells + 1) + x0] * (1 - fx) + grid[(y0 + 1) * (cells + 1) + x0 + 1] * fx;
+                        noise[y * size + x] += weight * (top * (1 - fy) + bottom * fy);
+                    }
+                }
+            }
+
+            var channels = (int)layer.ChannelCount;
+            using var pixels = layer.GetPixels();
+            var values = pixels.ToArray();
+            if (values == null || channels < 4)
+            {
+                return;
+            }
+
+            for (var i = 0; i < noise.Length; i++)
+            {
+                var factor = 1 + VARIATION * noise[i];
+                for (var c = 0; c < 3; c++)
+                {
+                    values[i * channels + c] = (ushort)Math.Clamp(values[i * channels + c] * factor, 0, ushort.MaxValue);
+                }
+            }
+            pixels.SetPixels(values);
+        }
+
+        private static double SmoothStep(double t)
+        {
+            return t * t * (3 - 2 * t);
         }
 
         /// <summary>
