@@ -1,7 +1,7 @@
 r"""Convert MapCreator PNG renders (z{id}.png) to DXT1 DDS maps for the TokaZerk UI.
 
-Usage: python png_to_dds.py <render dir> <dds dir> [size] [--no-labels] [--uncompressed]
-Writes <dds dir>\zNNN.dds, optionally downscaled to <size> x <size>.
+Usage: python png_to_dds.py <render dir> <dds dir> [size] [--no-labels] [--uncompressed] [--png] [--areas areas.dat] [--area-size 256]
+Writes <dds dir>\zNNN.dds, optionally downscaled to <size> x <size>, and zNNN_AA.dds for the zoomed areas in areas.dat. --png also writes a PNG of every DDS for viewing.
 Labels from zNNN.labels.json (written by MapCreator) are drawn after scaling, so text stays sharp at the final size.
 """
 import json
@@ -153,11 +153,57 @@ def draw_labels(img, labels):
     return Image.alpha_composite(img.convert("RGBA"), labels_layer).convert("RGB")
 
 
+ZONE_UNITS = 65536
+
+
+def load_areas(path):
+    """Zoomed areas per zone from the UI's areas.dat: {zone id: [(left, top, width, height), ...]}"""
+    areas, zone, values = {}, None, {}
+
+    def flush():
+        if zone is not None:
+            count = int(values.get("area_count", 0))
+            areas[zone] = [tuple(int(values[f"area{i}_{k}"]) for k in ("left", "top", "width", "height")) for i in range(count)]
+
+    for line in Path(path).read_text(encoding="latin-1").splitlines():
+        line = line.strip()
+        if line.startswith("[zone") and line.endswith("]"):
+            flush()
+            zone, values = line[5:-1].zfill(3), {}
+        elif "=" in line and not line.startswith(";"):
+            key, value = line.split("=", 1)
+            values[key.strip().lower()] = value.split(";")[0].strip()
+    flush()
+    return areas
+
+
+def area_labels(labels, area):
+    """Labels inside the area, in area coordinates; neighbor names belong to the whole map"""
+    left, top, width, height = area
+    result = []
+    for label in labels:
+        x = (label["x"] * ZONE_UNITS - left) / width
+        y = (label["y"] * ZONE_UNITS - top) / height
+        if label["kind"] != "neighbor" and 0 <= x <= 1 and 0 <= y <= 1:
+            result.append(dict(label, x=x, y=y))
+    return result
+
+
+def option(name):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv and sys.argv.index(name) + 1 < len(sys.argv) else None
+
+
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    values = {sys.argv.index(name) + 1 for name in ("--areas", "--area-size") if name in sys.argv}
+    args = [a for i, a in enumerate(sys.argv) if i > 0 and i not in values and not a.startswith("--")]
     labels_on = "--no-labels" not in sys.argv
+    # Zoomed area maps zNNN_AA.dds, e.g. the New Frontiers mazes
+    areas = load_areas(option("--areas")) if option("--areas") else {}
+    area_size = int(option("--area-size") or 256)
     # DXT1 blurs fine text into 4x4 blocks; uncompressed is 6 times larger
     uncompressed = "--uncompressed" in sys.argv
+    # Windows has no DDS viewer; the preview shows the encoded result
+    png_preview = "--png" in sys.argv
     source = Path(args[0])
     target = Path(args[1])
     size = int(args[2]) if len(args) > 2 else None
@@ -168,19 +214,32 @@ def main():
         sys.exit(f"no z*.png in {source}")
 
     for png in pngs:
-        with Image.open(png) as img:
-            img = img.convert("RGB")
-            if size and img.size != (size, size):
-                img = img.resize((size, size), Image.LANCZOS)
-            labels_file = png.with_suffix(".labels.json")
-            if labels_on and labels_file.exists():
-                img = draw_labels(img, json.loads(labels_file.read_text(encoding="utf-8"))["labels"])
-            dds = target / (png.stem + ".dds")
+        with Image.open(png) as source_img:
+            full = source_img.convert("RGB")
+        labels_file = png.with_suffix(".labels.json")
+        labels = json.loads(labels_file.read_text(encoding="utf-8"))["labels"] if labels_on and labels_file.exists() else []
+
+        maps = [(png.stem, full, size, labels)]
+        for index, area in enumerate(areas.get(png.stem[1:], [])):
+            left, top, width, height = area
+            scale = full.size[0] / ZONE_UNITS
+            crop = full.crop((round(left * scale), round(top * scale), round((left + width) * scale), round((top + height) * scale)))
+            maps.append((f"{png.stem}_{index:02}", crop, area_size, area_labels(labels, area)))
+
+        for name, img, target_size, map_labels in maps:
+            if target_size and img.size != (target_size, target_size):
+                img = img.resize((target_size, target_size), Image.LANCZOS)
+            if map_labels:
+                img = draw_labels(img, map_labels)
+            dds = target / (name + ".dds")
             if uncompressed:
                 img.save(dds, "DDS")
             else:
                 save_dxt1(img, dds)
-        print(f"{dds}  {img.size[0]}x{img.size[1]}  {dds.stat().st_size} bytes")
+            if png_preview:
+                with Image.open(dds) as encoded:
+                    encoded.convert("RGB").save(dds.with_suffix(".png"))
+            print(f"{dds}  {img.size[0]}x{img.size[1]}  {dds.stat().st_size} bytes")
 
 
 if __name__ == "__main__":

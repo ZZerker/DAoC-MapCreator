@@ -1,10 +1,15 @@
 # Renders zones (default: all New Frontiers outdoor zones) and converts them to DXT1 DDS maps (zNNN.dds).
-# Usage: .\render_nf.ps1 [-Size 2048] [-DdsSize 2048] [-Parallel 4] [-Zones 163,171] (zone ids or groups like nf+outdoor)
+# Usage: .\render_nf.ps1 [-Size 2048] [-DdsSize 2048] [-Parallel 4] [-Zones 163,171] [-Areas <UI>\Maps\areas.dat] [-AreaSize 256] [-Png]
+# Zones take ids or groups like nf+outdoor. -Areas also writes the zoomed area maps zNNN_AA.dds (New Frontiers mazes).
+# -Png writes a PNG next to every DDS for viewing.
 param(
     [int]$Size = 2048,
     [int]$DdsSize = 0,
     [int]$Parallel = 4,
-    [string[]]$Zones = @('nf+outdoor')
+    [string[]]$Zones = @('nf+outdoor'),
+    [string]$Areas = '',
+    [int]$AreaSize = 256,
+    [switch]$Png
 )
 
 $ErrorActionPreference = 'Stop'
@@ -37,6 +42,12 @@ Select-String -Path $log -Pattern '^\S+ error' | ForEach-Object { Write-Warning 
 $pythonArgs = @((Join-Path $PSScriptRoot 'png_to_dds.py'), $renderDir, $ddsDir)
 if ($DdsSize -gt 0) {
     $pythonArgs += $DdsSize
+}
+if ($Areas) {
+    $pythonArgs += '--areas', $Areas, '--area-size', $AreaSize
+}
+if ($Png) {
+    $pythonArgs += '--png'
 }
 python @pythonArgs
 Write-Host "DDS maps: $ddsDir"
