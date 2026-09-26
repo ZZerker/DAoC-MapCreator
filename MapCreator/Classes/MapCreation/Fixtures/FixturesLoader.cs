@@ -336,7 +336,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                 // A copy, the cached polygons are shared with other zones. Turned by 180 degrees: on the client maps
                 // city x grows to the left and y downwards (checked against the Camelot, Jordheim and Tir na Nog maps).
-                nifRow.Polygons = nifRow.Polygons.Select(p => new Polygon(TurnAround(p.P1, center), TurnAround(p.P2, center), TurnAround(p.P3, center), p.Texture, p.Uvs) { Texture2 = p.Texture2, Uvs2 = p.Uvs2, TextureBlend = p.TextureBlend, MaterialColor = p.MaterialColor }).ToArray();
+                nifRow.Polygons = nifRow.Polygons.Select(p => new Polygon(TurnAround(p.P1, center), TurnAround(p.P2, center), TurnAround(p.P3, center), p.Texture, p.Uvs) { Texture2 = p.Texture2, Uvs2 = p.Uvs2, TextureBlend = p.TextureBlend, VertexColors = p.VertexColors, MaterialColor = p.MaterialColor }).ToArray();
                 fixtureRow.X = left + side - center.X;
                 fixtureRow.Y = center.Y - (top - side);
             }
@@ -542,7 +542,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         {
                             foreach (var treePolygon in baseTreePolygons)
                             {
-                                var newPolygon = new Polygon(treePolygon.P1, treePolygon.P2, treePolygon.P3, treePolygon.Texture, treePolygon.Uvs) { Texture2 = treePolygon.Texture2, Uvs2 = treePolygon.Uvs2, TextureBlend = treePolygon.TextureBlend, MaterialColor = treePolygon.MaterialColor };
+                                var newPolygon = new Polygon(treePolygon.P1, treePolygon.P2, treePolygon.P3, treePolygon.Texture, treePolygon.Uvs) { Texture2 = treePolygon.Texture2, Uvs2 = treePolygon.Uvs2, TextureBlend = treePolygon.TextureBlend, VertexColors = treePolygon.VertexColors, MaterialColor = treePolygon.MaterialColor };
                                 for (var i = 0; i < newPolygon.Vectors.Length; i++)
                                 {
                                     newPolygon.Vectors[i].X -= tree.X;

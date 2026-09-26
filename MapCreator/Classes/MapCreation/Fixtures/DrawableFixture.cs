@@ -182,7 +182,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var texture2Name = poly.Texture2 != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.Texture2), out var proxy2) ? proxy2 : poly.Texture2;
                 var texture = textureMode == TextureMode.Map && poly.Uvs != null ? TextureCache.Get(textureName, this.TextureDirectory) : null;
                 var texture2 = textureMode == TextureMode.Map && poly.Uvs2 != null ? TextureCache.Get(texture2Name, this.TextureDirectory) : null;
-                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths });
+                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors });
             }
 
             this.DrawableElements = drawlist.OrderBy(o => o.Order);
@@ -245,7 +245,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 // Check visibility of polygons
-                var newPolygon = new Polygon(p1, p2, p3, poly.Texture, poly.Uvs) { Texture2 = poly.Texture2, Uvs2 = poly.Uvs2, TextureBlend = poly.TextureBlend, MaterialColor = poly.MaterialColor };
+                var newPolygon = new Polygon(p1, p2, p3, poly.Texture, poly.Uvs) { Texture2 = poly.Texture2, Uvs2 = poly.Uvs2, TextureBlend = poly.TextureBlend, VertexColors = poly.VertexColors, MaterialColor = poly.MaterialColor };
                 if (this.PolygonArea(newPolygon.Vectors) > 0.01)
                 {
                     this.ProcessedPolygons.Add(newPolygon);
@@ -319,6 +319,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Height of each corner in map units, for the depth test
         /// </summary>
         public double[] Depths;
+
+        /// <summary>
+        /// Baked lighting of the corners as r, g, b each, multiplied into the color
+        /// </summary>
+        public float[] VertexColors;
 
         public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates, System.Drawing.Color? textureColor = null, TextureImage texture = null, Vector2[] uvs = null, TextureImage texture2 = null, Vector2[] uvs2 = null, float[] textureBlend = null)
         {

@@ -33,6 +33,9 @@ namespace NifUtil.Classes
 
 	    internal List<Polygon> Polys { get; set; } = new List<Polygon>();
 
+	    // Water proxies (placeholders the engine replaces with its water) as ranges of Polys
+	    private readonly List<(int First, int End)> waterProxies = new List<(int First, int End)>();
+
 	    internal Func<string, string, string> ResolveTexture { get; set; }
 
         public ConvertPoly(NiFile niFile, byte[] nifData)
@@ -44,6 +47,48 @@ namespace NifUtil.Classes
         public void Start()
         {
             this.WalkNodes(this.File.FindRoot());
+            this.LightUnlitPolys();
+        }
+
+        private void MarkWaterProxy(NiAVObject node, int first)
+        {
+            if (this.Polys.Count > first && this.Polys[first].VertexColors == null
+                && node.Name?.Value != null && node.Name.Value.Contains("waterproxy", StringComparison.OrdinalIgnoreCase))
+            {
+                this.waterProxies.Add((first, this.Polys.Count));
+            }
+        }
+
+        /// <summary>
+        /// Water proxies have no baked lighting, in the game the scene light lights them: they get the model's average vertex color
+        /// </summary>
+        private void LightUnlitPolys()
+        {
+            var lit = this.Polys.Where(p => p.VertexColors != null).ToList();
+            if (lit.Count == 0 || this.waterProxies.Count == 0)
+            {
+                return;
+            }
+
+            var average = new float[3];
+            foreach (var poly in lit)
+            {
+                for (var i = 0; i < 9; i++)
+                {
+                    average[i % 3] += poly.VertexColors[i] / (lit.Count * 3f);
+                }
+            }
+            var colors = new[] { average[0], average[1], average[2], average[0], average[1], average[2], average[0], average[1], average[2] };
+            foreach (var (first, end) in this.waterProxies)
+            {
+                for (var i = first; i < end; i++)
+                {
+                    var poly = this.Polys[i];
+                    poly.VertexColors = colors;
+                    this.Polys[i] = poly;
+                }
+            }
+            this.waterProxies.Clear();
         }
 
         private void WalkNodes(NiAVObject node)
@@ -88,7 +133,9 @@ namespace NifUtil.Classes
             {
                 var transformationMatrix = this.ComputeWorldMatrix(shape);
                 var textures = this.ApplyTextureResolver(shape, this.GetTextures(shape));
-                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetMaterialColor(shape));
+                var first = this.Polys.Count;
+                this.ComputePolys(geometry.Triangles, geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetVertexColors(shape, geometry), this.GetMaterialColor(shape));
+                this.MarkWaterProxy(shape, first);
             }
         }
 
@@ -135,7 +182,9 @@ namespace NifUtil.Classes
             {
                 var transformationMatrix = this.ComputeWorldMatrix(strips);
                 var textures = this.ApplyTextureResolver(strips, this.GetTextures(strips));
-                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetMaterialColor(strips));
+                var first = this.Polys.Count;
+                this.ComputePolys(triangles.ToArray(), geometry.Vertices, transformationMatrix, textures.Texture1?.Name, GetUvSet(geometry, textures.Texture1), textures.Texture2?.Name, GetUvSet(geometry, textures.Texture2), GetBlend(geometry, textures.Texture2), this.GetVertexColors(strips, geometry), this.GetMaterialColor(strips));
+                this.MarkWaterProxy(strips, first);
             }
         }
 
@@ -156,18 +205,19 @@ namespace NifUtil.Classes
                         continue;
                     }
 
-                    if (texturing.BaseTexture?.Source != null
-                        && this.File.ObjectsByRef.TryGetValue(texturing.BaseTexture.Source.RefId, out var source)
-                        && source is NiSourceTexture sourceTexture && sourceTexture.FileName != null)
-                    {
-                        return new TextureLayers(new BaseTexture(sourceTexture.FileName.ToString(), (int)texturing.BaseTexture.UVSetIndex), null);
-                    }
-
+                    // Shader maps named by the mesh win over the base texture, which is only the fallback for old hardware
                     if (this.shaderTextures.TryGetValue(property.RefId, out var maps)
                         && TryGetIndex(node, "Texture1Index", out var first)
                         && TryGetIndex(node, "Texture2Index", out var second))
                     {
                         return new TextureLayers(this.Resolve(maps, first), this.Resolve(maps, second));
+                    }
+
+                    if (texturing.BaseTexture?.Source != null
+                        && this.File.ObjectsByRef.TryGetValue(texturing.BaseTexture.Source.RefId, out var source)
+                        && source is NiSourceTexture sourceTexture && sourceTexture.FileName != null)
+                    {
+                        return new TextureLayers(new BaseTexture(sourceTexture.FileName.ToString(), (int)texturing.BaseTexture.UVSetIndex), null);
                     }
 
                     if (texturing.NumShaderTextures > 0
@@ -316,6 +366,29 @@ namespace NifUtil.Classes
         }
 
         /// <summary>
+        /// Vertex colors that light the mesh, only with NiVertexColorProperty source mode 2 (ambient and diffuse).
+        /// Without it the colors can be black and only their alpha is used (texture blend of city models).
+        /// </summary>
+        private Color4[] GetVertexColors(NiAVObject node, NiGeometryData geometry)
+        {
+            if (!geometry.HasVertexColors || geometry.VertexColors == null || geometry.VertexColors.Length != geometry.Vertices.Length)
+            {
+                return null;
+            }
+            for (var current = node; current != null; current = current.Parent)
+            {
+                foreach (var property in current.Properties)
+                {
+                    if (property.IsValid() && property.Object is NiVertexColorProperty vertexColor)
+                    {
+                        return vertexColor.VertexMode == 2 ? geometry.VertexColors : null;
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Diffuse material color as 0xRRGGBB, -1 if the mesh has none. Untextured meshes are colored by it.
         /// </summary>
         private int GetMaterialColor(NiAVObject node)
@@ -349,7 +422,7 @@ namespace NifUtil.Classes
             return uvSet.Length == geometry.Vertices.Length ? uvSet : null;
         }
 
-        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation, string texture, Vector2[] uvSet, string texture2, Vector2[] uvSet2, float[] textureBlend, int materialColor)
+        private void ComputePolys(Triangle[] trianlges, Vector3[] vertices, Matrix transformation, string texture, Vector2[] uvSet, string texture2, Vector2[] uvSet2, float[] textureBlend, Color4[] vertexColors, int materialColor)
         {
             // Transaform all vertices
             var verticesTransformed = new List<Vector3>();
@@ -368,6 +441,7 @@ namespace NifUtil.Classes
                                Texture2 = texture2,
                                Uvs2 = uvSet2 == null ? null : new[] { uvSet2[triangle.X], uvSet2[triangle.Y], uvSet2[triangle.Z] },
                                TextureBlend = textureBlend == null ? null : new[] { textureBlend[triangle.X], textureBlend[triangle.Y], textureBlend[triangle.Z] },
+                               VertexColors = vertexColors == null ? null : new[] { vertexColors[triangle.X], vertexColors[triangle.Y], vertexColors[triangle.Z] }.SelectMany(c => new[] { c.Red, c.Green, c.Blue }).ToArray(),
                                MaterialColor = materialColor
                            };
                 this.Polys.Add(poly);
@@ -400,7 +474,7 @@ namespace NifUtil.Classes
                 {
                     var textures = this.Polys.SelectMany(p => new[] { p.Texture, p.Texture2 }).Where(t => t != null).Distinct().ToList();
 
-                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V4);
+                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V5);
                     writer.Write(textures.Count);
                     foreach (var texture in textures)
                     {
@@ -449,6 +523,14 @@ namespace NifUtil.Classes
                             foreach (var blend in poly.TextureBlend)
                             {
                                 writer.Write(blend);
+                            }
+                        }
+                        writer.Write(poly.VertexColors != null);
+                        if (poly.VertexColors != null)
+                        {
+                            foreach (var value in poly.VertexColors)
+                            {
+                                writer.Write(value);
                             }
                         }
                     }

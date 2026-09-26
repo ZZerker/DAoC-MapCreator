@@ -41,7 +41,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Depths are corner heights; the offsets place a model's canvas coordinates on a shared canvas.
         /// </summary>
         public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null,
-                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0)
+                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null)
         {
             var points = coordinates.Select(p => new PointD((p.X + offsetX) * SUPER_SAMPLING, (p.Y + offsetY) * SUPER_SAMPLING)).ToArray();
             if (points.Length != 3)
@@ -103,7 +103,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                             var u2 = w0 * uvs2[0].X + w1 * uvs2[1].X + w2 * uvs2[2].X;
                             var v2 = w0 * uvs2[0].Y + w1 * uvs2[1].Y + w2 * uvs2[2].Y;
                             texture2.Sample(u2, v2, texelsPerPixel, out var r2, out var g2, out var b2, out var a2);
-                            var blend = Math.Clamp(w0 * textureBlend[0] + w1 * textureBlend[1] + w2 * textureBlend[2], 0, 1);
+                            // Vertex alpha is the weight of the first layer, unpainted vertices keep the default 1
+                            var blend = 1 - Math.Clamp(w0 * textureBlend[0] + w1 * textureBlend[1] + w2 * textureBlend[2], 0, 1);
                             r += (r2 - r) * blend;
                             g += (g2 - g) * blend;
                             b += (b2 - b) * blend;
@@ -119,6 +120,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         r *= light;
                         g *= light;
                         b *= light;
+                    }
+
+                    if (vertexColors != null)
+                    {
+                        r *= w0 * vertexColors[0] + w1 * vertexColors[3] + w2 * vertexColors[6];
+                        g *= w0 * vertexColors[1] + w1 * vertexColors[4] + w2 * vertexColors[7];
+                        b *= w0 * vertexColors[2] + w1 * vertexColors[5] + w2 * vertexColors[8];
                     }
 
                     if (depths != null)

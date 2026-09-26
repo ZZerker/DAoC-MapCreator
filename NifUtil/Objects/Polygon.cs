@@ -48,6 +48,11 @@ namespace NifUtil.Objects
         public float[] TextureBlend { get; set; }
 
         /// <summary>
+        /// Vertex colors (baked lighting) of the three corners as r, g, b each, null if the mesh has none
+        /// </summary>
+        public float[] VertexColors { get; set; }
+
+        /// <summary>
         /// Diffuse material color as 0xRRGGBB, -1 if the mesh has none
         /// </summary>
         public int MaterialColor { get; set; }
