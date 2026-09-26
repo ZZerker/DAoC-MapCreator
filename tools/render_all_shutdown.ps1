@@ -1,7 +1,8 @@
-# Builds Release, renders every zone in Output\all_maps_zones.txt, converts the NF zones to DDS, then shuts the computer down.
-# Usage: .\render_all_shutdown.ps1 [-Size 2048] [-Parallel 4] [-Dir all_maps] [-NoShutdown]
+# Builds Release, renders every zone (or -Zones, ids or groups like nf+outdoor), converts the NF zones to DDS, then shuts the computer down.
+# Usage: .\render_all_shutdown.ps1 [-Zones all] [-Size 2048] [-Parallel 4] [-Dir all_maps] [-NoShutdown]
 # Cancel a pending shutdown with: shutdown /a
 param(
+    [string]$Zones = 'all',
     [int]$Size = 2048,
     [int]$Parallel = 4,
     [string]$Dir = 'all_maps',
@@ -25,10 +26,9 @@ try {
         throw 'Build failed'
     }
 
-    $zones = (Get-Content (Join-Path $output 'all_maps_zones.txt') -Raw).Trim()
-    Write-Host "Rendering all zones at $Size px, $Parallel at a time"
+    Write-Host "Rendering $Zones at $Size px, $Parallel at a time"
     $started = Get-Date
-    Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -ArgumentList '--render', $zones, '--size', $Size, '--dir', $Dir, '--log', "$Dir.log", '--parallel', $Parallel -Wait
+    Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe -Parent) -ArgumentList '--render', $Zones, '--size', $Size, '--dir', $Dir, '--log', "$Dir.log", '--parallel', $Parallel -Wait
     Write-Host ("Rendering took {0:hh\:mm\:ss}" -f ((Get-Date) - $started))
     Select-String -Path (Join-Path $output "$Dir.log") -Pattern '^\S+ error' | ForEach-Object { Write-Warning $_.Line }
 

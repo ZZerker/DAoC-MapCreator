@@ -106,7 +106,7 @@ namespace MapCreator
         }
 
         /// <summary>
-        /// Batch mode: MapCreator.exe --render 163,164 [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--labels-only] [--no-keeps] [--no-depth-water]
+        /// Batch mode: MapCreator.exe --render 163,164|nf+outdoor|all [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--labels-only] [--no-keeps] [--no-depth-water]
         /// </summary>
         private readonly bool batchMode = false;
 
@@ -114,7 +114,7 @@ namespace MapCreator
 
         public MainForm(string[] args) : this()
         {
-            var batchZoneIds = new List<string>();
+            var batchZoneTerms = new List<string>();
             var batchSize = 0;
             string batchDirectory = null;
             var batchLogName = "render.log";
@@ -124,7 +124,7 @@ namespace MapCreator
                 switch (args[i].ToLower())
                 {
                     case "--render":
-                        batchZoneIds.AddRange(args[i + 1].Split(',').Select(z => z.Trim()).Where(z => z.Length > 0));
+                        batchZoneTerms.Add(args[i + 1]);
                         break;
                     case "--size":
                         batchSize = Convert.ToInt32(args[i + 1]);
@@ -141,7 +141,7 @@ namespace MapCreator
                 }
             }
 
-            if (batchZoneIds.Count == 0)
+            if (batchZoneTerms.Count == 0)
             {
                 return;
             }
@@ -153,6 +153,7 @@ namespace MapCreator
             this.batchLogFile = Path.Combine(logDirectory, batchLogName);
             File.WriteAllText(this.batchLogFile, "");
 
+            var batchZoneIds = ZoneGroups.Resolve(string.Join(",", batchZoneTerms), message => this.Log(message, LogLevel.Warning)).ToList();
             var knownZoneIds = batchZoneIds.Where(DataWrapper.IsKnownZone).ToList();
             foreach (var zoneId in batchZoneIds.Except(knownZoneIds))
             {

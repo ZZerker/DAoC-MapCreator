@@ -1,10 +1,10 @@
 # Renders zones (default: all New Frontiers outdoor zones) and converts them to DXT1 DDS maps (zNNN.dds).
-# Usage: .\render_nf.ps1 [-Size 2048] [-DdsSize 2048] [-Parallel 4] [-Zones 163,171]
+# Usage: .\render_nf.ps1 [-Size 2048] [-DdsSize 2048] [-Parallel 4] [-Zones 163,171] (zone ids or groups like nf+outdoor)
 param(
     [int]$Size = 2048,
     [int]$DdsSize = 0,
     [int]$Parallel = 4,
-    [string[]]$Zones = @('163', '164', '167', '168', '169', '170', '171', '172', '173', '174', '175', '176', '177', '178')
+    [string[]]$Zones = @('nf+outdoor')
 )
 
 $ErrorActionPreference = 'Stop'
