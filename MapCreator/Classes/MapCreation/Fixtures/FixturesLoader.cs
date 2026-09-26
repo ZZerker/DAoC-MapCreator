@@ -203,7 +203,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// </summary>
         private void LoadDungeonData()
         {
-            var chunks = DataWrapper.GetFileContent(this.zoneConf.DatMpk, "dungeon.chunk").Select(c => c.Trim()).ToList();
+            var chunks = DataWrapper.GetFileContent(this.zoneConf.DatMpk, this.zoneConf.DungeonFiles + ".chunk").Select(c => c.Trim()).ToList();
             for (var i = 0; i < chunks.Count; i++)
             {
                 if (!string.IsNullOrEmpty(chunks[i]))
@@ -214,7 +214,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
             var culture = System.Globalization.CultureInfo.InvariantCulture;
             var id = 0;
-            foreach (var row in DataWrapper.GetFileContent(this.zoneConf.DatMpk, "dungeon.place"))
+            foreach (var row in DataWrapper.GetFileContent(this.zoneConf.DatMpk, this.zoneConf.DungeonFiles + ".place"))
             {
                 var fields = row.Split(',').Select(f => f.Trim()).ToArray();
                 if (fields.Length < 8 || !int.TryParse(fields[0], out var chunk))

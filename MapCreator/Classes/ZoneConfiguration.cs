@@ -67,6 +67,11 @@ namespace MapCreator.Classes
         public bool IsDungeon { get; }
 
         /// <summary>
+        /// Name of the chunk and place files: dungeon, or skycity for instanced zones
+        /// </summary>
+        public string DungeonFiles { get; }
+
+        /// <summary>
         /// Levels of a multi level dungeon from areas.dat, empty for all other zones
         /// </summary>
         public IReadOnlyList<MapLevel> Levels { get; } = new List<MapLevel>();
@@ -105,7 +110,8 @@ namespace MapCreator.Classes
 
             this.HasTerrain = MpkWrapper.ContainsFile(this.DatMpk, "terrain.pcx") && MpkWrapper.ContainsFile(this.DatMpk, "offset.pcx");
             this.IsCity = !this.HasTerrain && MpkWrapper.ContainsFile(this.DatMpk, "city.csv");
-            this.IsDungeon = !this.HasTerrain && !this.IsCity && MpkWrapper.ContainsFile(this.DatMpk, "dungeon.place");
+            this.DungeonFiles = MpkWrapper.ContainsFile(this.DatMpk, "skycity.place") ? "skycity" : "dungeon";
+            this.IsDungeon = !this.HasTerrain && !this.IsCity && MpkWrapper.ContainsFile(this.DatMpk, this.DungeonFiles + ".place");
             if (!this.HasTerrain && !this.IsCity && !this.IsDungeon)
             {
                 throw new NotSupportedException(string.Format("Zone {0} has no terrain, city or dungeon data, not supported yet.", zoneId));
