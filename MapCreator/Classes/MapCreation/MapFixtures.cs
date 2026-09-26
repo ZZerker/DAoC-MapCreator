@@ -722,9 +722,13 @@ namespace MapCreator.Classes.MapCreation
                 {
                     caster.BorderColor = MagickColors.Transparent;
                     caster.Border((uint)size);
+                    caster.Composite(shadow, 0, 0, CompositeOperator.DstOver);
                 }
-
-                caster.Composite(shadow, 0, 0, CompositeOperator.DstOver);
+                else
+                {
+                    // Shadow() grows the image by the blur and keeps offset and growth in the page
+                    caster.Composite(shadow, shadow.Page.X, shadow.Page.Y, CompositeOperator.DstOver);
+                }
             }
         }
 

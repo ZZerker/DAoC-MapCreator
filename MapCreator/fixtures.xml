@@ -26,7 +26,7 @@
     <light min="0.6" max="1.0" direction="1.0,1.0,-1.0">true</light>
     <color>#FFF</color>
     <transparency>0</transparency>
-    <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">true</shadow>
+    <shadow color="#000" offset_x="2" offset_y="4" size="3" transparency="25">true</shadow>
   </FixtureCategory>
 
   <!-- Terrain pieces split into tiles (Delling crater): a shadow outline would draw the tile seams -->
@@ -80,7 +80,7 @@
     <light min="0.5" max="1.0" direction="1.0,1.0,-1.0">true</light>
     <color>#000</color>
     <transparency>40</transparency>
-    <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="80">true</shadow>
+    <shadow color="#000" offset_x="0" offset_y="2" size="4" transparency="55">true</shadow>
   </FixtureCategory>
 
   <!-- Trees missing in Treemap.csv -->
