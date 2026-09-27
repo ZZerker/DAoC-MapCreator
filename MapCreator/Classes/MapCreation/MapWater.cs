@@ -191,6 +191,8 @@ namespace MapCreator.Classes.MapCreation
 
                         // Texture
                         var isLava = river.Type.ToLower() == "lava";
+                        // Own layer per river, the height cut and depth fade below must not touch other rivers
+                        using var riverLayer = MagickWrapper.NewImage(MagickColors.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize);
                         using (var texture = new MagickImage(isLava ? this.GetLavaTexture() : this.GetWateryTexture()))
                         {
                             using (var pattern = new MagickImage(fillColor, texture.Width, texture.Height))
@@ -198,9 +200,9 @@ namespace MapCreator.Classes.MapCreation
                                 texture.Composite(pattern, 0, 0, CompositeOperator.DstIn);
                                 texture.Composite(pattern, 0, 0, isLava ? CompositeOperator.ColorDodge : CompositeOperator.Multiply);
 
-                                water.Settings.FillPattern = texture;
+                                riverLayer.Settings.FillPattern = texture;
                                 var poly = new DrawablePolygon(riverCoordinates);
-                                water.Draw(poly);
+                                riverLayer.Draw(poly);
                             }
                         }
 
@@ -210,7 +212,7 @@ namespace MapCreator.Classes.MapCreation
                         var minY = Convert.ToInt32(riverCoordinates.Min(m => m.Y)) - 10;
                         var maxY = Convert.ToInt32(riverCoordinates.Max(m => m.Y)) + 10;
 
-                        using (IPixelCollection<ushort> riverPixelCollection = water.GetPixelsUnsafe())
+                        using (IPixelCollection<ushort> riverPixelCollection = riverLayer.GetPixelsUnsafe())
                         {
                             for (var x = minX; x < maxX; x++)
                             {
@@ -237,7 +239,7 @@ namespace MapCreator.Classes.MapCreation
                                 }
                             }
                         }
-                        
+                        water.Composite(riverLayer, 0, 0, CompositeOperator.SrcOver);
 
                         if (this.debug)
                         {
