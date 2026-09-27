@@ -208,13 +208,17 @@ namespace NifUtil.Classes
                         && TryGetIndex(node, "Texture2Index", out var second))
                     {
                         var dark = TryGetIndex(node, "DarkIndex", out var darkIndex) ? this.Resolve(maps, darkIndex) : null;
+                        if (dark == null && TryGetIndex(node, "DetailIndex", out var detailIndex))
+                        {
+                            dark = AsDarkMap(this.Resolve(maps, detailIndex));
+                        }
                         return new TextureLayers(this.Resolve(maps, first), this.Resolve(maps, second), dark);
                     }
 
                     var baseTexture = this.GetTexture(texturing.BaseTexture);
                     if (baseTexture != null)
                     {
-                        return new TextureLayers(baseTexture, null, this.GetTexture(texturing.DarkTexture));
+                        return new TextureLayers(baseTexture, null, this.GetTexture(texturing.DarkTexture) ?? AsDarkMap(this.GetTexture(texturing.DetailTexture)));
                     }
 
                     var firstMap = maps.Select(map => this.GetTexture(map?.Map)).FirstOrDefault(texture => texture != null);
@@ -236,6 +240,12 @@ namespace NifUtil.Classes
                 return new BaseTexture(sourceTexture.FileName.ToString(), (int)description.UVSetIndex);
             }
             return null;
+        }
+
+        // Some dungeons (Darkness Falls, Veil Island) keep their dark map in the detail slot, named "_dm_..."
+        private static BaseTexture AsDarkMap(BaseTexture detail)
+        {
+            return detail != null && Path.GetFileName(detail.Name).StartsWith("_dm_", StringComparison.OrdinalIgnoreCase) ? detail : null;
         }
 
         private TextureLayers ApplyTextureResolver(NiAVObject node, TextureLayers textures)
