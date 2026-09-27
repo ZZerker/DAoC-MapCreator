@@ -40,6 +40,8 @@ namespace MapCreator.Classes.MapCreation
 
         private readonly Dictionary<string, MagickImage> modelImages = new Dictionary<string, MagickImage>();
 
+        private TerrainHeights terrain;
+
         #region Settings
         public bool DrawFixtures { get; set; } = true;
 
@@ -257,7 +259,7 @@ namespace MapCreator.Classes.MapCreation
             //this.zoneConfiguration.Reporter.Log(string.Format("Shaded: {0} ({1}) ...", fixture.Name, fixture.NifName), LogLevel.notice);
 
             // A Shaded model without lightning is not shaded... but just we add this just be flexible
-            using (var modelCanvas = DrawTriangles(fixture, fixture.RendererConf.HasLight))
+            using (var modelCanvas = this.DrawTriangles(fixture, fixture.RendererConf.HasLight))
             {
                 // Trees get their shadow on the tree layer
                 if (fixture.RendererConf.HasShadow && !fixture.IsTree && !fixture.IsTreeCluster)
@@ -292,7 +294,7 @@ namespace MapCreator.Classes.MapCreation
         {
             //this.zoneConfiguration.Reporter.Log(string.Format("Flat: {0} ({1}) ...", fixture.Name, fixture.NifName), LogLevel.notice);
 
-            using (var modelCanvas = DrawTriangles(fixture, false))
+            using (var modelCanvas = this.DrawTriangles(fixture, false))
             {
 
                 if (fixture.RendererConf.HasShadow)
@@ -433,14 +435,24 @@ namespace MapCreator.Classes.MapCreation
         /// <summary>
         /// Draws the model's triangles in z order into a new canvas, textured or filled with their color
         /// </summary>
-        private static MagickImage DrawTriangles(DrawableFixture fixture, bool lit)
+        private TerrainHeights GetTerrain()
+        {
+            if (this.terrain == null && this.zoneConfiguration.HasTerrain && this.zoneConfiguration.Heightmap != null)
+            {
+                this.terrain = new TerrainHeights(this.zoneConfiguration);
+            }
+            return this.terrain;
+        }
+
+        private MagickImage DrawTriangles(DrawableFixture fixture, bool lit)
         {
             if (fixture.RendererConf.Texture == TextureMode.Map)
             {
-                var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight);
+                var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight, this.GetTerrain(), fixture.CanvasX, fixture.CanvasY);
                 foreach (var drawableElement in fixture.DrawableElements.OrderBy(e => e.IsWater))
                 {
-                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths, vertexColors: drawableElement.VertexColors, dark: drawableElement.Dark, darkUvs: drawableElement.DarkUvs, isWater: drawableElement.IsWater);
+                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths,
+                                        depthOffset: fixture.BaseCanvasZ, vertexColors: drawableElement.VertexColors, dark: drawableElement.Dark, darkUvs: drawableElement.DarkUvs, isWater: drawableElement.IsWater);
                 }
                 return canvas.ToImage();
             }

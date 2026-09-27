@@ -28,7 +28,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // Highest surface drawn so far per pixel; overlapping parts (ramps, bridges) keep the top one
         private readonly float[] depth;
 
-        public FixtureCanvas(int width, int height)
+        // Terrain height per map pixel in map units; parts of models below it are hidden like in the game
+        private readonly TerrainHeights terrain;
+        private readonly double terrainOriginX;
+        private readonly double terrainOriginY;
+
+        public FixtureCanvas(int width, int height, TerrainHeights terrain = null, double terrainOriginX = 0, double terrainOriginY = 0)
         {
             this.width = width;
             this.height = height;
@@ -37,6 +42,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             this.pixels = new byte[this.bufferWidth * this.bufferHeight * 4];
             this.depth = new float[this.bufferWidth * this.bufferHeight];
             Array.Fill(this.depth, float.MinValue);
+            this.terrain = terrain;
+            this.terrainOriginX = terrainOriginX;
+            this.terrainOriginY = terrainOriginY;
         }
 
         /// <summary>
@@ -105,6 +113,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                     // Water proxies are bigger than their basin, outside of it they would lie over nothing
                     if (isWater && this.pixels[index + 3] == 0)
+                    {
+                        continue;
+                    }
+
+                    if (depths != null && this.terrain != null && this.terrain.IsBelow((x + 0.5) / SUPER_SAMPLING + this.terrainOriginX, (y + 0.5) / SUPER_SAMPLING + this.terrainOriginY, z))
                     {
                         continue;
                     }
