@@ -91,6 +91,7 @@ namespace NifUtil.Classes
         private void WalkNodes(NiAVObject node)
         {
             if (!this.IsValidNode(node)) return;
+            if ((node is NiTriShape || node is NiTriStrips) && IsAdditive(node)) return;
 
             // Render Children
             if (node is NiTriShape shape)
@@ -289,6 +290,25 @@ namespace NifUtil.Classes
                 return null;
             }
             return geometry.VertexColors.Select(color => color.Alpha).ToArray();
+        }
+
+        /// <summary>
+        /// Additive meshes (glows, plasma planes) only add light in the game; drawn solid they cover what lies below.
+        /// NiAlphaProperty flags: bit 0 blending on, bits 5 to 8 the destination factor, 0 is ONE.
+        /// </summary>
+        private static bool IsAdditive(NiAVObject node)
+        {
+            for (var current = node; current != null; current = current.Parent)
+            {
+                foreach (var property in current.Properties)
+                {
+                    if (property.IsValid() && property.Object is NiAlphaProperty alpha)
+                    {
+                        return (alpha.Flags & 1) != 0 && ((alpha.Flags >> 5) & 0xF) == 0;
+                    }
+                }
+            }
+            return false;
         }
 
         /// <summary>

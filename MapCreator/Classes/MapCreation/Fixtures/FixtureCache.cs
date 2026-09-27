@@ -20,7 +20,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static readonly Lazy<HashSet<string>> PrerenderedObjectNames = new(LoadPrerenderedObjectNames);
 
-        // Polygons by cache name, guarded by PolysLock. polys6.mpk is additionally shared with other processes.
+        // Polygons by cache name, guarded by PolysLock. polys7.mpk is additionally shared with other processes.
         private static readonly Dictionary<string, Polygon[]> Polygons = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object PolysLock = new();
 
@@ -92,13 +92,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var polysDirectory = new DirectoryInfo(string.Format("{0}\\data\\polys", System.Windows.Forms.Application.StartupPath));
             if (!polysDirectory.Exists) polysDirectory.Create();
 
-            // polys6.mpk: .poly files with blended texture layers, vertex colors and dark maps, one entry per source archive
-            var polysMpkFile = string.Format("{0}\\data\\polys6.mpk", System.Windows.Forms.Application.StartupPath);
+            // polys7.mpk: .poly files with blended texture layers, vertex colors and dark maps, additive meshes left out, one entry per source archive
+            var polysMpkFile = string.Format("{0}\\data\\polys7.mpk", System.Windows.Forms.Application.StartupPath);
             DeleteOldCache("polys.mpk");
             DeleteOldCache("polys2.mpk");
             DeleteOldCache("polys3.mpk");
             DeleteOldCache("polys4.mpk");
             DeleteOldCache("polys5.mpk");
+            DeleteOldCache("polys6.mpk");
 
             var polyMpk = File.Exists(polysMpkFile) ? MpkWrapper.Open(polysMpkFile) : new MPKLib.MPAK();
             var polyMpkModified = !File.Exists(polysMpkFile);
