@@ -128,6 +128,7 @@ namespace MapCreator.Classes.MapCreation
         {
             var lines = this.GetCoordinateLines();
             var polygons = new List<List<PointF>>();
+            var flagged = new HashSet<List<PointF>>();
 
             foreach (var line in lines)
             {
@@ -135,8 +136,11 @@ namespace MapCreator.Classes.MapCreation
 
                 var coordsRaw = line.Split(',');
 
-                // The first is 0?; the second the number of points
-                var unknown1 = Convert.ToInt32(coordsRaw[0]);
+                // A flag (meaning unknown), then the number of points
+                if (Convert.ToInt32(coordsRaw[0]) == 1)
+                {
+                    flagged.Add(polygon);
+                }
                 var count = Convert.ToInt32(coordsRaw[1]);
 
                 for (var i = 1; i <= count; i++)
@@ -197,6 +201,13 @@ namespace MapCreator.Classes.MapCreation
                 // Pieces of a wall split by gates end inside the map; filling towards the nearest border is a guess
                 var open = polygon.First() != polygon.Last();
                 if (open && !IsNearBorder(polygon.First()) && !IsNearBorder(polygon.Last()))
+                {
+                    continue;
+                }
+
+                // Flagged rings around places (Mag Mell) end near the border but not on it; filled they cover the place
+                if (open && flagged.Contains(polygon) && !IsOnBorder(polygon.First()) && !IsOnBorder(polygon.Last())
+                    && Math.Max(polygon.Max(p => p.X) - polygon.Min(p => p.X), polygon.Max(p => p.Y) - polygon.Min(p => p.Y)) < 32768)
                 {
                     continue;
                 }
@@ -278,6 +289,11 @@ namespace MapCreator.Classes.MapCreation
         private static bool IsNearBorder(PointF point)
         {
             return point.X < BORDER_MARGIN || point.Y < BORDER_MARGIN || point.X > 65535 - BORDER_MARGIN || point.Y > 65535 - BORDER_MARGIN;
+        }
+
+        private static bool IsOnBorder(PointF point)
+        {
+            return point.X <= 0 || point.Y <= 0 || point.X >= 65535 || point.Y >= 65535;
         }
 
         private bool IsNextTo(PointF p1, PointF p2, int distance = 50)
