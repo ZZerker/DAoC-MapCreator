@@ -92,7 +92,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var polysDirectory = new DirectoryInfo(string.Format("{0}\\data\\polys", System.Windows.Forms.Application.StartupPath));
             if (!polysDirectory.Exists) polysDirectory.Create();
 
-            // polys7.mpk: .poly files with blended texture layers, vertex colors and dark maps, additive meshes left out, one entry per source archive
+            // polys7.mpk: .poly files with blended texture layers, vertex colors, dark maps (also "_dm_" detail maps) and water flags, additive meshes left out, one entry per source archive
             var polysMpkFile = string.Format("{0}\\data\\polys7.mpk", System.Windows.Forms.Application.StartupPath);
             DeleteOldCache("polys.mpk");
             DeleteOldCache("polys2.mpk");

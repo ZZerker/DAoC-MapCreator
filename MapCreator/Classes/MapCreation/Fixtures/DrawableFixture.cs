@@ -184,7 +184,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var texture2 = textureMode == TextureMode.Map && poly.Uvs2 != null ? TextureCache.Get(texture2Name, this.TextureDirectory) : null;
                 var darkName = poly.DarkTexture != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.DarkTexture), out var darkProxy) ? darkProxy : poly.DarkTexture;
                 var dark = textureMode == TextureMode.Map && poly.DarkUvs != null ? TextureCache.Get(darkName, this.TextureDirectory) : null;
-                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors, Dark = dark, DarkUvs = poly.DarkUvs });
+                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors, Dark = dark, DarkUvs = poly.DarkUvs, IsWater = poly.IsWater });
             }
 
             this.DrawableElements = drawlist.OrderBy(o => o.Order);
@@ -348,6 +348,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public TextureImage Dark;
 
         public Vector2[] DarkUvs;
+
+        /// <summary>
+        /// Water surface, drawn after the rest and only over it
+        /// </summary>
+        public bool IsWater;
 
         public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates, System.Drawing.Color? textureColor = null, TextureImage texture = null, Vector2[] uvs = null, TextureImage texture2 = null, Vector2[] uvs2 = null, float[] textureBlend = null)
         {

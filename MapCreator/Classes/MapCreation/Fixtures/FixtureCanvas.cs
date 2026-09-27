@@ -44,7 +44,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Depths are corner heights; the offsets place a model's canvas coordinates on a shared canvas.
         /// </summary>
         public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null,
-                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null)
+                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null, bool isWater = false)
         {
             var points = coordinates.Select(p => new PointD((p.X + offsetX) * SUPER_SAMPLING, (p.Y + offsetY) * SUPER_SAMPLING)).ToArray();
             if (points.Length != 3)
@@ -99,6 +99,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     var index = (y * this.bufferWidth + x) * 4;
                     var z = depths == null ? 0 : (float)(w0 * depths[0] + w1 * depths[1] + w2 * depths[2] + depthOffset);
                     if (depths != null && z < this.depth[index / 4])
+                    {
+                        continue;
+                    }
+
+                    // Water proxies are bigger than their basin, outside of it they would lie over nothing
+                    if (isWater && this.pixels[index + 3] == 0)
                     {
                         continue;
                     }

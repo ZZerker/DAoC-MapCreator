@@ -153,6 +153,11 @@ namespace NifUtil
         public const int POLY_FORMAT_MAGIC_V6 = 0x36594C50;
 
         /// <summary>
+        /// "PLY7": PLY6 plus the water flag
+        /// </summary>
+        public const int POLY_FORMAT_MAGIC_V7 = 0x37594C50;
+
+        /// <summary>
         /// "PLY2": texture names without texture coordinates
         /// </summary>
         private const int POLY_FORMAT_MAGIC_V2 = 0x32594C50;
@@ -188,7 +193,8 @@ namespace NifUtil
             using (var reader = new BinaryReader(polyFileReader.BaseStream))
             {
                 var magic = reader.BaseStream.Length >= 4 ? reader.ReadInt32() : 0;
-                var dark = magic == POLY_FORMAT_MAGIC_V6;
+                var flagged = magic == POLY_FORMAT_MAGIC_V7;
+                var dark = flagged || magic == POLY_FORMAT_MAGIC_V6;
                 var colored = dark || magic == POLY_FORMAT_MAGIC_V5;
                 var layered = colored || magic == POLY_FORMAT_MAGIC_V4;
                 if (layered || magic == POLY_FORMAT_MAGIC || magic == POLY_FORMAT_MAGIC_V2)
@@ -244,11 +250,12 @@ namespace NifUtil
                         {
                             darkUvs = new[] { new Vector2(reader.ReadSingle(), reader.ReadSingle()), new Vector2(reader.ReadSingle(), reader.ReadSingle()), new Vector2(reader.ReadSingle(), reader.ReadSingle()) };
                         }
+                        var isWater = flagged && reader.ReadBoolean();
 
                         polys.Add(new Polygon(p1, p2, p3, textureIndex >= 0 ? textures[textureIndex] : null, uvs)
                                   {
                                       Texture2 = texture2Index >= 0 ? textures[texture2Index] : null, Uvs2 = uvs2, TextureBlend = textureBlend, VertexColors = vertexColors, MaterialColor = materialColor,
-                                      DarkTexture = darkIndex >= 0 ? textures[darkIndex] : null, DarkUvs = darkUvs
+                                      DarkTexture = darkIndex >= 0 ? textures[darkIndex] : null, DarkUvs = darkUvs, IsWater = isWater
                                   });
                     }
                     return polys.ToArray();

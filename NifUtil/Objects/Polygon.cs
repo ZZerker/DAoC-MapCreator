@@ -64,6 +64,11 @@ namespace NifUtil.Objects
         /// </summary>
         public int MaterialColor { get; set; }
 
+        /// <summary>
+        /// Water surface placeholder, only drawn where the model has a floor below it
+        /// </summary>
+        public bool IsWater { get; set; }
+
         public Polygon(Vector3 p1, Vector3 p2, Vector3 p3, string texture = null, Vector2[] uvs = null)
         {
             this.Vectors = new Vector3[3];

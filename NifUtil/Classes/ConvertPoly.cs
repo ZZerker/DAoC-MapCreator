@@ -49,11 +49,27 @@ namespace NifUtil.Classes
 
         private void MarkWaterProxy(NiAVObject node, int first)
         {
-            if (this.Polys.Count > first && this.Polys[first].VertexColors == null
-                && node.Name?.Value != null && node.Name.Value.Contains("waterproxy", StringComparison.OrdinalIgnoreCase))
+            // Named on the node ("waterproxy") or on the material ("Water proxy")
+            if (!IsWaterProxyName(node.Name?.Value) && !IsWaterProxyName(GetMaterialName(node)))
+            {
+                return;
+            }
+
+            for (var i = first; i < this.Polys.Count; i++)
+            {
+                var poly = this.Polys[i];
+                poly.IsWater = true;
+                this.Polys[i] = poly;
+            }
+            if (this.Polys.Count > first && this.Polys[first].VertexColors == null)
             {
                 this.waterProxies.Add((first, this.Polys.Count));
             }
+        }
+
+        private static bool IsWaterProxyName(string name)
+        {
+            return name != null && name.Replace(" ", "").Contains("waterproxy", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -441,7 +457,7 @@ namespace NifUtil.Classes
                 {
                     var textures = this.Polys.SelectMany(p => new[] { p.Texture, p.Texture2, p.DarkTexture }).Where(t => t != null).Distinct().ToList();
 
-                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V6);
+                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V7);
                     writer.Write(textures.Count);
                     foreach (var texture in textures)
                     {
@@ -510,6 +526,7 @@ namespace NifUtil.Classes
                                 writer.Write(uv.Y);
                             }
                         }
+                        writer.Write(poly.IsWater);
                     }
                 }
             }
