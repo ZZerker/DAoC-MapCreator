@@ -52,7 +52,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Depths are corner heights; the offsets place a model's canvas coordinates on a shared canvas.
         /// </summary>
         public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null,
-                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null, bool isWater = false)
+                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null, bool isWater = false, int additiveColor = -1)
         {
             var points = coordinates.Select(p => new PointD((p.X + offsetX) * SUPER_SAMPLING, (p.Y + offsetY) * SUPER_SAMPLING)).ToArray();
             if (points.Length != 3)
@@ -122,6 +122,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         continue;
                     }
 
+                    if (additiveColor >= 0)
+                    {
+                        double gr = 255, gg = 255, gb = 255, ga = 255;
+                        if (textured)
+                        {
+                            texture.Sample(w0 * uvs[0].X + w1 * uvs[1].X + w2 * uvs[2].X, w0 * uvs[0].Y + w1 * uvs[1].Y + w2 * uvs[2].Y, texelsPerPixel, out gr, out gg, out gb, out ga);
+                        }
+                        this.AddLight(index, gr * ga / 255d * ((additiveColor >> 16) & 0xFF) / 255d, gg * ga / 255d * ((additiveColor >> 8) & 0xFF) / 255d, gb * ga / 255d * (additiveColor & 0xFF) / 255d);
+                        continue;
+                    }
+
                     double r = solidR, g = solidG, b = solidB;
                     if (textured)
                     {
@@ -179,6 +190,22 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     this.pixels[index + 3] = 255;
                 }
             }
+        }
+
+        // Glows add to what is drawn; over nothing they become a glow whose opacity is its brightness
+        private void AddLight(int index, double r, double g, double b)
+        {
+            if (this.pixels[index + 3] == 0)
+            {
+                this.pixels[index] = ToByte(r);
+                this.pixels[index + 1] = ToByte(g);
+                this.pixels[index + 2] = ToByte(b);
+                this.pixels[index + 3] = ToByte(Math.Max(r, Math.Max(g, b)));
+                return;
+            }
+            this.pixels[index] = ToByte(this.pixels[index] + r);
+            this.pixels[index + 1] = ToByte(this.pixels[index + 1] + g);
+            this.pixels[index + 2] = ToByte(this.pixels[index + 2] + b);
         }
 
         public MagickImage ToImage()

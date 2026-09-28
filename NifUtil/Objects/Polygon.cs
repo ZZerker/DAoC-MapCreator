@@ -69,6 +69,11 @@ namespace NifUtil.Objects
         /// </summary>
         public bool IsWater { get; set; }
 
+        /// <summary>
+        /// Glow that adds its color (texture times MaterialColor) to what lies below
+        /// </summary>
+        public bool IsAdditive { get; set; }
+
         public Polygon(Vector3 p1, Vector3 p2, Vector3 p3, string texture = null, Vector2[] uvs = null)
         {
             this.Vectors = new Vector3[3];

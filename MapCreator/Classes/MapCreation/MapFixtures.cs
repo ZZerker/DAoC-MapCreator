@@ -144,15 +144,17 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration.Reporter.Log(string.Format("There are {0} fixtures to draw.", this.fixturesAboveWater.Count), LogLevel.Notice);
 
             var canvas = new FixtureCanvas(this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize);
-            foreach (var water in new[] { false, true })
+            // Solid surfaces first, then water over them, glows last
+            foreach (var pass in new[] { 0, 1, 2 })
             {
                 foreach (var fixture in shared)
                 {
                     var lit = fixture.RendererConf.Renderer == FixtureRendererType.Shaded && fixture.RendererConf.HasLight;
-                    foreach (var drawableElement in fixture.DrawableElements.Where(e => e.IsWater == water))
+                    foreach (var drawableElement in fixture.DrawableElements.Where(e => GetDrawPass(e) == pass))
                     {
                         canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1,
-                                            drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths, fixture.CanvasX, fixture.CanvasY, fixture.BaseCanvasZ, drawableElement.VertexColors, drawableElement.Dark, drawableElement.DarkUvs, water);
+                                            drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths, fixture.CanvasX, fixture.CanvasY, fixture.BaseCanvasZ, drawableElement.VertexColors, drawableElement.Dark, drawableElement.DarkUvs,
+                                            drawableElement.IsWater, drawableElement.IsAdditive ? drawableElement.AdditiveColor : -1);
                     }
                 }
             }
@@ -435,6 +437,11 @@ namespace MapCreator.Classes.MapCreation
         /// <summary>
         /// Draws the model's triangles in z order into a new canvas, textured or filled with their color
         /// </summary>
+        private static int GetDrawPass(DrawableElement element)
+        {
+            return element.IsAdditive ? 2 : element.IsWater ? 1 : 0;
+        }
+
         private TerrainHeights GetTerrain()
         {
             if (this.terrain == null && this.zoneConfiguration.HasTerrain && this.zoneConfiguration.Heightmap != null)
@@ -449,10 +456,11 @@ namespace MapCreator.Classes.MapCreation
             if (fixture.RendererConf.Texture == TextureMode.Map)
             {
                 var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight, this.GetTerrain(), fixture.CanvasX, fixture.CanvasY);
-                foreach (var drawableElement in fixture.DrawableElements.OrderBy(e => e.IsWater))
+                foreach (var drawableElement in fixture.DrawableElements.OrderBy(GetDrawPass))
                 {
                     canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths,
-                                        depthOffset: fixture.BaseCanvasZ, vertexColors: drawableElement.VertexColors, dark: drawableElement.Dark, darkUvs: drawableElement.DarkUvs, isWater: drawableElement.IsWater);
+                                        depthOffset: fixture.BaseCanvasZ, vertexColors: drawableElement.VertexColors, dark: drawableElement.Dark, darkUvs: drawableElement.DarkUvs, isWater: drawableElement.IsWater,
+                                        additiveColor: drawableElement.IsAdditive ? drawableElement.AdditiveColor : -1);
                 }
                 return canvas.ToImage();
             }

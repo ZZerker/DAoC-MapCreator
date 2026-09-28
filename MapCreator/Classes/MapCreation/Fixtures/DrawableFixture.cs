@@ -184,7 +184,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var texture2 = textureMode == TextureMode.Map && poly.Uvs2 != null ? TextureCache.Get(texture2Name, this.TextureDirectory) : null;
                 var darkName = poly.DarkTexture != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.DarkTexture), out var darkProxy) ? darkProxy : poly.DarkTexture;
                 var dark = textureMode == TextureMode.Map && poly.DarkUvs != null ? TextureCache.Get(darkName, this.TextureDirectory) : null;
-                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors, Dark = dark, DarkUvs = poly.DarkUvs, IsWater = poly.IsWater });
+                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors, Dark = dark, DarkUvs = poly.DarkUvs, IsWater = poly.IsWater, IsAdditive = poly.IsAdditive, AdditiveColor = poly.MaterialColor });
             }
 
             this.DrawableElements = drawlist.OrderBy(o => o.Order);
@@ -353,6 +353,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Water surface, drawn after the rest and only over it
         /// </summary>
         public bool IsWater;
+
+        /// <summary>
+        /// Glow that adds AdditiveColor (0xRRGGBB) times its texture to what lies below
+        /// </summary>
+        public bool IsAdditive;
+
+        public int AdditiveColor;
 
         public DrawableElement(double order, double lightning, IEnumerable<ImageMagick.PointD> coordinates, System.Drawing.Color? textureColor = null, TextureImage texture = null, Vector2[] uvs = null, TextureImage texture2 = null, Vector2[] uvs2 = null, float[] textureBlend = null)
         {

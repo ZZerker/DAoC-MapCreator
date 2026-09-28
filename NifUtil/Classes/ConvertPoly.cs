@@ -107,7 +107,6 @@ namespace NifUtil.Classes
         private void WalkNodes(NiAVObject node)
         {
             if (!this.IsValidNode(node)) return;
-            if ((node is NiTriShape || node is NiTriStrips) && IsAdditive(node)) return;
 
             // Render Children
             if (node is NiTriShape shape)
@@ -150,6 +149,7 @@ namespace NifUtil.Classes
                 var first = this.Polys.Count;
                 this.ComputePolys(geometry.Triangles, geometry, transformationMatrix, textures, this.GetVertexColors(shape, geometry), this.GetMaterialColor(shape));
                 this.MarkWaterProxy(shape, first);
+                this.MarkAdditive(shape, first);
             }
         }
 
@@ -199,6 +199,7 @@ namespace NifUtil.Classes
                 var first = this.Polys.Count;
                 this.ComputePolys(triangles.ToArray(), geometry, transformationMatrix, textures, this.GetVertexColors(strips, geometry), this.GetMaterialColor(strips));
                 this.MarkWaterProxy(strips, first);
+                this.MarkAdditive(strips, first);
             }
         }
 
@@ -320,7 +321,48 @@ namespace NifUtil.Classes
         }
 
         /// <summary>
-        /// Additive meshes (glows, plasma planes) only add light in the game; drawn solid they cover what lies below.
+        /// Additive meshes (glows, portals, plasma planes) add their light to what lies below. Their material color
+        /// is the diffuse color times the material alpha, so faded out meshes add nothing.
+        /// </summary>
+        private void MarkAdditive(NiAVObject node, int first)
+        {
+            if (!IsAdditive(node))
+            {
+                return;
+            }
+
+            var alpha = GetMaterialAlpha(node);
+            for (var i = first; i < this.Polys.Count; i++)
+            {
+                var poly = this.Polys[i];
+                poly.IsAdditive = true;
+                var color = poly.MaterialColor < 0 ? 0xFFFFFF : poly.MaterialColor;
+                poly.MaterialColor = (Scale(color >> 16, alpha) << 16) | (Scale(color >> 8, alpha) << 8) | Scale(color, alpha);
+                this.Polys[i] = poly;
+            }
+        }
+
+        private static int Scale(int channel, float factor)
+        {
+            return (int)Math.Round((channel & 0xFF) * Math.Clamp(factor, 0f, 1f));
+        }
+
+        private static float GetMaterialAlpha(NiAVObject node)
+        {
+            for (var current = node; current != null; current = current.Parent)
+            {
+                foreach (var property in current.Properties)
+                {
+                    if (property.IsValid() && property.Object is NiMaterialProperty material)
+                    {
+                        return material.Alpha;
+                    }
+                }
+            }
+            return 1f;
+        }
+
+        /// <summary>
         /// NiAlphaProperty flags: bit 0 blending on, bits 5 to 8 the destination factor, 0 is ONE.
         /// </summary>
         private static bool IsAdditive(NiAVObject node)
@@ -458,7 +500,7 @@ namespace NifUtil.Classes
                 {
                     var textures = this.Polys.SelectMany(p => new[] { p.Texture, p.Texture2, p.DarkTexture }).Where(t => t != null).Distinct().ToList();
 
-                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V7);
+                    writer.Write(NifParser.POLY_FORMAT_MAGIC_V8);
                     writer.Write(textures.Count);
                     foreach (var texture in textures)
                     {
@@ -528,6 +570,7 @@ namespace NifUtil.Classes
                             }
                         }
                         writer.Write(poly.IsWater);
+                        writer.Write(poly.IsAdditive);
                     }
                 }
             }
