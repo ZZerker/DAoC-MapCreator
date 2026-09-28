@@ -63,6 +63,16 @@ namespace MapCreator.Classes.Rendering
 
                     reporter.Log("Finished background rendering!", LogLevel.Success);
 
+                    // Water areas are also needed to sort the fixtures
+                    reporter.Log("Loading water configurations ...", LogLevel.Notice);
+                    using var river = new MapWater(conf);
+                    reporter.Log("Finished loading water configurations!", LogLevel.Success);
+
+                    var fixturesGenerator = drawFixtures || drawFixturesBelowWater || drawTrees ? this.LoadFixtures(conf, river) : null;
+
+                    // Models with their own ground lie on the terrain and get its relief shading
+                    var surface = drawFixtures ? fixturesGenerator.DrawTerrain(map) : null;
+
                     if (settings.Lightmap)
                     {
                         reporter.Log("Rendering lightmap ...", LogLevel.Notice);
@@ -74,16 +84,9 @@ namespace MapCreator.Classes.Rendering
                                                     ZVector = (double[])settings.LightmapZVector.Clone()
                                                 };
                         lightmapGenerator.RecalculateLights();
-                        lightmapGenerator.Draw(map);
+                        lightmapGenerator.Draw(map, surface);
                         reporter.Log("Finished lightmap rendering!", LogLevel.Success);
                     }
-
-                    // Water areas are also needed to sort the fixtures
-                    reporter.Log("Loading water configurations ...", LogLevel.Notice);
-                    using var river = new MapWater(conf);
-                    reporter.Log("Finished loading water configurations!", LogLevel.Success);
-
-                    var fixturesGenerator = drawFixtures || drawFixturesBelowWater || drawTrees ? this.LoadFixtures(conf, river) : null;
 
                     if (drawFixturesBelowWater)
                     {

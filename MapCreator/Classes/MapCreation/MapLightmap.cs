@@ -58,7 +58,11 @@ namespace MapCreator.Classes.MapCreation
         /// Hillshade at full map size: slopes facing the light get brighter, slopes facing away darker,
         /// flat ground keeps its color. The factor is limited to LightMin and LightMax.
         /// </summary>
-        public void Draw(MagickImage map)
+        /// <summary>
+        /// Shades the map by the terrain relief. Surface heights (zone units, NaN where none) replace the terrain,
+        /// for models that bring their own ground.
+        /// </summary>
+        public void Draw(MagickImage map, float[] surface = null)
         {
             this.zoneConfiguration.Reporter.ProgressStart("Drawing lightmap ...");
 
@@ -72,6 +76,10 @@ namespace MapCreator.Classes.MapCreation
                 heightmap.Blur(0, HEIGHT_SMOOTHING);
                 heightmap.FilterType = FilterType.Catrom;
                 heightmap.Resize(new MagickGeometry((uint)size, (uint)size) { IgnoreAspectRatio = true });
+                if (surface != null)
+                {
+                    ApplySurface(heightmap, surface);
+                }
                 heightmap.Blur(0, size / 256d);
                 heightChannels = (int)heightmap.ChannelCount;
                 using var heightPixels = heightmap.GetPixels();
@@ -120,6 +128,25 @@ namespace MapCreator.Classes.MapCreation
             }
 
             this.zoneConfiguration.Reporter.ProgressReset();
+        }
+
+        private static void ApplySurface(MagickImage heightmap, float[] surface)
+        {
+            using var pixels = heightmap.GetPixels();
+            var values = pixels.ToArray();
+            var channels = (int)heightmap.ChannelCount;
+            for (var i = 0; i < surface.Length; i++)
+            {
+                if (!float.IsNaN(surface[i]))
+                {
+                    var height = (ushort)Math.Clamp(surface[i], 0, ushort.MaxValue);
+                    for (var c = 0; c < channels; c++)
+                    {
+                        values[i * channels + c] = height;
+                    }
+                }
+            }
+            pixels.SetPixels(values);
         }
 
         private static double Height(ushort[] heights, int channels, int size, int x, int y)

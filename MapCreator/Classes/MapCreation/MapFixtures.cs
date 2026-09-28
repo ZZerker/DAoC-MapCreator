@@ -39,7 +39,12 @@ namespace MapCreator.Classes.MapCreation
 
         private TerrainHeights terrain;
 
+        private const string TERRAIN_CATEGORY = "Terrain";
+
         private const string GROUND_CATEGORY = "Ground";
+
+        // Soft edge of models with their own terrain, in zone units
+        private const double TERRAIN_FEATHER = 256;
 
         #region Settings
         public bool DrawFixtures { get; set; } = true;
@@ -134,6 +139,49 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration.Reporter.ProgressReset();
         }
 
+        /// <summary>
+        /// Draws the ground of models that bring their own terrain (category Terrain: meshes with blended texture
+        /// layers) straight onto the map, before the relief shading, with a soft edge. Returns its surface height per
+        /// map pixel in zone units (NaN elsewhere), so the relief shading covers it like the terrain around it.
+        /// The rest of these models (walls, towers) is drawn later as usual.
+        /// </summary>
+        public float[] DrawTerrain(MagickImage map)
+        {
+            var terrainFixtures = this.fixturesAboveWater.Where(f => f.RendererConf.Name == TERRAIN_CATEGORY && f.RendererConf.Texture == TextureMode.Map).ToList();
+            if (terrainFixtures.Count == 0)
+            {
+                return null;
+            }
+
+            var size = this.zoneConfiguration.TargetMapSize;
+            var canvas = new FixtureCanvas(size, size, this.GetTerrain());
+            foreach (var fixture in terrainFixtures)
+            {
+                var ground = fixture.DrawableElements.Where(e => e.Texture2 != null && !e.IsWater && !e.IsAdditive).ToList();
+                fixture.DrawableElements = fixture.DrawableElements.Except(ground).ToList();
+                foreach (var drawableElement in ground)
+                {
+                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend,
+                                        drawableElement.Depths, fixture.ExactCanvasX, fixture.ExactCanvasY, fixture.BaseCanvasZ, drawableElement.VertexColors);
+                }
+            }
+
+            using (var layer = canvas.ToImage())
+            {
+                FeatherEdge(layer, this.zoneConfiguration.ZoneCoordinateToMapCoordinate(TERRAIN_FEATHER));
+                map.Composite(layer, 0, 0, CompositeOperator.SrcOver);
+            }
+
+            var heights = canvas.ToHeights();
+            this.GetTerrain()?.Raise(heights, this.zoneConfiguration);
+            var zoneUnitsPerMapUnit = this.zoneConfiguration.ZoneSize / size;
+            for (var i = 0; i < heights.Length; i++)
+            {
+                heights[i] = (float)(heights[i] * zoneUnitsPerMapUnit);
+            }
+            return heights;
+        }
+
         // Ground tiles share one canvas at their exact positions; drawn one by one at rounded positions, gaps open between them
         private void DrawGround(MagickImage overlay, List<DrawableFixture> ground)
         {
@@ -152,6 +200,31 @@ namespace MapCreator.Classes.MapCreation
 
             using var layer = canvas.ToImage();
             overlay.Composite(layer, 0, 0, CompositeOperator.SrcOver);
+        }
+
+        // Fades the layer out towards its outline; the alpha only shrinks, so no dark fringe grows outside
+        private static void FeatherEdge(MagickImage layer, double radius)
+        {
+            if (radius < 1)
+            {
+                return;
+            }
+
+            using var alpha = (MagickImage)layer.Separate(Channels.Alpha).First();
+            alpha.Morphology(new MorphologySettings { Method = MorphologyMethod.Erode, Kernel = Kernel.Disk, KernelArguments = radius.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+            alpha.Blur(0, radius / 2);
+
+            using var alphaPixels = alpha.GetPixels();
+            var soft = alphaPixels.ToArray();
+            var alphaChannels = (int)alpha.ChannelCount;
+            using var layerPixels = layer.GetPixels();
+            var values = layerPixels.ToArray();
+            var channels = (int)layer.ChannelCount;
+            for (var i = 0; i < values.Length / channels; i++)
+            {
+                values[i * channels + 3] = Math.Min(values[i * channels + 3], soft[i * alphaChannels]);
+            }
+            layerPixels.SetPixels(values);
         }
 
         /// <summary>

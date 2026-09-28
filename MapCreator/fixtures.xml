@@ -39,6 +39,16 @@
     <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">false</shadow>
   </FixtureCategory>
 
+  <!-- Models with their own terrain (Agramon arena): their blended ground meshes are drawn onto the map before the relief shading, the rest without shadow -->
+  <FixtureCategory is_default="false">
+    <id>Terrain</id>
+    <renderer>Shaded</renderer>
+    <light min="0.6" max="1.0" direction="1.0,1.0,-1.0">true</light>
+    <color>#FFF</color>
+    <transparency>0</transparency>
+    <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">false</shadow>
+  </FixtureCategory>
+
   <!-- Small models like fences, stones, crates and barrels, drawn without shading. Watchtowers start at about 240. -->
   <FixtureCategory is_default="false">
     <id>Decoration</id>
@@ -87,6 +97,12 @@
   <Fixture>
     <pattern>^delling0[0-9]</pattern>
     <category>Ground</category>
+  </Fixture>
+
+  <!-- Agramon arena (zone 163), brings its own mountaintop -->
+  <Fixture>
+    <pattern>^agramonKeep01</pattern>
+    <category>Terrain</category>
   </Fixture>
 
   <!-- Fences and stones -->

@@ -27,6 +27,21 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
         }
 
+        /// <summary>
+        /// Raises the ground to a model surface (map units, NaN where none), so what lies under it is hidden too
+        /// </summary>
+        public void Raise(float[] surface, ZoneConfiguration zoneConfiguration)
+        {
+            var tolerance = (float)zoneConfiguration.ZoneCoordinateToMapCoordinate(TOLERANCE);
+            for (var i = 0; i < this.heights.Length; i++)
+            {
+                if (surface[i] - tolerance > this.heights[i])
+                {
+                    this.heights[i] = surface[i] - tolerance;
+                }
+            }
+        }
+
         public bool IsBelow(double mapX, double mapY, double z)
         {
             var x = (int)mapX;

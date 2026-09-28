@@ -246,32 +246,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static bool IsNodeDrawable(NifRow nifRow, Niflib.NiAVObject node)
         {
-            if (nifRow.IsNodeDrawable != null)
-            {
-                return nifRow.IsNodeDrawable(node.Name.Value);
-            }
-
-            // Only draw the elements, sticking out of the ground. NifIds differ per zone, so match the file.
-            if (string.Equals(nifRow.Filename, "agramonKeep01.nif", StringComparison.OrdinalIgnoreCase))
-            {
-                var validNodes = new List<string>
-                                 {
-                                     "agramonKeep01",
-                                     "collisionswitch",
-                                     "visible",
-                                     "wall -outdoors",
-                                     "wall -outdoors01",
-                                     "tower",
-                                     "tower01",
-                                     "tower02",
-                                     "entrance",
-                                     "disc"
-                                 };
-
-                return validNodes.Find(v => node.Name.Value.StartsWith(v)) != null;
-            }
-
-            return true;
+            return nifRow.IsNodeDrawable == null || nifRow.IsNodeDrawable(node.Name.Value);
         }
 
         private static (List<TreeRow>, List<TreeClusterRow>) LoadTreeData()

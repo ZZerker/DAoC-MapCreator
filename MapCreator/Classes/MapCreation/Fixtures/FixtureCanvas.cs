@@ -216,6 +216,34 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             return image;
         }
 
+        /// <summary>
+        /// Highest surface per map pixel in map units, NaN where nothing was drawn
+        /// </summary>
+        public float[] ToHeights()
+        {
+            var heights = new float[this.width * this.height];
+            for (var y = 0; y < this.height; y++)
+            {
+                for (var x = 0; x < this.width; x++)
+                {
+                    var top = float.NaN;
+                    for (var sy = 0; sy < SUPER_SAMPLING; sy++)
+                    {
+                        for (var sx = 0; sx < SUPER_SAMPLING; sx++)
+                        {
+                            var sample = (y * SUPER_SAMPLING + sy) * this.bufferWidth + x * SUPER_SAMPLING + sx;
+                            if (this.pixels[sample * 4 + 3] != 0 && !(top >= this.depth[sample]))
+                            {
+                                top = this.depth[sample];
+                            }
+                        }
+                    }
+                    heights[y * this.width + x] = top;
+                }
+            }
+            return heights;
+        }
+
         private static double Edge(PointD a, PointD b, PointD p)
         {
             return (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
