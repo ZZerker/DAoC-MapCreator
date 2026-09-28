@@ -49,8 +49,13 @@ namespace NifUtil.Classes
 
         private void MarkWaterProxy(NiAVObject node, int first)
         {
-            // Named on the node ("waterproxy") or on the material ("Water proxy")
-            if (!IsWaterProxyName(node.Name?.Value) && !IsWaterProxyName(GetMaterialName(node)))
+            // Named on the node or one of its parents ("waterproxy", Galladoria nests the mesh three levels down) or on the material ("Water proxy")
+            var named = IsWaterProxyName(GetMaterialName(node));
+            for (var current = node; current != null && !named; current = current.Parent)
+            {
+                named = IsWaterProxyName(current.Name?.Value);
+            }
+            if (!named)
             {
                 return;
             }
