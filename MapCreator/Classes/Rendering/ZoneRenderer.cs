@@ -80,22 +80,10 @@ namespace MapCreator.Classes.Rendering
 
                     // Water areas are also needed to sort the fixtures
                     reporter.Log("Loading water configurations ...", LogLevel.Notice);
-                    var river = new MapWater(conf);
+                    using var river = new MapWater(conf);
                     reporter.Log("Finished loading water configurations!", LogLevel.Success);
 
-                    MapFixtures fixturesGenerator = null;
-                    if (drawFixtures || drawFixturesBelowWater || drawTrees)
-                    {
-                        reporter.Log("Loading fixtures ...", LogLevel.Notice);
-                        fixturesGenerator = new MapFixtures(conf, river.WaterAreas)
-                                            {
-                                                DrawFixtures = drawFixtures || drawFixturesBelowWater,
-                                                DrawTrees = drawTrees,
-                                                TreeTransparency = settings.TreeTransparency
-                                            };
-                        fixturesGenerator.Start();
-                        reporter.Log("Finished loading fixtures!", LogLevel.Success);
-                    }
+                    var fixturesGenerator = drawFixtures || drawFixturesBelowWater || drawTrees ? this.LoadFixtures(conf, river) : null;
 
                     if (drawFixturesBelowWater)
                     {
@@ -122,8 +110,6 @@ namespace MapCreator.Classes.Rendering
                         reporter.Log("Finished rendering fixtures above water level!", LogLevel.Success);
                     }
 
-                    fixturesGenerator?.Dispose();
-
                     if (settings.Bounds)
                     {
                         reporter.Log("Adding zone bounds ...", LogLevel.Notice);
@@ -149,6 +135,20 @@ namespace MapCreator.Classes.Rendering
 
             mapFile.Refresh();
             return mapFile;
+        }
+
+        private MapFixtures LoadFixtures(ZoneConfiguration conf, MapWater river)
+        {
+            reporter.Log("Loading fixtures ...", LogLevel.Notice);
+            var fixtures = new MapFixtures(conf, river.WaterAreas)
+                           {
+                               DrawFixtures = settings.DrawFixtures || settings.DrawFixturesBelowWater,
+                               DrawTrees = settings.DrawTrees,
+                               TreeTransparency = settings.TreeTransparency
+                           };
+            fixtures.Start();
+            reporter.Log("Finished loading fixtures!", LogLevel.Success);
+            return fixtures;
         }
 
         private FileInfo GetTargetFile(ZoneSelection zone)

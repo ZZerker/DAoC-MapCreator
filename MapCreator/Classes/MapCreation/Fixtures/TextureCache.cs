@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using ImageMagick;
 
 namespace MapCreator.Classes.MapCreation.Fixtures
@@ -22,6 +23,22 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         {
             var file = TextureColors.FindFile(texture, modelDirectory);
             return file == null ? null : Textures.GetOrAdd(file, f => new Lazy<TextureImage>(() => Load(f))).Value;
+        }
+
+        public static int Count => Textures.Count;
+
+        public static long Bytes => Textures.Values.Where(t => t.IsValueCreated && t.Value != null).Sum(t => t.Value.Bytes);
+
+        /// <summary>
+        /// Forgets the textures of a zone's own folders, no other zone can use them
+        /// </summary>
+        public static void Release(string zoneDirectory)
+        {
+            var prefix = zoneDirectory.TrimEnd('\\') + "\\";
+            foreach (var file in Textures.Keys.Where(f => f.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            {
+                Textures.TryRemove(file, out _);
+            }
         }
 
         private static TextureImage Load(string file)
@@ -60,6 +77,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         public int Height => this.heights[0];
 
+        public long Bytes => this.levels.Sum(l => (long)l.Length);
+
         public TextureImage(MagickImage image)
         {
             var count = 1 + (int)Math.Floor(Math.Log2(Math.Max(image.Width, image.Height)));
@@ -77,7 +96,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                 this.widths[i] = (int)level.Width;
                 this.heights[i] = (int)level.Height;
-                this.levels[i] = level.GetPixels().ToByteArray(PixelMapping.RGBA);
+                using var pixels = level.GetPixels();
+                this.levels[i] = pixels.ToByteArray(PixelMapping.RGBA);
             }
         }
 

@@ -633,11 +633,7 @@ namespace MapCreator
         {
             if(MessageBox.Show("Do you really want to delete the fixture polygon cache?", "Delete fixture polygons", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                var fixturesCache = new FileInfo(Application.StartupPath + Path.DirectorySeparatorChar + "data" + Path.DirectorySeparatorChar + "polys.mpk");
-                if (fixturesCache.Exists)
-                {
-                    fixturesCache.Delete();
-                }
+                Classes.MapCreation.Fixtures.FixtureCache.Clear();
             }
         }
 

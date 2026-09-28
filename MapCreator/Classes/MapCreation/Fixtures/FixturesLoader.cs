@@ -449,7 +449,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 models.Add((nifRow, nifArchivePath));
             }
 
-            FixtureCache.LoadPolygons(models, this.zoneConf.Reporter);
+            FixtureCache.LoadPolygons(models, this.zoneConf.ZoneDirectory, this.zoneConf.Reporter);
         }
 
         private static System.Numerics.Vector3 TurnAround(System.Numerics.Vector3 vector, System.Numerics.Vector3 center)

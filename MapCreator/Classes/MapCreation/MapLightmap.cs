@@ -74,7 +74,8 @@ namespace MapCreator.Classes.MapCreation
                 heightmap.Resize(new MagickGeometry((uint)size, (uint)size) { IgnoreAspectRatio = true });
                 heightmap.Blur(0, size / 256d);
                 heightChannels = (int)heightmap.ChannelCount;
-                heights = heightmap.GetPixels().ToArray();
+                using var heightPixels = heightmap.GetPixels();
+                heights = heightPixels.ToArray();
             }
 
             // The light travels along ZVector, so the sun lies the other way

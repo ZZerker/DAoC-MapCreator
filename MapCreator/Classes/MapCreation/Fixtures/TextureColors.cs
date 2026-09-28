@@ -70,6 +70,22 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             return null;
         }
 
+        /// <summary>
+        /// Forgets the colors and file lists of a zone's own folders, no other zone can use them
+        /// </summary>
+        public static void Release(string zoneDirectory)
+        {
+            var prefix = zoneDirectory.TrimEnd('\\') + "\\";
+            foreach (var file in Colors.Keys.Where(f => f.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            {
+                Colors.TryRemove(file, out _);
+            }
+            foreach (var folder in FolderIndex.Keys.Where(f => f.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            {
+                FolderIndex.TryRemove(folder, out _);
+            }
+        }
+
         private static Dictionary<string, string> GetIndex(string folder)
         {
             return FolderIndex.GetOrAdd(folder, dir =>
@@ -94,8 +110,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 using var image = new ImageMagick.MagickImage(file);
                 image.Resize(1, 1);
+                using var pixels = image.GetPixels();
                 // Opaque, the texture's alpha only masks leaves and fences
-                return Color.FromArgb(255, image.GetPixels().First().ToColor().ToSystemColor());
+                return Color.FromArgb(255, pixels.First().ToColor().ToSystemColor());
             }
             catch (Exception ex) when (ex is ImageMagick.MagickException or IOException)
             {

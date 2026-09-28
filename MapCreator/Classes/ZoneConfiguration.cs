@@ -241,6 +241,8 @@ namespace MapCreator.Classes
         public void Dispose()
         {
             this.Heightmap?.Dispose();
+            MapCreation.Fixtures.TextureCache.Release(this.ZoneDirectory);
+            MapCreation.Fixtures.TextureColors.Release(this.ZoneDirectory);
         }
     }
 }

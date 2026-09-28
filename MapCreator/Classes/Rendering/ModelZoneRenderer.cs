@@ -72,15 +72,21 @@ namespace MapCreator.Classes.Rendering
         private MagickImage DrawModels(ZoneConfiguration conf, FixturesLoader loader)
         {
             var layer = MagickWrapper.NewImage(MagickColors.Transparent, settings.MapSize, settings.MapSize);
-            using (var models = new MapFixtures(conf, new List<WaterConfiguration>(), loader))
+            try
             {
+                var models = new MapFixtures(conf, new List<WaterConfiguration>(), loader);
                 models.Start();
 
                 reporter.Log("Rendering models ...", LogLevel.Notice);
                 models.DrawShared(layer);
+                BreakUpTiling(layer, conf.ZoneId);
+                return layer;
             }
-            BreakUpTiling(layer, conf.ZoneId);
-            return layer;
+            catch
+            {
+                layer.Dispose();
+                throw;
+            }
         }
 
         /// <summary>
@@ -146,7 +152,8 @@ namespace MapCreator.Classes.Rendering
         /// </summary>
         private static double GetGain(MagickImage layer)
         {
-            var values = layer.GetPixels().ToArray();
+            using var pixels = layer.GetPixels();
+            var values = pixels.ToArray();
             var channels = (int)layer.ChannelCount;
             if (values == null || channels < 4)
             {

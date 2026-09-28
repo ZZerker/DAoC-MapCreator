@@ -27,7 +27,7 @@ using ImageMagick.Drawing;
 
 namespace MapCreator.Classes.MapCreation
 {
-	internal class MapWater
+	internal class MapWater : IDisposable
     {
         private readonly ZoneConfiguration zoneConfiguration;
 
@@ -311,6 +311,12 @@ namespace MapCreator.Classes.MapCreation
                 debugRiver.Write(debugFilename);
             }
         }
-        
+
+        public void Dispose()
+        {
+            this.waterTexture?.Dispose();
+            this.lavaTexture?.Dispose();
+        }
+
     }
 }

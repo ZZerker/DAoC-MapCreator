@@ -70,8 +70,8 @@ namespace MapCreator.Classes.MapCreation
 
                     using (var heightmapPixels = this.heightmap.GetPixels())
                     {
-                        var terrainPixels = terrainmap.GetPixels();
-                        var offsetPixels = offsetmap.GetPixels();
+                        using var terrainPixels = terrainmap.GetPixels();
+                        using var offsetPixels = offsetmap.GetPixels();
 
                         for (var x = 0; x < offsetmap.Width; x++)
                         {
@@ -123,7 +123,8 @@ namespace MapCreator.Classes.MapCreation
             if (y == this.zoneConfiguration.TargetMapSize) y -= 1;
             else if (y < 0) y = 0;
 
-            return this.heightmapScaled.GetPixels().GetPixel(x, y).GetChannel(0);
+            using var pixels = this.heightmapScaled.GetPixels();
+            return pixels.GetPixel(x, y).GetChannel(0);
         }
 
         public void Dispose()
