@@ -216,6 +216,19 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             return image;
         }
 
+        public int CoveredPixels()
+        {
+            var count = 0;
+            for (var i = 3; i < this.pixels.Length; i += 4)
+            {
+                if (this.pixels[i] != 0)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
+
         /// <summary>
         /// Highest surface per map pixel in map units, NaN where nothing was drawn
         /// </summary>

@@ -43,6 +43,9 @@ namespace MapCreator.Classes.MapCreation
 
         private const string GROUND_CATEGORY = "Ground";
 
+        // Tree models whose cut out texture covers less than this share of their outline from above
+        private const double CARD_TREE_COVERAGE = 0.3;
+
         // Soft edge of models with their own terrain, in zone units
         private const double TERRAIN_FEATHER = 256;
 
@@ -442,6 +445,18 @@ namespace MapCreator.Classes.MapCreation
             return this.terrain;
         }
 
+        private FixtureCanvas FillCanvas(DrawableFixture fixture, bool lit, bool textured)
+        {
+            var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight, this.GetTerrain(), fixture.CanvasX, fixture.CanvasY);
+            foreach (var drawableElement in fixture.DrawableElements.OrderBy(GetDrawPass))
+            {
+                canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, textured ? drawableElement.Texture : null, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths,
+                                    depthOffset: fixture.BaseCanvasZ, vertexColors: drawableElement.VertexColors, dark: drawableElement.Dark, darkUvs: drawableElement.DarkUvs, isWater: drawableElement.IsWater,
+                                    additiveColor: drawableElement.IsAdditive ? drawableElement.AdditiveColor : -1);
+            }
+            return canvas;
+        }
+
         /// <summary>
         /// Draws the model's triangles in z order into a new canvas, textured or filled with their color
         /// </summary>
@@ -449,14 +464,15 @@ namespace MapCreator.Classes.MapCreation
         {
             if (fixture.RendererConf.Texture == TextureMode.Map)
             {
-                var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight, this.GetTerrain(), fixture.CanvasX, fixture.CanvasY);
-                foreach (var drawableElement in fixture.DrawableElements.OrderBy(GetDrawPass))
+                if (!fixture.IsTree && !fixture.IsTreeCluster)
                 {
-                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths,
-                                        depthOffset: fixture.BaseCanvasZ, vertexColors: drawableElement.VertexColors, dark: drawableElement.Dark, darkUvs: drawableElement.DarkUvs, isWater: drawableElement.IsWater,
-                                        additiveColor: drawableElement.IsAdditive ? drawableElement.AdditiveColor : -1);
+                    return this.FillCanvas(fixture, lit, true).ToImage();
                 }
-                return canvas.ToImage();
+
+                // Billboard trees (side views on crossed cards) lose their leaves when cut out from above; decided per placed tree, not per model, so drawing order cannot matter
+                var textured = this.FillCanvas(fixture, lit, true);
+                var filled = this.FillCanvas(fixture, lit, false);
+                return (textured.CoveredPixels() < filled.CoveredPixels() * CARD_TREE_COVERAGE ? filled : textured).ToImage();
             }
 
             var image = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight);
