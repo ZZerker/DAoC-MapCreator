@@ -32,7 +32,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static readonly List<FixtureRendererConfiguration2> RendererCategories = new List<FixtureRendererConfiguration2>();
 
-        private static readonly Dictionary<string, FixtureRendererConfiguration2> Configurations = new Dictionary<string, FixtureRendererConfiguration2>();
+        private static readonly List<(Regex Pattern, FixtureRendererConfiguration2 Configuration)> Configurations = new();
         private static FixtureRendererConfiguration2 defaultConfiguration;
 
         internal static FixtureRendererConfiguration2 DefaultConfiguration
@@ -58,12 +58,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// <returns></returns>
         public static FixtureRendererConfiguration2? GetFixtureRendererConfiguration(string nifname)
         {
-            foreach (var renderer in Configurations)
+            foreach (var (pattern, configuration) in Configurations)
             {
-                var regex = new Regex(renderer.Key.ToLower(), RegexOptions.IgnoreCase);
-                if (regex.IsMatch(nifname))
+                if (pattern.IsMatch(nifname))
                 {
-                    return renderer.Value;
+                    return configuration;
                 }
             }
             return null;
@@ -115,32 +114,33 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     continue;
                 }
 
-                // Check pattern
+                Regex pattern;
                 try
                 {
-                    var regexTest = new Regex(patternNode.First().Value);
+                    pattern = new Regex(patternNode.First().Value, RegexOptions.IgnoreCase);
                 }
-                catch
+                catch (ArgumentException ex)
                 {
-                    AppLog.Log(string.Format("Fixtures: Error in fixtures.xml, the pattern \"{0}\" is not valid.", patternNode.First().Value), LogLevel.Error);
+                    AppLog.Log(string.Format("Fixtures: Error in fixtures.xml, the pattern \"{0}\" is not valid: {1}", patternNode.First().Value, ex.Message), LogLevel.Error);
                     continue;
                 }
 
                 var categoryNode = fixture.Descendants("category");
-                if (!patternNode.Any() || string.IsNullOrEmpty(patternNode.First().Value))
+                if (!categoryNode.Any() || string.IsNullOrEmpty(categoryNode.First().Value))
                 {
-                    AppLog.Log(string.Format("Fixtures: Error in fixtures.xml, no category set."), LogLevel.Error);
+                    AppLog.Log(string.Format("Fixtures: Error in fixtures.xml, no category set for \"{0}\".", pattern), LogLevel.Error);
                     continue;
                 }
 
-                var pattern = patternNode.First().Value;
                 var category = categoryNode.First().Value;
-
-                // Get category
                 var categoryResult = RendererCategories.Where(c => c.Name == category);
                 if (categoryResult.Any())
                 {
-                    Configurations.Add(pattern, categoryResult.First());
+                    Configurations.Add((pattern, categoryResult.First()));
+                }
+                else
+                {
+                    AppLog.Log(string.Format("Fixtures: Error in fixtures.xml, the category \"{0}\" of \"{1}\" does not exist.", category, pattern), LogLevel.Error);
                 }
             }
         }

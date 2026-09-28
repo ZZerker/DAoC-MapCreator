@@ -456,7 +456,7 @@ namespace MapCreator
 
         private void mapBoundsColorTextBox_TextChanged(object sender, EventArgs e)
         {
-            if (this.mapRiversColorTextBox.Text.Length == 6)
+            if (this.mapBoundsColorTextBox.Text.Length == 6)
             {
                 try
                 {

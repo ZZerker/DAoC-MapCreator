@@ -9,14 +9,28 @@ namespace MapCreator.Classes.Rendering
     /// <summary>
     /// Renders a list of zones, one after another or several at a time. Shared by the window and the batch mode.
     /// </summary>
+    internal enum ZoneOutcome
+    {
+        Done,
+        WithErrors,
+        Skipped,
+        Failed
+    }
+
     internal sealed class ZoneBatch(RenderSettings settings, IRenderReporter reporter)
     {
         private int failed;
+        private int withErrors;
 
         /// <summary>
         /// Called when a zone starts, with its number in the queue
         /// </summary>
         public Action<ZoneSelection, int> ZoneStarted { get; init; }
+
+        /// <summary>
+        /// Called when a zone ends
+        /// </summary>
+        public Action<ZoneSelection, ZoneOutcome> ZoneFinished { get; init; }
 
         /// <summary>
         /// Called with every written map
@@ -32,6 +46,11 @@ namespace MapCreator.Classes.Rendering
         /// Zones that ended with an error
         /// </summary>
         public int Failed => this.failed;
+
+        /// <summary>
+        /// Zones whose map was written but that logged errors on the way
+        /// </summary>
+        public int WithErrors => this.withErrors;
 
         public void Run(IReadOnlyList<ZoneSelection> zones)
         {
@@ -59,37 +78,96 @@ namespace MapCreator.Classes.Rendering
         private void Render(ZoneSelection zone, int number, IRenderReporter zoneReporter)
         {
             this.ZoneStarted?.Invoke(zone, number);
-            using (AppLog.ForZone(zoneReporter))
+            var outcome = this.RenderZone(zone, zoneReporter);
+            if (outcome == ZoneOutcome.Failed)
             {
-                zoneReporter.Log(string.Format("Rendering {0} ({1})...", zone.Name, zone.Id), LogLevel.Notice);
+                Interlocked.Increment(ref this.failed);
+            }
+            else if (outcome == ZoneOutcome.WithErrors)
+            {
+                Interlocked.Increment(ref this.withErrors);
+            }
+            this.ZoneFinished?.Invoke(zone, outcome);
+        }
+
+        private ZoneOutcome RenderZone(ZoneSelection zone, IRenderReporter zoneReporter)
+        {
+            var counter = new ErrorCounter(zoneReporter);
+            using (AppLog.ForZone(counter))
+            {
+                counter.Log(string.Format("Rendering {0} ({1})...", zone.Name, zone.Id), LogLevel.Notice);
                 try
                 {
-                    var mapFile = new ZoneRenderer(settings, zoneReporter).Render(zone);
+                    var mapFile = new ZoneRenderer(settings, counter).Render(zone);
                     if (mapFile != null && !mapFile.Exists)
                     {
-                        zoneReporter.Log("No map was written.", LogLevel.Error);
-                        Interlocked.Increment(ref this.failed);
-                        return;
+                        counter.Log("No map was written.", LogLevel.Error);
+                        return ZoneOutcome.Failed;
                     }
 
                     if (mapFile != null)
                     {
                         this.MapWritten?.Invoke(mapFile);
-                        zoneReporter.ProgressReset();
+                        counter.ProgressReset();
                     }
-                    zoneReporter.Log("Finished without errors!", LogLevel.Success);
+
+                    if (counter.Errors > 0)
+                    {
+                        counter.Log(string.Format("Finished with {0} errors.", counter.Errors), LogLevel.Warning);
+                        return ZoneOutcome.WithErrors;
+                    }
+
+                    counter.Log("Finished without errors!", LogLevel.Success);
+                    return mapFile == null ? ZoneOutcome.Skipped : ZoneOutcome.Done;
                 }
                 catch (NotSupportedException ex)
                 {
-                    zoneReporter.Log("Skipped: " + ex.Message, LogLevel.Warning);
+                    counter.Log("Skipped: " + ex.Message, LogLevel.Warning);
+                    return ZoneOutcome.Skipped;
                 }
                 catch (Exception ex)
                 {
-                    zoneReporter.Log("Unhandled Exception thrown!", LogLevel.Error);
-                    zoneReporter.Log(ex.Message, LogLevel.Error);
-                    zoneReporter.Log(ex.StackTrace, LogLevel.Error);
-                    Interlocked.Increment(ref this.failed);
+                    counter.Log("Unhandled Exception thrown!", LogLevel.Error);
+                    counter.Log(ex.Message, LogLevel.Error);
+                    counter.Log(ex.StackTrace, LogLevel.Error);
+                    return ZoneOutcome.Failed;
                 }
+            }
+        }
+
+        private sealed class ErrorCounter(IRenderReporter inner) : IRenderReporter
+        {
+            private int errors;
+
+            public int Errors => this.errors;
+
+            public void Log(string text, LogLevel logLevel = LogLevel.Normal)
+            {
+                if (logLevel == LogLevel.Error)
+                {
+                    Interlocked.Increment(ref this.errors);
+                }
+                inner.Log(text, logLevel);
+            }
+
+            public void ProgressStart(string label)
+            {
+                inner.ProgressStart(label);
+            }
+
+            public void ProgressStartMarquee(string label)
+            {
+                inner.ProgressStartMarquee(label);
+            }
+
+            public void ProgressUpdate(int percent)
+            {
+                inner.ProgressUpdate(percent);
+            }
+
+            public void ProgressReset()
+            {
+                inner.ProgressReset();
             }
         }
     }

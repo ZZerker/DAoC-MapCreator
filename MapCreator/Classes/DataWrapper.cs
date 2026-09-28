@@ -247,6 +247,11 @@ namespace MapCreator.Classes
 
             using (var csv = MpkWrapper.GetFileFromMpk(mpkFile, filename))
             {
+                if (csv == null)
+                {
+                    throw new System.IO.FileNotFoundException(string.Format("{0} not found in {1}", filename, mpkFile));
+                }
+
                 string row;
                 while ((row = csv.ReadLine()) != null)
                 {

@@ -615,10 +615,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     var percent = 100 * progressCounter / this.fixtureRows.Count;
                     this.zoneConf.Reporter.ProgressUpdate(percent);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    this.zoneConf.Reporter.Log(string.Format("Error in fixture row of {0} (x: {1}, y: {2}, z: {3})", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z));
-                    continue;
+                    this.zoneConf.Reporter.Log(string.Format("Fixture {0} (x: {1}, y: {2}, z: {3}) left out: {4}: {5}", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z, ex.GetType().Name, ex.Message), LogLevel.Error);
                 }
             }
 
