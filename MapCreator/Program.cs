@@ -8,6 +8,13 @@ namespace MapCreator
         [STAThread]
         static void Main(string[] args)
         {
+            // Game files and settings use "." decimals; render threads inherit this
+            var culture = new System.Globalization.CultureInfo("en-US");
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = culture;
+            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
+            System.Globalization.CultureInfo.CurrentCulture = culture;
+            System.Globalization.CultureInfo.CurrentUICulture = culture;
+
             ApplicationConfiguration.Initialize();
 
             var settings = Properties.Settings.Default;
@@ -21,7 +28,14 @@ namespace MapCreator
                 }
             }
 
-            Application.Run(new MainForm(args));
+            var exitCode = Classes.Rendering.BatchMode.TryRun(args);
+            if (exitCode != null)
+            {
+                Environment.ExitCode = exitCode.Value;
+                return;
+            }
+
+            Application.Run(new MainForm());
         }
     }
 }

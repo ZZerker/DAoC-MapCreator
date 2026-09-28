@@ -24,7 +24,6 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 using MapCreator.Classes;
 using MapCreator.Classes.MapCreation;
@@ -103,108 +102,6 @@ namespace MapCreator
 
                 this.UpdateSelectedZoneListBox();
             }
-        }
-
-        /// <summary>
-        /// Batch mode: MapCreator.exe --render 163,164|nf+outdoor|all [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--labels-only] [--no-keeps] [--no-depth-water]
-        /// </summary>
-        private readonly bool batchMode = false;
-
-        private readonly string batchLogFile = null;
-
-        public MainForm(string[] args) : this()
-        {
-            var batchZoneTerms = new List<string>();
-            var batchSize = 0;
-            string batchDirectory = null;
-            var batchLogName = "render.log";
-            var batchParallel = 0;
-            for (var i = 0; i < args.Length - 1; i++)
-            {
-                switch (args[i].ToLower())
-                {
-                    case "--render":
-                        batchZoneTerms.Add(args[i + 1]);
-                        break;
-                    case "--size":
-                        batchSize = Convert.ToInt32(args[i + 1]);
-                        break;
-                    case "--dir":
-                        batchDirectory = args[i + 1];
-                        break;
-                    case "--log":
-                        batchLogName = args[i + 1];
-                        break;
-                    case "--parallel":
-                        batchParallel = Convert.ToInt32(args[i + 1]);
-                        break;
-                }
-            }
-
-            if (batchZoneTerms.Count == 0)
-            {
-                return;
-            }
-
-            this.batchMode = true;
-            this.WindowState = FormWindowState.Minimized;
-            var logDirectory = !string.IsNullOrEmpty(Properties.Settings.Default.targetMapPath) ? Properties.Settings.Default.targetMapPath : Application.StartupPath;
-            Directory.CreateDirectory(logDirectory);
-            this.batchLogFile = Path.Combine(logDirectory, batchLogName);
-            File.WriteAllText(this.batchLogFile, "");
-
-            var batchZoneIds = ZoneGroups.Resolve(string.Join(",", batchZoneTerms), message => this.Log(message, LogLevel.Warning)).ToList();
-            var knownZoneIds = batchZoneIds.Where(DataWrapper.IsKnownZone).ToList();
-            foreach (var zoneId in batchZoneIds.Except(knownZoneIds))
-            {
-                this.Log(string.Format("Skipped: zone {0} is not in the zone list.", zoneId), LogLevel.Warning);
-            }
-
-            this.SelectedZones = knownZoneIds.Select(DataWrapper.GetZoneSelectionByZoneId).ToList();
-            this.UpdateSelectedZoneListBox();
-
-            var labelsOnly = HasFlag(args, "--labels-only");
-            var noKeeps = HasFlag(args, "--no-keeps");
-            var noDepthWater = HasFlag(args, "--no-depth-water");
-
-            // Settings bindings overwrite control values on load
-            this.Shown += async (sender, e) =>
-            {
-                if (batchSize > 0)
-                {
-	                this.TargetMapSize = batchSize;
-                }
-                if (batchParallel > 0)
-                {
-                    this.parallelZonesUpDown.Value = Math.Clamp(batchParallel, (int)this.parallelZonesUpDown.Minimum, (int)this.parallelZonesUpDown.Maximum);
-                }
-                if (batchDirectory != null)
-                {
-	                this.directoryPatternTextBox.Text = batchDirectory;
-                }
-
-                this.fileTypeComboBox.Text = "PNG";
-                this.filePatternTextBox.Text = "z{id}";
-                this.enableLogCheckBox.Checked = true;
-                this.enableResultPreview.Checked = false;
-                this.labelsOnlyCheckBox.Checked = labelsOnly;
-                if (noKeeps)
-                {
-                    this.drawKeepsCheckBox.Checked = false;
-                }
-                if (noDepthWater)
-                {
-                    this.depthShadedWaterCheckBox.Checked = false;
-                }
-
-                await this.RenderSelectedZonesAsync();
-                this.Close();
-            };
-        }
-
-        private static bool HasFlag(string[] args, string flag)
-        {
-            return args.Any(a => string.Equals(a, flag, StringComparison.OrdinalIgnoreCase));
         }
 
         public void Initialize()
@@ -302,11 +199,6 @@ namespace MapCreator
             if (!this.enableLogCheckBox.Checked)
             {
                 return;
-            }
-
-            if (this.batchLogFile != null)
-            {
-                File.AppendAllText(this.batchLogFile, string.Format("{0:HH:mm:ss} {1,-7} {2}{3}", DateTime.Now, logLevel, text, Environment.NewLine));
             }
 
             // Cut on 3000 rows
@@ -489,12 +381,6 @@ namespace MapCreator
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (this.batchMode)
-            {
-                Properties.Settings.Default.Reload();
-                return;
-            }
-
             Properties.Settings.Default.Save();
         }
 
@@ -620,34 +506,10 @@ namespace MapCreator
 
             var settings = this.CaptureRenderSettings();
             var zones = this.SelectedZones.ToList();
-            var parallel = Math.Clamp(settings.Parallel, 1, zones.Count);
-
-            var started = 0;
-            var finished = 0;
+            var batch = new ZoneBatch(settings, this) { ZoneStarted = this.ShowCurrentZone, MapWritten = mapFile => this.LoadImage(mapFile.FullName) };
             try
             {
-                if (parallel == 1)
-                {
-                    await Task.Run(() =>
-                    {
-                        foreach (var zone in zones)
-                        {
-                            this.ShowCurrentZone(zone, Interlocked.Increment(ref started));
-                            this.RenderZone(zone, settings, this);
-                        }
-                    });
-                }
-                else
-                {
-                    this.ProgressStart(string.Format("Rendering {0} zones, {1} at a time ...", zones.Count, parallel));
-                    await Task.Run(() => Parallel.ForEach(zones, new ParallelOptions { MaxDegreeOfParallelism = parallel }, zone =>
-                    {
-                        this.ShowCurrentZone(zone, Interlocked.Increment(ref started));
-                        this.RenderZone(zone, settings, new ZoneReporter(this, zone.Id));
-                        this.ProgressUpdate(100 * Interlocked.Increment(ref finished) / zones.Count);
-                    }));
-                    this.ProgressReset();
-                }
+                await Task.Run(() => batch.Run(zones));
             }
             finally
             {
@@ -662,39 +524,6 @@ namespace MapCreator
                 this.currentMapLabel.Text = string.Format("| {0} ({1}) |", zone.Name, zone.Id);
                 this.queueProcessedLabel.Text = number.ToString();
             });
-        }
-
-        private void RenderZone(ZoneSelection zone, RenderSettings settings, IRenderReporter reporter)
-        {
-            reporter.Log(string.Format("Rendering {0} ({1})...", zone.Name, zone.Id), LogLevel.Notice);
-            try
-            {
-                var mapFile = new ZoneRenderer(settings, reporter).Render(zone);
-                if (mapFile != null)
-                {
-                    if (mapFile.Exists)
-                    {
-                        this.LoadImage(mapFile.FullName);
-                        reporter.ProgressReset();
-                    }
-                    else
-                    {
-                        reporter.Log("Errors during progress!", LogLevel.Error);
-                    }
-                }
-
-                reporter.Log("Finished without errors!", LogLevel.Success);
-            }
-            catch (NotSupportedException ex)
-            {
-                reporter.Log("Skipped: " + ex.Message, LogLevel.Warning);
-            }
-            catch (Exception ex)
-            {
-                reporter.Log("Unhandled Exception thrown!", LogLevel.Error);
-                reporter.Log(ex.Message, LogLevel.Error);
-                reporter.Log(ex.StackTrace, LogLevel.Error);
-            }
         }
 
         private RenderSettings CaptureRenderSettings()

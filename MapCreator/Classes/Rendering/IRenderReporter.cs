@@ -26,11 +26,14 @@ namespace MapCreator.Classes
     }
 
     /// <summary>
-    /// Log for code that is shared by all zones (caches, configuration files)
+    /// Log for code that is shared by all zones (caches, configuration files). While a zone renders, its lines go to
+    /// that zone's reporter, so they carry the zone id.
     /// </summary>
     public static class AppLog
     {
         private static IRenderReporter reporter = NullRenderReporter.Instance;
+
+        private static readonly System.Threading.AsyncLocal<IRenderReporter> CurrentZone = new();
 
         public static IRenderReporter Reporter
         {
@@ -40,7 +43,25 @@ namespace MapCreator.Classes
 
         public static void Log(string text, LogLevel logLevel = LogLevel.Normal)
         {
-            reporter.Log(text, logLevel);
+            (CurrentZone.Value ?? reporter).Log(text, logLevel);
+        }
+
+        /// <summary>
+        /// Sends the lines of the current thread and its tasks to the zone's reporter until disposed
+        /// </summary>
+        public static System.IDisposable ForZone(IRenderReporter zoneReporter)
+        {
+            var previous = CurrentZone.Value;
+            CurrentZone.Value = zoneReporter;
+            return new Scope(() => CurrentZone.Value = previous);
+        }
+
+        private sealed class Scope(System.Action end) : System.IDisposable
+        {
+            public void Dispose()
+            {
+                end();
+            }
         }
     }
 

@@ -3,10 +3,48 @@ using System.Drawing;
 namespace MapCreator.Classes.Rendering
 {
     /// <summary>
-    /// Everything a zone render needs from the main window, captured on the UI thread
+    /// Everything a zone render needs, captured from the main window on the UI thread or read from the saved settings (batch mode)
     /// </summary>
     internal sealed record RenderSettings
     {
+        /// <summary>
+        /// The options the window last saved
+        /// </summary>
+        public static RenderSettings FromSaved(Properties.Settings saved)
+        {
+            return new RenderSettings
+            {
+                MapSize = (int)saved.mapWidth,
+                Parallel = (int)saved.renderParallel,
+                TargetPath = !string.IsNullOrEmpty(saved.targetMapPath) ? saved.targetMapPath : System.Windows.Forms.Application.StartupPath,
+                DirectoryPattern = saved.targetDirectoryPattern,
+                FilePattern = saved.mapFilePattern,
+                FileType = saved.mapType,
+                Quality = (uint)saved.mapQuality,
+                SkipIfFileExists = saved.skipIfFileExists,
+                DrawBackground = saved.mapGenerateBackground,
+                Lightmap = saved.mapGenerateHeightmap,
+                LightmapZScale = (double)saved.mapHeightmapZScale,
+                LightmapLightMin = (double)saved.mapHeightmapMinLight,
+                LightmapLightMax = (double)saved.mapHeightmapMaxLight,
+                LightmapZVector = new[] { (double)saved.mapHeightmapZVector1, (double)saved.mapHeightmapZVector2, (double)saved.mapHeightmapZVector3 },
+                Rivers = saved.mapGenerateRivers,
+                RiversUseDefaultColor = saved.mapRiverColorUseDefault,
+                RiversColor = saved.mapRiverColor,
+                RiverOpacity = (int)saved.mapRiverOpacity,
+                DepthShadedWater = saved.mapDepthShadedWater,
+                Bounds = saved.mapGenerateBounds,
+                BoundsColor = saved.mapBoundsColor,
+                BoundsOpacity = (int)saved.mapBoundsOpacity,
+                ExcludeBoundsFromMap = saved.removeBoundsFromMap,
+                DrawFixtures = saved.mapDrawBuildings,
+                DrawFixturesBelowWater = saved.mapDrawBuildingsBelowWater,
+                DrawKeeps = saved.mapDrawKeeps,
+                DrawTrees = saved.mapDrawTrees,
+                TreeTransparency = (int)saved.mapTreeTransparency
+            };
+        }
+
         public int MapSize { get; init; }
 
         // Zones rendered at the same time
