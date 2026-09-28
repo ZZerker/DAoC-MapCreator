@@ -531,6 +531,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                             SetModelTreeColor(fixture.Tree, nifRow);
                         }
 
+                        // Trees only fixtures.xml knows (hOldGrove, Iarnwood) take their model's texture color instead of the fallback green
+                        if (fixture.Tree == null)
+                        {
+                            var modelTree = new TreeRow { Name = nifRow.Filename, HasTextureColor = false };
+                            SetModelTreeColor(modelTree, nifRow);
+                            if (modelTree.HasTextureColor)
+                            {
+                                fixture.Tree = modelTree;
+                            }
+                        }
+
                         fixture.RendererConf = rConf ?? FixtureRendererConfigurations.GetRendererById("TreeShaded");
                     }
                     else if (fixture.IsTreeCluster)
@@ -541,6 +552,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         var treeNif = this.NifRows.FirstOrDefault(n => n.Filename.ToLower() == fixture.TreeCluster.Tree.ToLower());
                         if (treeNif == null) continue;
                         var baseTreePolygons = treeNif.Polygons;
+
+                        // Colored like the single tree, else the TreeShaded fallback green covers snowy clusters (Uppland 170)
+                        fixture.Tree = trees.FirstOrDefault(t => string.Equals(t.Name, fixture.TreeCluster.Tree, StringComparison.OrdinalIgnoreCase));
+                        if (fixture.Tree != null && !fixture.Tree.HasTextureColor)
+                        {
+                            SetModelTreeColor(fixture.Tree, treeNif);
+                        }
 
                         // Loop the instances and transform the polygons
                         var treeClusterPolygons = new List<Polygon>();
