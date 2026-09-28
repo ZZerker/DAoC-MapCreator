@@ -595,9 +595,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                         if (rConf == null)
                         {
-                            fixture.RendererConf = FixtureCache.HasPrerenderedImage(fixture.NifName)
-                                ? FixtureRendererConfigurations.GetRendererById("Prerendered")
-                                : FixtureRendererConfigurations.GetRendererBySize(GetFootprint(nifRow, fixtureRow));
+                            fixture.RendererConf = FixtureRendererConfigurations.GetRendererBySize(GetFootprint(nifRow, fixtureRow));
                         }
                         else fixture.RendererConf = rConf.GetValueOrDefault();
                     }

@@ -10,15 +10,13 @@ using NifUtil.Objects;
 namespace MapCreator.Classes.MapCreation.Fixtures
 {
     /// <summary>
-    /// Fixture data shared by all zones: trees, prerendered images and model polygons
+    /// Fixture data shared by all zones: trees and model polygons
     /// </summary>
     internal static class FixtureCache
     {
         private static readonly System.Drawing.Color DefaultTreeColor = System.Drawing.ColorTranslator.FromHtml("#5e683a");
 
         private static readonly Lazy<(List<TreeRow> Trees, List<TreeClusterRow> Clusters)> TreeData = new(LoadTreeData);
-
-        private static readonly Lazy<HashSet<string>> PrerenderedObjectNames = new(LoadPrerenderedObjectNames);
 
         // Polygons by cache name, guarded by PolysLock. polys8.mpk is additionally shared with other processes.
         private static readonly Dictionary<string, Polygon[]> Polygons = new(StringComparer.OrdinalIgnoreCase);
@@ -27,11 +25,6 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         public static IReadOnlyList<TreeRow> Trees => TreeData.Value.Trees;
 
         public static IReadOnlyList<TreeClusterRow> TreeClusters => TreeData.Value.Clusters;
-
-        public static bool HasPrerenderedImage(string nifName)
-        {
-            return PrerenderedObjectNames.Value.Contains(Path.GetFileNameWithoutExtension(nifName));
-        }
 
         public static bool IsTreeCluster(string nifName)
         {
@@ -217,13 +210,6 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
 
             return true;
-        }
-
-        private static HashSet<string> LoadPrerenderedObjectNames()
-        {
-            var objectImageFileDirectory = string.Format("{0}\\data\\prerendered\\objects", System.Windows.Forms.Application.StartupPath);
-            if (!Directory.Exists(objectImageFileDirectory)) Directory.CreateDirectory(objectImageFileDirectory);
-            return new HashSet<string>(Directory.GetFiles(objectImageFileDirectory).Select(Path.GetFileNameWithoutExtension), StringComparer.OrdinalIgnoreCase);
         }
 
         private static (List<TreeRow>, List<TreeClusterRow>) LoadTreeData()
