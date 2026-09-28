@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,31 +17,32 @@ namespace MapCreator.Classes.MapCreation.Fixtures
     {
         private static readonly System.Drawing.Color DefaultTreeColor = System.Drawing.ColorTranslator.FromHtml("#5e683a");
 
-        // .poly files with blended texture layers, vertex colors, dark maps (also "_dm_" detail maps), water and additive flags, one entry per source archive
-        private const string POLYS_CACHE_FILE = "polys8.mpk";
+        // One .poly file per model and source archive, with blended texture layers, vertex colors, dark maps (also "_dm_" detail maps), water and additive flags
+        private const string POLYS_CACHE_DIRECTORY = "polys8";
 
+        // The same files in one archive, which had to be read in full for every load; moved into the folder once
+        private const string POLYS_ARCHIVE_FILE = "polys8.mpk";
+
+        // Guards the move out of the archive, shared with other processes
         private const string POLYS_MUTEX = "MapCreatorPolysCache";
 
         private static readonly Lazy<(List<TreeRow> Trees, List<TreeClusterRow> Clusters)> TreeData = new(LoadTreeData);
 
-        // Polygons of models other zones can use too, by cache name, guarded by PolysLock. The cache file is additionally shared with other processes.
-        private static readonly Dictionary<string, Polygon[]> Polygons = new(StringComparer.OrdinalIgnoreCase);
+        // Models other zones can reuse; each loads at most once however many zones ask
+        private static readonly ConcurrentDictionary<string, Lazy<Polygon[]>> Polygons = new(StringComparer.OrdinalIgnoreCase);
+
+        // Guards only the one-time housekeeping (old cache cleanup, archive migration) and Clear(), never a model load
         private static readonly object PolysLock = new();
 
-        private static string PolysCacheFile => Path.Combine(System.Windows.Forms.Application.StartupPath, "data", POLYS_CACHE_FILE);
+        private static volatile bool archiveMoved;
+
+        private static string PolysCacheDirectory => Path.Combine(System.Windows.Forms.Application.StartupPath, "data", POLYS_CACHE_DIRECTORY);
+
+        private static string PolysArchiveFile => Path.Combine(System.Windows.Forms.Application.StartupPath, "data", POLYS_ARCHIVE_FILE);
 
         public static IReadOnlyList<TreeRow> Trees => TreeData.Value.Trees;
 
-        public static int CachedModels
-        {
-            get
-            {
-                lock (PolysLock)
-                {
-                    return Polygons.Count;
-                }
-            }
-        }
+        public static int CachedModels => Polygons.Count(entry => entry.Value.IsValueCreated);
 
         public static IReadOnlyList<TreeClusterRow> TreeClusters => TreeData.Value.Clusters;
 
@@ -55,40 +57,29 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// </summary>
         public static void LoadPolygons(IReadOnlyList<(NifRow Row, string ArchivePath)> models, string zoneDirectory, IRenderReporter reporter)
         {
-            lock (PolysLock)
+            var fromMemory = 0;
+            var missing = new List<(NifRow Row, string ArchivePath, string CacheName)>();
+            foreach (var (row, archivePath) in models)
             {
-                var fromMemory = 0;
-                var missing = new List<(NifRow Row, string ArchivePath, string CacheName)>();
-                foreach (var (row, archivePath) in models)
+                var cacheName = GetCacheName(archivePath, row.Variant);
+                if (Polygons.TryGetValue(cacheName, out var lazyPolygons) && lazyPolygons.IsValueCreated)
                 {
-                    var cacheName = GetCacheName(archivePath, row.Variant);
-                    if (Polygons.TryGetValue(cacheName, out var polygons))
-                    {
-                        row.Polygons = polygons;
-                        fromMemory++;
-                    }
-                    else
-                    {
-                        missing.Add((row, archivePath, cacheName));
-                    }
+                    row.Polygons = lazyPolygons.Value;
+                    fromMemory++;
                 }
-
-                reporter.Log(string.Format("Models: {0} reused from memory, {1} to load", fromMemory, missing.Select(m => m.CacheName).Distinct(StringComparer.OrdinalIgnoreCase).Count()), LogLevel.Notice);
-                if (missing.Count == 0)
+                else
                 {
-                    return;
-                }
-
-                using var polysMutex = LockCacheFile();
-                try
-                {
-                    LoadMissingPolygons(missing, zoneDirectory, reporter);
-                }
-                finally
-                {
-                    polysMutex.ReleaseMutex();
+                    missing.Add((row, archivePath, cacheName));
                 }
             }
+
+            reporter.Log(string.Format("Models: {0} reused from memory, {1} to load", fromMemory, missing.Select(m => m.CacheName).Distinct(StringComparer.OrdinalIgnoreCase).Count()), LogLevel.Notice);
+            if (missing.Count == 0)
+            {
+                return;
+            }
+
+            LoadMissingPolygons(missing, zoneDirectory, reporter);
         }
 
         /// <summary>
@@ -102,7 +93,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 try
                 {
                     Polygons.Clear();
-                    File.Delete(PolysCacheFile);
+                    archiveMoved = false;
+                    File.Delete(PolysArchiveFile);
+                    if (Directory.Exists(PolysCacheDirectory))
+                    {
+                        Directory.Delete(PolysCacheDirectory, true);
+                    }
                 }
                 finally
                 {
@@ -124,29 +120,75 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             return polysMutex;
         }
 
+        // The archive was opened in full (30 s for 2,500 models) under the lock; each entry becomes its own file
+        private static void MoveArchiveToFiles(IRenderReporter reporter)
+        {
+            using var polysMutex = LockCacheFile();
+            try
+            {
+                if (File.Exists(PolysArchiveFile))
+                {
+                    reporter.Log(string.Format("Moving the model cache {0} into single files ...", POLYS_ARCHIVE_FILE), LogLevel.Notice);
+                    reporter.ProgressStartMarquee("Moving the model cache ...");
+                    Directory.CreateDirectory(PolysCacheDirectory);
+                    var archive = MpkWrapper.Open(PolysArchiveFile);
+                    foreach (var entry in archive.Files)
+                    {
+                        var cacheFile = Path.Combine(PolysCacheDirectory, entry.Name);
+                        if (!File.Exists(cacheFile))
+                        {
+                            WriteCacheFile(cacheFile, temporaryFile => File.WriteAllBytes(temporaryFile, archive.GetFile(entry.Name).Data));
+                        }
+                    }
+
+                    // Only once every entry is written, so an interrupted move continues next time
+                    File.Delete(PolysArchiveFile);
+                    reporter.Log(string.Format("Model cache moved: {0} models", archive.Files.Length), LogLevel.Success);
+                }
+            }
+            finally
+            {
+                polysMutex.ReleaseMutex();
+            }
+        }
+
+        // Once per process before the first model file is read
+        private static void EnsureHousekeeping(IRenderReporter reporter)
+        {
+            if (archiveMoved)
+            {
+                return;
+            }
+
+            lock (PolysLock)
+            {
+                if (archiveMoved)
+                {
+                    return;
+                }
+
+                DeleteOldCache("polys.mpk");
+                DeleteOldCache("polys2.mpk");
+                DeleteOldCache("polys3.mpk");
+                DeleteOldCache("polys4.mpk");
+                DeleteOldCache("polys5.mpk");
+                DeleteOldCache("polys6.mpk");
+                DeleteOldCache("polys7.mpk");
+                Directory.CreateDirectory(PolysCacheDirectory);
+                MoveArchiveToFiles(reporter);
+                archiveMoved = true;
+            }
+        }
+
         private static void LoadMissingPolygons(List<(NifRow Row, string ArchivePath, string CacheName)> missing, string zoneDirectory, IRenderReporter reporter)
         {
             reporter.Log("Loading polygons ...", LogLevel.Notice);
             reporter.ProgressStart("Loading polygons ...");
 
-            var polysDirectory = new DirectoryInfo(string.Format("{0}\\data\\polys", System.Windows.Forms.Application.StartupPath));
-            if (!polysDirectory.Exists) polysDirectory.Create();
+            EnsureHousekeeping(reporter);
 
-            var polysMpkFile = PolysCacheFile;
-            DeleteOldCache("polys.mpk");
-            DeleteOldCache("polys2.mpk");
-            DeleteOldCache("polys3.mpk");
-            DeleteOldCache("polys4.mpk");
-            DeleteOldCache("polys5.mpk");
-            DeleteOldCache("polys6.mpk");
-            DeleteOldCache("polys7.mpk");
-
-            var polyMpk = File.Exists(polysMpkFile) ? MpkWrapper.Open(polysMpkFile) : new MPKLib.MPAK();
-            var polyMpkModified = !File.Exists(polysMpkFile);
-            var cachedPolys = new HashSet<string>(polyMpk.Files.Select(f => f.Name), StringComparer.OrdinalIgnoreCase);
-
-            // Several rows of one zone can point to the same model
-            var loaded = new Dictionary<string, Polygon[]>(StringComparer.OrdinalIgnoreCase);
+            // Models from the zone's own archives are not kept for other zones
+            var loadedLocally = new Dictionary<string, Polygon[]>(StringComparer.OrdinalIgnoreCase);
             var zoneArchives = zoneDirectory.TrimEnd('\\') + "\\";
 
             var progressCounter = 0;
@@ -154,48 +196,68 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 reporter.ProgressUpdate(100 * progressCounter++ / missing.Count);
 
-                if (!loaded.TryGetValue(modelPolyFileName, out var polygons))
+                Polygon[] polygons;
+                if (nifArchivePath.StartsWith(zoneArchives, StringComparison.OrdinalIgnoreCase))
                 {
-                    polygons = LoadModel(nifRow, nifArchivePath, modelPolyFileName, polyMpk, cachedPolys, polysDirectory, reporter, ref polyMpkModified);
+                    if (!loadedLocally.TryGetValue(modelPolyFileName, out polygons))
+                    {
+                        polygons = LoadModel(nifRow, nifArchivePath, modelPolyFileName, reporter);
+                        if (polygons == null)
+                        {
+                            continue;
+                        }
+
+                        loadedLocally[modelPolyFileName] = polygons;
+                    }
+                }
+                else
+                {
+                    polygons = LoadSharedModel(nifRow, nifArchivePath, modelPolyFileName, reporter);
                     if (polygons == null)
                     {
                         continue;
-                    }
-
-                    loaded[modelPolyFileName] = polygons;
-                    if (!nifArchivePath.StartsWith(zoneArchives, StringComparison.OrdinalIgnoreCase))
-                    {
-                        Polygons[modelPolyFileName] = polygons;
                     }
                 }
 
                 nifRow.Polygons = polygons;
             }
 
-            reporter.ProgressStartMarquee("Saving polygons ...");
-            if (polyMpkModified)
-            {
-                // Other processes wait for the mutex, but an interrupted save must not leave a broken cache behind
-                var temporaryFile = polysMpkFile + ".tmp";
-                polyMpk.Save(temporaryFile);
-                File.Move(temporaryFile, polysMpkFile, true);
-            }
-
-            Directory.Delete(polysDirectory.FullName, true);
-
             reporter.Log("Polygons loaded!", LogLevel.Success);
             reporter.ProgressReset();
+        }
+
+        // A failed or missing model is removed again so a later zone can retry
+        private static Polygon[] LoadSharedModel(NifRow nifRow, string nifArchivePath, string modelPolyFileName, IRenderReporter reporter)
+        {
+            var lazyPolygons = Polygons.GetOrAdd(modelPolyFileName, _ => new Lazy<Polygon[]>(() => LoadModel(nifRow, nifArchivePath, modelPolyFileName, reporter), LazyThreadSafetyMode.ExecutionAndPublication));
+            Polygon[] polygons;
+            try
+            {
+                polygons = lazyPolygons.Value;
+            }
+            catch
+            {
+                Polygons.TryRemove(new KeyValuePair<string, Lazy<Polygon[]>>(modelPolyFileName, lazyPolygons));
+                throw;
+            }
+
+            if (polygons == null)
+            {
+                Polygons.TryRemove(new KeyValuePair<string, Lazy<Polygon[]>>(modelPolyFileName, lazyPolygons));
+            }
+
+            return polygons;
         }
 
         /// <summary>
         /// Polygons from the cache file or converted from the NIF, null if the NIF is missing in its archive
         /// </summary>
-        private static Polygon[] LoadModel(NifRow nifRow, string nifArchivePath, string modelPolyFileName, MPKLib.MPAK polyMpk, HashSet<string> cachedPolys, DirectoryInfo polysDirectory,
-                                           IRenderReporter reporter, ref bool polyMpkModified)
+        private static Polygon[] LoadModel(NifRow nifRow, string nifArchivePath, string modelPolyFileName, IRenderReporter reporter)
         {
-            if (cachedPolys.Contains(modelPolyFileName))
+            var cacheFile = Path.Combine(PolysCacheDirectory, modelPolyFileName);
+            if (File.Exists(cacheFile))
             {
-                return NifParser.ReadPoly(new StreamReader(new MemoryStream(polyMpk.GetFile(modelPolyFileName).Data)));
+                return NifParser.ReadPoly(new StreamReader(new MemoryStream(File.ReadAllBytes(cacheFile))));
             }
 
             using var nifFileFromNpk = MpkWrapper.GetFileFromMpk(nifArchivePath, nifRow.Filename);
@@ -206,7 +268,6 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
             reporter.Log(string.Format("Processing {0}...", nifRow.TextualName), LogLevel.Notice);
 
-            var modelPolySavePath = string.Format("{0}\\{1}", polysDirectory, modelPolyFileName);
             using var nifParser = new NifParser();
             nifParser.IsNodeDrawable += node => IsNodeDrawable(nifRow, node);
             nifParser.ResolveTexture = nifRow.ResolveTexture;
@@ -214,7 +275,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             try
             {
                 nifParser.Load(nifFileFromNpk);
-                nifParser.Convert(ConvertType.Poly, modelPolySavePath);
+                WriteCacheFile(cacheFile, temporaryFile => nifParser.Convert(ConvertType.Poly, temporaryFile));
             }
             catch (Exception ex)
             {
@@ -222,10 +283,38 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 return Array.Empty<Polygon>();
             }
 
-            polyMpk.AddFile(modelPolySavePath);
-            cachedPolys.Add(modelPolyFileName);
-            polyMpkModified = true;
             return nifParser.GetPolys();
+        }
+
+        // Moved into place so other processes never read half a file; if another process wrote it first, ours is dropped
+        private static void WriteCacheFile(string cacheFile, Action<string> write)
+        {
+            var temporaryFile = string.Format("{0}.{1}.tmp", cacheFile, Environment.ProcessId);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(cacheFile));
+                write(temporaryFile);
+                if (File.Exists(cacheFile))
+                {
+                    return;
+                }
+
+                try
+                {
+                    File.Move(temporaryFile, cacheFile);
+                }
+                catch (IOException) when (File.Exists(cacheFile))
+                {
+                    // Another process moved its own copy into place first, target now exists: not an error
+                }
+            }
+            finally
+            {
+                if (File.Exists(temporaryFile))
+                {
+                    File.Delete(temporaryFile);
+                }
+            }
         }
 
         private static void DeleteOldCache(string fileName)
