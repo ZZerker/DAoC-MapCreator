@@ -10,8 +10,8 @@ Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/
 **Outdoor zones**
 - Terrain textures with relief shading computed from the height map at full map size
 - Rivers, lakes and lava; shallow water lets the ground show through, so shores fade into the water
-- Trees drawn from their models, colored from their leaf or bark texture
-- Buildings and objects with their real textures, their baked lighting (dark maps) and a soft drop shadow
+- Trees drawn from their models with their own textures, leaves cut out by the texture's alpha
+- Buildings and objects with their real textures, their baked lighting (dark maps) and a soft drop shadow; parts below the ground stay hidden like in the game
 - Zone bounds
 
 **New Frontiers keeps and towers**
@@ -27,7 +27,7 @@ Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/
 - One extra map per level for the dungeons the client has level maps for (`zNNN_LL`, e.g. the six levels of Darkness Falls), the other levels shown faded underneath
 - Instanced zones (`skycity` data, e.g. Underground Forest, Dream) included
 
-City and dungeon maps use the same frame as the client and bestiary maps, so a position lines up at `(zone coordinate - offset) / width`.
+City and dungeon maps use the same frame as the client and bestiary maps, so a position lines up at `(zone coordinate - offset) / width`. Each of them gets a `zNNN.frame.json` with its offset and width.
 
 **Labels** (New Frontiers)
 - Keep and tower names, bosses, places and docks, neighbor zone names along the map border
@@ -40,7 +40,8 @@ City and dungeon maps use the same frame as the client and bestiary maps, so a p
 - Models use the texture layers and vertex lighting they name, not just their fallback texture
 - All client zones are available; the ones missing in the curated list come from the client's `zones.dat`
 - Model and texture replacements the client loads (`NIFPROXY.csv`, `TEXPROXY.csv`) are applied
-- Command line batch mode for unattended rendering, several zones in parallel in one process; every option is also in the window
+- Command line batch mode for unattended rendering, several zones in parallel in one process, with a live console view; every option is also in the window
+- Every model is drawn from its geometry; the hand-made images for relic temples, boats and piers are gone
 - Scripts to convert the result to DDS for the UI and to render everything overnight
 - Finds the game folder on first start (Eden and Blackthorn launcher, default install paths)
 - Much faster: zones share their model and texture caches, and models are drawn by the own rasterizer instead of one ImageMagick draw call per triangle (fixtures of zone 171: 54 s before, under 5 s now). All 14 New Frontiers zones at 2048 px take about 2 minutes.
@@ -83,10 +84,13 @@ The program is written to `Releases\MapCreator.exe`. Pushing a tag `v*` builds a
 ## Usage
 Start `MapCreator.exe`, select the zones and click create. Settings (map size, water, trees, keeps, bounds, output folder) are in the main window and the preferences.
 
-Batch mode renders without user input, starts minimized and closes when done:
+Batch mode renders without user input and without the main window:
 ```
-MapCreator.exe --render <zones> [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--no-keeps] [--no-depth-water] [--labels-only]
+MapCreator.exe --render <zones> [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--no-keeps] [--no-depth-water] [--labels-only] [--no-console]
 ```
+A console window shows the run live: zones done, failed and left, the estimated time left, memory, one row per zone being rendered with its current step and progress, and the latest log lines. It stays open 30 seconds after the batch (or until a key is pressed), so unattended runs still end. `--no-console` runs without it. Closing the console window stops the render.
+
+The log file is written as the render goes, one line at a time, so it keeps everything up to a crash. Every line carries its zone id. A zone that logged errors (for example a model that could not be drawn) ends with "Finished with N errors" and is counted in the summary. Other options come from the settings saved in the window; the exit code is 1 if a zone failed.
 
 ### Zone groups
 `<zones>` is a comma separated list of zone ids and groups. The groups come from the same data as the zone selection in the window.
@@ -119,12 +123,29 @@ Unknown names are logged as a warning and skipped.
 
 `tools\render_all_shutdown.ps1` builds, renders every zone (or `-Zones`), converts New Frontiers to DDS and shuts the computer down (`-NoShutdown` to keep it running).
 
+`tools\deploy_launcher_maps.ps1 -Source <render folder>` (run as administrator) copies the maps into the Eden launcher as `zoneNNN.jpg` and writes the city and dungeon frames into its `zones.json`, so the position marker lines up. The launcher's own files are saved once to `Output\launcher_backup_all`; `-Restore` puts them back.
+
 ### Please note
 - Rendering is CPU and memory heavy, depending on the map size and the number of parallel zones.
 - Use map sizes that are a power of 2: 512, 1024, 2048, 4096. The terrain textures have a native resolution of 4096 pixels.
-- The first render converts the models and fills the cache (`data\polys6.mpk`); later renders are faster.
+- The first render converts the models and fills the cache (`data\polys8.mpk`); later renders are faster. "Clear fixture polygon cache" in the Tools menu deletes it.
 
 ## Changelog
+**Unreleased**
+- Trees are drawn with their textures instead of one average color
+- Live console view for batch runs; the log is written directly and every line carries its zone id
+- Errors are no longer swallowed: a model that cannot be drawn is logged with the reason, and the zone ends "Finished with N errors"
+- Baked lighting for Darkness Falls, Veil Island and other dungeons that keep it in the detail slot
+- Glows (additive meshes) add their light instead of being left out
+- Dungeon brightness from the median, with a soft highlight curve instead of clipping (evenly lit dungeons are no longer washed out)
+- Relic temples, boats, logs, piers and rock barriers are drawn from their models instead of old hand-made images
+- City and dungeon maps write a frame file; new script to put the maps into the Eden launcher
+- Tree clusters and trees only `fixtures.xml` knows get their tree color; a warning is logged when a model falls back to its category color
+- Passage of Conflict entrances labeled on the Irish Sea maps
+- Less memory: models and textures only one zone uses are released after it, image leaks closed. The model cache is saved safely, so an interrupted save no longer breaks it
+- Fixes: overlapping lakes no longer fade each other (bog of zone 269), no bright circles around Mag Mell (Eden's Lough Derg copies), models with their own ground no longer show it as a square (wreck in zone 077), dungeon water only over its basin (zone 332), room maps win over the dark slot gradient, a `fixtures.xml` entry without category no longer stops every render, the bounds color field works
+- The model cache moves to `polys8.mpk` and is rebuilt on the first render
+
 **2.1.0** (2026-09-26)
 - Baked lighting (dark maps) on buildings and city floors
 - Zone groups in batch mode (`all`, realms, expansions, zone types), so every playable dungeon renders in one run
