@@ -199,6 +199,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             return true;
         }
 
+        // CanvasX/Y are rounded to whole pixels; on a shared canvas that opens gaps between tiled models
+        public double ExactCanvasX => this.ZoneConf.ZoneCoordinateToMapCoordinate(this.FixtureRow.X) - this.CanvasWidth / 2;
+
+        public double ExactCanvasY => this.ZoneConf.ZoneCoordinateToMapCoordinate(this.FixtureRow.Y) - this.CanvasHeight / 2;
+
         private void TransformPolygons(double baseZ)
         {
             this.Scale = ((this.FixtureRow.Scale / 100f) * this.ZoneConf.LocScale);

@@ -39,6 +39,8 @@ namespace MapCreator.Classes.MapCreation
 
         private TerrainHeights terrain;
 
+        private const string GROUND_CATEGORY = "Ground";
+
         #region Settings
         public bool DrawFixtures { get; set; } = true;
 
@@ -132,6 +134,26 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration.Reporter.ProgressReset();
         }
 
+        // Ground tiles share one canvas at their exact positions; drawn one by one at rounded positions, gaps open between them
+        private void DrawGround(MagickImage overlay, List<DrawableFixture> ground)
+        {
+            var size = this.zoneConfiguration.TargetMapSize;
+            var canvas = new FixtureCanvas(size, size, this.GetTerrain());
+            foreach (var fixture in ground)
+            {
+                var lit = fixture.RendererConf.Renderer == FixtureRendererType.Shaded && fixture.RendererConf.HasLight;
+                foreach (var drawableElement in fixture.DrawableElements.OrderBy(GetDrawPass))
+                {
+                    canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, drawableElement.Texture, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2,
+                                        drawableElement.TextureBlend, drawableElement.Depths, fixture.ExactCanvasX, fixture.ExactCanvasY, fixture.BaseCanvasZ, drawableElement.VertexColors, drawableElement.Dark, drawableElement.DarkUvs,
+                                        drawableElement.IsWater, drawableElement.IsAdditive ? drawableElement.AdditiveColor : -1);
+                }
+            }
+
+            using var layer = canvas.ToImage();
+            overlay.Composite(layer, 0, 0, CompositeOperator.SrcOver);
+        }
+
         /// <summary>
         /// Draws all textured models into one map sized canvas with a shared depth buffer, so overlapping models
         /// (ramps, bridges, stacked halls) show their top surface. Used for cities and dungeons, which have no
@@ -194,6 +216,13 @@ namespace MapCreator.Classes.MapCreation
 
             using (var modelsOverlay = MagickWrapper.NewImage(MagickColors.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
             {
+                var ground = fixtures.Where(f => f.RendererConf.Name == GROUND_CATEGORY && f.RendererConf.Texture == TextureMode.Map).ToList();
+                if (ground.Count > 0)
+                {
+                    this.DrawGround(modelsOverlay, ground);
+                    fixtures = fixtures.Except(ground).ToList();
+                }
+
                 using (var treeOverlay = MagickWrapper.NewImage(MagickColors.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
                 {
                     var processCounter = 0;
