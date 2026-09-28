@@ -29,6 +29,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 {
 	internal class DrawableFixture
     {
+        // Wall tops: faces within about 6 degrees of vertical and at least this tall (zone units)
+        private const float WALL_MAX_NORMAL_Z = 0.1f;
+        private const double WALL_MIN_HEIGHT = 256;
+
+        // Strip width and how far it sits below the edge, in map pixels
+        private const float WALL_TOP_WIDTH = 1.5f;
+        private const float WALL_TOP_DEPTH = 0.5f;
+
         public string Name;
         public string NifName;
         public string TextureDirectory;
@@ -72,6 +80,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         public IEnumerable<Polygon> RawPolygons;
         public readonly List<Polygon> ProcessedPolygons = new List<Polygon>();
+
+        // Kept out of the canvas size, which would move tiled models by a pixel
+        private readonly List<Polygon> wallTops = new List<Polygon>();
         public IEnumerable<DrawableElement> DrawableElements = new List<DrawableElement>();
 
         public FixtureRendererConfiguration2 RendererConf;
@@ -143,11 +154,19 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 return false;
             }
 
+            // Wall tops reaching past the rest grow the canvas on both sides by an even pixel count: the rounded
+            // position (Convert.ToInt32 rounds half to even) then moves by exactly that much and the model does not shift
+            if (this.wallTops.Count > 0)
+            {
+                var wallVectors = this.wallTops.SelectMany(p => p.Vectors).ToList();
+                this.CanvasWidth += 2 * EvenCeiling(wallVectors.Max(p => Math.Abs(p.X)) - this.CanvasWidth / 2d);
+                this.CanvasHeight += 2 * EvenCeiling(wallVectors.Max(p => Math.Abs(p.Y)) - this.CanvasHeight / 2d);
+            }
 
             // Contains all polygons
             var drawlist = new List<DrawableElement>();
 
-            foreach (var poly in this.ProcessedPolygons)
+            foreach (var poly in this.ProcessedPolygons.Concat(this.wallTops))
             {
                 var n = Normalize(this.GetNormal(poly.P1, poly.P2, poly.P3));
 
@@ -261,7 +280,65 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 {
                     this.ProcessedPolygons.Add(newPolygon);
                 }
+                if (!this.IsTree && !this.IsTreeCluster && !poly.IsWater && !poly.IsAdditive)
+                {
+                    this.wallTops.AddRange(this.GetWallTop(newPolygon));
+                }
             }
+        }
+
+        /// <summary>
+        /// Walls built as bare vertical sheets (Avalon Isle's city wall) have no top face and vanish from above.
+        /// Their top edge becomes a thin strip behind the face, just below the edge, so a real top face or the
+        /// ground behind a cliff at the same height still covers it.
+        /// </summary>
+        private IEnumerable<Polygon> GetWallTop(Polygon polygon)
+        {
+            var v = polygon.Vectors;
+            var normal = Normalize(this.GetNormal(v[0], v[1], v[2]));
+            var top = v.Max(p => p.Z);
+            var height = top - v.Min(p => p.Z);
+            if (Math.Abs(normal.Z) > WALL_MAX_NORMAL_Z || height < this.ZoneConf.ZoneCoordinateToMapCoordinate(WALL_MIN_HEIGHT))
+            {
+                yield break;
+            }
+            var upper = Enumerable.Range(0, 3).Where(i => top - v[i].Z <= height * 0.05f).ToArray();
+            var side = new Vector2(normal.X, normal.Y);
+            if (upper.Length != 2 || side.LengthSquared() < 1e-6f)
+            {
+                yield break;
+            }
+            side = Vector2.Normalize(side) * -WALL_TOP_WIDTH;
+            var a = v[upper[0]] with { Z = v[upper[0]].Z - WALL_TOP_DEPTH };
+            var b = v[upper[1]] with { Z = v[upper[1]].Z - WALL_TOP_DEPTH };
+            var offset = new Vector3(side.X, side.Y, 0);
+            yield return WallTopTriangle(polygon, new[] { a, b, b + offset }, new[] { upper[0], upper[1], upper[1] });
+            yield return WallTopTriangle(polygon, new[] { a, b + offset, a + offset }, new[] { upper[0], upper[1], upper[0] });
+        }
+
+        private static int EvenCeiling(double value)
+        {
+            var ceiling = (int)Math.Ceiling(Math.Max(0, value));
+            return ceiling + ceiling % 2;
+        }
+
+        // Takes the corner attributes of the wall triangle's top edge; the winding faces up so backface culling keeps it
+        private static Polygon WallTopTriangle(Polygon wall, Vector3[] corners, int[] source)
+        {
+            if (Vector3.Cross(corners[1] - corners[0], corners[2] - corners[1]).Z < 0)
+            {
+                (corners[1], corners[2]) = (corners[2], corners[1]);
+                (source[1], source[2]) = (source[2], source[1]);
+            }
+            return wall with
+            {
+                Vectors = corners,
+                Uvs = wall.Uvs == null ? null : source.Select(i => wall.Uvs[i]).ToArray(),
+                Uvs2 = wall.Uvs2 == null ? null : source.Select(i => wall.Uvs2[i]).ToArray(),
+                DarkUvs = wall.DarkUvs == null ? null : source.Select(i => wall.DarkUvs[i]).ToArray(),
+                TextureBlend = wall.TextureBlend == null ? null : source.Select(i => wall.TextureBlend[i]).ToArray(),
+                VertexColors = wall.VertexColors == null ? null : source.SelectMany(i => wall.VertexColors.Skip(i * 3).Take(3)).ToArray()
+            };
         }
 
         /// <summary>
