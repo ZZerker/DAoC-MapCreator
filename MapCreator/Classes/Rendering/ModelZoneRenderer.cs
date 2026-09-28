@@ -18,10 +18,10 @@ namespace MapCreator.Classes.Rendering
         // Share of the whole dungeon left visible under a level, like the client level maps
         private const double OTHER_LEVELS_OPACITY = 0.25;
 
-        // Dungeon textures are often very dark; the brightest 5% of the drawn pixels are lifted to this level
-        private const double TARGET_BRIGHTNESS = 0.85;
+        // Dungeon textures are often very dark; the median of the drawn pixels is lifted to this level
+        private const double TARGET_MEDIAN = 0.38;
 
-        private const double MAX_GAIN = 3.0;
+        private const double MAX_GAIN = 4.0;
 
         // Tiled floor textures repeat visibly (Jordheim grass); a soft brightness variation over several tiles breaks the pattern
         private const double VARIATION = 0.15;
@@ -141,7 +141,8 @@ namespace MapCreator.Classes.Rendering
         }
 
         /// <summary>
-        /// Gain that lifts the 95th brightness percentile of the drawn pixels to TARGET_BRIGHTNESS
+        /// Gain whose curve (see Brighten) lifts the median brightness of the drawn pixels to TARGET_MEDIAN.
+        /// The 95th percentile overexposed evenly lit dungeons (ROCK halls of 244) and unlit rooms (233).
         /// </summary>
         private static double GetGain(MagickImage layer)
         {
@@ -166,16 +167,48 @@ namespace MapCreator.Classes.Rendering
             }
 
             brightness.Sort();
-            var percentile = brightness[(int)(brightness.Count * 0.95)];
-            return percentile == 0 ? MAX_GAIN : Math.Clamp(TARGET_BRIGHTNESS * ushort.MaxValue / percentile, 1, MAX_GAIN);
+            var median = brightness[brightness.Count / 2] / (double)ushort.MaxValue;
+            if (median <= 0)
+            {
+                return MAX_GAIN;
+            }
+            return Math.Clamp(TARGET_MEDIAN * (1 - median) / (median * (1 - TARGET_MEDIAN)), 1, MAX_GAIN);
         }
 
+        /// <summary>
+        /// Lifts dark pixels by the gain and bends bright ones towards white instead of clipping them: gain * x / (1 + (gain - 1) * x)
+        /// on the brightest channel, the others keep their ratio
+        /// </summary>
         private static void Brighten(MagickImage layer, double gain)
         {
-            if (gain > 1)
+            var channels = (int)layer.ChannelCount;
+            if (gain <= 1 || channels < 3)
             {
-                layer.Evaluate(Channels.RGB, EvaluateOperator.Multiply, gain);
+                return;
             }
+
+            using var pixels = layer.GetPixels();
+            var values = pixels.ToArray();
+            if (values == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i + 2 < values.Length; i += channels)
+            {
+                var brightest = Math.Max(values[i], Math.Max(values[i + 1], values[i + 2])) / (double)ushort.MaxValue;
+                if (brightest <= 0)
+                {
+                    continue;
+                }
+
+                var factor = gain / (1 + (gain - 1) * brightest);
+                for (var c = 0; c < 3; c++)
+                {
+                    values[i + c] = (ushort)Math.Clamp(values[i + c] * factor, 0, ushort.MaxValue);
+                }
+            }
+            pixels.SetPixels(values);
         }
 
         private void Write(MagickImage map, FileInfo mapFile)
