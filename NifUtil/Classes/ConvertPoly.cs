@@ -234,7 +234,8 @@ namespace NifUtil.Classes
                     var baseTexture = this.GetTexture(texturing.BaseTexture);
                     if (baseTexture != null)
                     {
-                        return new TextureLayers(baseTexture, null, this.GetTexture(texturing.DarkTexture) ?? AsDarkMap(this.GetTexture(texturing.DetailTexture)));
+                        // A "_dm_" room map in the detail slot wins; the dark slot then holds a helper gradient (_dm_DF_fade)
+                        return new TextureLayers(baseTexture, null, AsDarkMap(this.GetTexture(texturing.DetailTexture)) ?? this.GetTexture(texturing.DarkTexture));
                     }
 
                     var firstMap = maps.Select(map => this.GetTexture(map?.Map)).FirstOrDefault(texture => texture != null);
