@@ -58,8 +58,12 @@ namespace MapCreator.Classes.Rendering
         public uint Quality { get; init; }
         public bool SkipIfFileExists { get; init; }
 
-        // Only write the zNNN.labels.json files, no images
+        // Only write the zNNN.labels.json files, no images (labeled copies of existing maps still get drawn)
         public bool LabelsOnly { get; init; }
+
+        // Labeled copies of the maps go into this directory under the target path, scaled to LabelSize (0 keeps the map size); null draws none
+        public string LabelDirectory { get; init; }
+        public int LabelSize { get; init; }
 
         public bool DrawBackground { get; init; }
 

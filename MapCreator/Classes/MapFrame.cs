@@ -42,6 +42,26 @@ namespace MapCreator.Classes
             var file = Path.Combine(mapFile.DirectoryName, Path.GetFileNameWithoutExtension(mapFile.Name) + ".frame.json");
             File.WriteAllText(file, JsonSerializer.Serialize(new { zone = zoneId, offsetX = Math.Round(this.OffsetX), offsetY = Math.Round(this.OffsetY), width = Math.Round(this.Width) }, JsonOptions));
         }
+        /// <summary>
+        /// The frame a render wrote next to the map, null if there is none
+        /// </summary>
+        public static MapFrame Read(string zoneId, FileInfo mapFile)
+        {
+            var file = Path.Combine(mapFile.DirectoryName, Path.GetFileNameWithoutExtension(mapFile.Name) + ".frame.json");
+            if (!File.Exists(file))
+            {
+                return null;
+            }
+
+            using var json = JsonDocument.Parse(File.ReadAllText(file));
+            var root = json.RootElement;
+            if (root.GetProperty("zone").GetString() != zoneId)
+            {
+                return null;
+            }
+            return new MapFrame(root.GetProperty("offsetX").GetDouble(), root.GetProperty("offsetY").GetDouble(), root.GetProperty("width").GetDouble());
+        }
+
         private static Dictionary<string, MapFrame> Load()
         {
             var frames = new Dictionary<string, MapFrame>();

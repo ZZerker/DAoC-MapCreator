@@ -8,7 +8,8 @@ namespace MapCreator.Classes.Rendering
 {
     /// <summary>
     /// Renders without the window: MapCreator.exe --render 163,164|nf+outdoor|all [--size 2048] [--dir name] [--log render.log] [--parallel 4]
-    /// [--labels-only] [--no-keeps] [--no-depth-water] [--no-console]. Other options come from the settings the window saved; nothing is saved back.
+    /// [--labels dir] [--label-size 1024] [--labels-only] [--no-keeps] [--no-depth-water] [--no-console].
+    /// Other options come from the settings the window saved; nothing is saved back.
     /// A console window shows the progress unless --no-console is given.
     /// </summary>
     internal static class BatchMode
@@ -26,6 +27,8 @@ namespace MapCreator.Classes.Rendering
             string directory = null;
             var logName = "render.log";
             var parallel = 0;
+            string labelDirectory = null;
+            var labelSize = 0;
             for (var i = 0; i < args.Length - 1; i++)
             {
                 switch (args[i].ToLowerInvariant())
@@ -45,6 +48,12 @@ namespace MapCreator.Classes.Rendering
                     case "--parallel":
                         parallel = Convert.ToInt32(args[i + 1]);
                         break;
+                    case "--labels":
+                        labelDirectory = args[i + 1];
+                        break;
+                    case "--label-size":
+                        labelSize = Convert.ToInt32(args[i + 1]);
+                        break;
                 }
             }
 
@@ -62,6 +71,8 @@ namespace MapCreator.Classes.Rendering
                 FileType = "PNG",
                 FilePattern = "z{id}",
                 LabelsOnly = HasFlag(args, "--labels-only"),
+                LabelDirectory = labelDirectory,
+                LabelSize = labelSize,
                 DrawKeeps = saved.DrawKeeps && !HasFlag(args, "--no-keeps"),
                 DepthShadedWater = saved.DepthShadedWater && !HasFlag(args, "--no-depth-water")
             };

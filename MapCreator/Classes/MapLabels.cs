@@ -8,27 +8,40 @@ using System.Text.Json;
 namespace MapCreator.Classes
 {
     /// <summary>
-    /// Names and landmarks of a zone, written next to the map as zNNN.labels.json. tools\png_to_dds.py draws them at the final map size.
-    /// Neighbor zones come from zones.dat, keeps from data\Keeps.csv, everything else from data\Landmarks.csv.
+    /// Names and landmarks of a zone, written next to the map as zNNN.labels.json; MapLabelPainter draws them.
+    /// Neighbor zones come from zones.dat, keeps from data\Keeps.csv, everything else from the point files (Landmarks.csv by hand,
+    /// the others built by tools\build_poi_data.ps1). Positions are fractions of the map: of the zone outdoors, of the frame in cities and dungeons.
     /// </summary>
     internal static class MapLabels
     {
         private const double BLOCK = 8192;
 
+        private const int OUTDOOR = 0;
+
         private static readonly string[] TowerWords = { "tower", "outpost", "spire" };
+
+        // Old frontier zones only get their neighbors: their client points (keep teleports named DFEntrance) are unreliable
+        private static readonly HashSet<string> OldFrontiers = new() { "011", "012", "014", "015", "111", "112", "113", "115", "210", "211", "212", "214" };
+
+        private static readonly string[] PointFiles = { "Landmarks.csv", "Bosses.csv", "CityNpcs.csv", "Entrances.csv", "Towns.csv", "Artifacts.csv" };
 
         public sealed record Label(string Kind, string Text, double X, double Y, int Priority, int Realm, string Edge);
 
         private sealed record ZoneArea(string Id, string Name, int Region, int Type, double Left, double Top, double Width, double Height);
 
-        public static void Write(string zoneId, FileInfo mapFile, bool keeps = true)
+        /// <summary>
+        /// Writes zNNN.labels.json next to the map and returns the labels. Cities and dungeons need their frame: the one given,
+        /// else the zNNN.frame.json next to the map, else data\MapFrames.csv; without one they get no labels.
+        /// </summary>
+        public static List<Label> Write(string zoneId, FileInfo mapFile, bool keeps = true, MapFrame frame = null)
         {
-            var labels = Get(zoneId, keeps);
+            var labels = Get(zoneId, keeps, frame ?? MapFrame.Read(zoneId, mapFile) ?? MapFrame.Get(zoneId));
             var file = Path.Combine(mapFile.DirectoryName, Path.GetFileNameWithoutExtension(mapFile.Name) + ".labels.json");
             File.WriteAllText(file, JsonSerializer.Serialize(new { zone = zoneId, labels }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+            return labels;
         }
 
-        public static List<Label> Get(string zoneId, bool keeps = true)
+        public static List<Label> Get(string zoneId, bool keeps = true, MapFrame frame = null)
         {
             var labels = new List<Label>();
             var zones = LoadZones();
@@ -38,12 +51,21 @@ namespace MapCreator.Classes
                 return labels;
             }
 
+            if (zone.Type != OUTDOOR)
+            {
+                return frame == null ? labels : GetPoints(zone, frame).ToList();
+            }
+
             labels.AddRange(GetNeighbors(zone, zones));
+            if (OldFrontiers.Contains(zone.Id))
+            {
+                return labels;
+            }
             if (keeps)
             {
                 labels.AddRange(GetKeeps(zone));
             }
-            labels.AddRange(GetLandmarks(zone));
+            labels.AddRange(GetPoints(zone, null));
             return labels;
         }
 
@@ -52,7 +74,7 @@ namespace MapCreator.Classes
         /// </summary>
         private static IEnumerable<Label> GetNeighbors(ZoneArea zone, List<ZoneArea> zones)
         {
-            foreach (var other in zones.Where(z => z.Id != zone.Id && z.Region == zone.Region && z.Type == 0))
+            foreach (var other in zones.Where(z => z.Id != zone.Id && z.Region == zone.Region && z.Type == OUTDOOR && !IsPlaceholder(z.Name)))
             {
                 var top = Math.Max(zone.Top, other.Top);
                 var bottom = Math.Min(zone.Top + zone.Height, other.Top + other.Height);
@@ -76,6 +98,12 @@ namespace MapCreator.Classes
                     yield return new Label("neighbor", other.Name, ((left + right) / 2 - zone.Left) / zone.Width, 0, 1, 0, "north");
                 }
             }
+        }
+
+        // zones.dat keeps enabled placeholders such as Dummy Zone (157) and TestBG (242); no player gets there
+        private static bool IsPlaceholder(string name)
+        {
+            return name.Contains("dummy", StringComparison.OrdinalIgnoreCase) || name.Contains("test", StringComparison.OrdinalIgnoreCase);
         }
 
         private static IEnumerable<Label> GetKeeps(ZoneArea zone)
@@ -102,29 +130,44 @@ namespace MapCreator.Classes
                 }
 
                 var name = fields[2];
+                // Every battleground has the three realm portal keeps; their names say nothing a player needs
+                if (name.Contains("Portal Keep", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
                 var isTower = TowerWords.Any(w => name.Contains(w, StringComparison.OrdinalIgnoreCase));
                 yield return new Label(isTower ? "tower" : "keep", name, x / zone.Width, y / zone.Height, isTower ? 3 : 1, int.Parse(fields[3]), null);
             }
         }
 
-        private static IEnumerable<Label> GetLandmarks(ZoneArea zone)
+        private static IEnumerable<Label> GetPoints(ZoneArea zone, MapFrame frame)
         {
-            var file = Path.Combine(System.Windows.Forms.Application.StartupPath, "data", "Landmarks.csv");
-            if (!File.Exists(file))
+            var zoneNumber = int.Parse(zone.Id).ToString();
+            foreach (var name in PointFiles)
             {
-                yield break;
-            }
-
-            foreach (var fields in File.ReadLines(file).Skip(1).Where(l => l.Length > 0 && !l.StartsWith('#')).Select(l => l.Split(';')))
-            {
-                if (fields.Length < 6 || fields[0] != zone.Id.TrimStart('0'))
+                var file = Path.Combine(System.Windows.Forms.Application.StartupPath, "data", name);
+                if (!File.Exists(file))
                 {
                     continue;
                 }
 
-                var x = double.Parse(fields[1], CultureInfo.InvariantCulture);
-                var y = double.Parse(fields[2], CultureInfo.InvariantCulture);
-                yield return new Label(fields[3], fields[4], x / zone.Width, y / zone.Height, int.Parse(fields[5]), 0, null);
+                foreach (var fields in File.ReadLines(file).Where(l => l.Length > 0 && !l.StartsWith('#')).Select(l => l.Split(';')))
+                {
+                    if (fields.Length < 6 || fields[0] != zoneNumber)
+                    {
+                        continue;
+                    }
+
+                    var x = double.Parse(fields[1], CultureInfo.InvariantCulture);
+                    var y = double.Parse(fields[2], CultureInfo.InvariantCulture);
+                    x = frame == null ? x / zone.Width : (x - frame.OffsetX) / frame.Width;
+                    y = frame == null ? y / zone.Height : (y - frame.OffsetY) / frame.Width;
+                    if (x < 0 || y < 0 || x > 1 || y > 1)
+                    {
+                        continue;
+                    }
+                    yield return new Label(fields[3], fields[4], x, y, int.Parse(fields[5]), 0, null);
+                }
             }
         }
 

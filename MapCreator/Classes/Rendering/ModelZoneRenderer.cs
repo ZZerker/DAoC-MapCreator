@@ -46,6 +46,8 @@ namespace MapCreator.Classes.Rendering
                 }
                 this.Write(map, mapFile);
                 conf.Frame?.Write(conf.ZoneId, mapFile);
+                mapFile.Refresh();
+                MapLabelPainter.WriteLabeled(settings, mapFile, MapLabels.Write(conf.ZoneId, mapFile, false, conf.Frame));
 
                 foreach (var level in conf.Levels)
                 {

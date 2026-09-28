@@ -23,7 +23,7 @@ namespace MapCreator.Classes.Rendering
 
             if (settings.LabelsOnly)
             {
-                MapLabels.Write(zone.Id, mapFile, settings.DrawKeeps);
+                MapLabelPainter.WriteLabeled(settings, mapFile, MapLabels.Write(zone.Id, mapFile, settings.DrawKeeps));
                 reporter.Log(string.Format("Labels written for zone {0}", zone.Id), LogLevel.Success);
                 return null;
             }
@@ -133,10 +133,10 @@ namespace MapCreator.Classes.Rendering
                     map.Write(mapFile.FullName);
                 }
 
-                MapLabels.Write(zone.Id, mapFile, settings.DrawKeeps);
+                mapFile.Refresh();
+                MapLabelPainter.WriteLabeled(settings, mapFile, MapLabels.Write(zone.Id, mapFile, settings.DrawKeeps));
             }
 
-            mapFile.Refresh();
             return mapFile;
         }
 
