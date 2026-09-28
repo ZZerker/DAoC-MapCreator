@@ -43,6 +43,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Placement height in map units; element depths are relative to it
         /// </summary>
         public double BaseCanvasZ;
+
+        /// <summary>
+        /// Height of the model's highest point in zone units
+        /// </summary>
+        public double TopZ;
         public int CanvasWidth;
         public int CanvasHeight;
         public ImageMagick.MagickColor ModelColor;
@@ -99,15 +104,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             //CanvasX = ZoneConf.LocToPixel(FixtureRow.X);
             //CanvasY = ZoneConf.LocToPixel(FixtureRow.Y);
 
-            // Calculate correct Z
-            if (this.FixtureRow.OnGround)
-            {
-                this.FixtureRow.Z = this.ZoneConf.Heightmap.GetHeight(this.FixtureRow.X, this.FixtureRow.Y);
-            }
-            var baseZ = this.FixtureRow.Z;
+            var baseZ = this.FixtureRow.OnGround ? this.ZoneConf.Heightmap.GetHeight(this.FixtureRow.X, this.FixtureRow.Y) : this.FixtureRow.Z;
             this.BaseCanvasZ = this.ZoneConf.ZoneCoordinateToMapCoordinate(baseZ);
-            this.FixtureRow.Z = this.RawPolygons.SelectMany(p => p.Vectors).Max(p => p.Z) + this.FixtureRow.Z;
-            this.CanvasZ = this.ZoneConf.ZoneCoordinateToMapCoordinate(this.FixtureRow.Z);
+            this.TopZ = this.RawPolygons.SelectMany(p => p.Vectors).Max(p => p.Z) + baseZ;
+            this.CanvasZ = this.ZoneConf.ZoneCoordinateToMapCoordinate(this.TopZ);
 
             // Transform Polygons
             this.TransformPolygons(baseZ);

@@ -77,56 +77,63 @@ namespace MapCreator.Classes.MapCreation
                 riverPaths.Add(rConf, riverPath);
             }
 
-            foreach (var model in this.fixtures)
+            try
             {
-                // ignote the model if there are no polygons
-                if(!model.ProcessedPolygons.Any()) continue;
-
-                // UI options
-                if (!this.DrawTrees && (model.IsTree || model.IsTreeCluster))
+                foreach (var model in this.fixtures)
                 {
-                    continue;
-                }
+                    // ignote the model if there are no polygons
+                    if(!model.ProcessedPolygons.Any()) continue;
 
-                if (!this.DrawFixtures && !(model.IsTree || model.IsTreeCluster))
-                {
-                    continue;
-                }
-
-                if (model.IsTree || model.IsTreeCluster)
-                {
-                    model.RendererConf = FixtureRendererConfigurations.GetRendererById("TreeShaded");
-                }
-
-                var modelCenterX = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(model.FixtureRow.X);
-                var modelCenterY = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(model.FixtureRow.Y);
-
-                // Check if on river or not
-                var riverHeight = 0;
-                foreach (var river in riverPaths)
-                {
-                    if (river.Value.IsVisible(Convert.ToSingle(modelCenterX), Convert.ToSingle(modelCenterY)))
+                    // UI options
+                    if (!this.DrawTrees && (model.IsTree || model.IsTreeCluster))
                     {
-                        riverHeight = river.Key.Height;
-                        break;
+                        continue;
+                    }
+
+                    if (!this.DrawFixtures && !(model.IsTree || model.IsTreeCluster))
+                    {
+                        continue;
+                    }
+
+                    if (model.IsTree || model.IsTreeCluster)
+                    {
+                        model.RendererConf = FixtureRendererConfigurations.GetRendererById("TreeShaded");
+                    }
+
+                    var modelCenterX = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(model.FixtureRow.X);
+                    var modelCenterY = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(model.FixtureRow.Y);
+
+                    // Check if on river or not
+                    var riverHeight = 0;
+                    foreach (var river in riverPaths)
+                    {
+                        if (river.Value.IsVisible(Convert.ToSingle(modelCenterX), Convert.ToSingle(modelCenterY)))
+                        {
+                            riverHeight = river.Key.Height;
+                            break;
+                        }
+                    }
+
+                    if (riverHeight == 0 || (riverHeight != 0 && model.TopZ > riverHeight))
+                    {
+                        this.fixturesAboveWater.Add(model);
+                    }
+                    else
+                    {
+                        this.fixturesUnderWater.Add(model);
                     }
                 }
 
-                if (riverHeight == 0 || (riverHeight != 0 && model.FixtureRow.Z > riverHeight))
+                this.fixturesAboveWater = this.fixturesAboveWater.OrderBy(f => f.CanvasZ).ToList();
+                this.fixturesUnderWater = this.fixturesUnderWater.OrderBy(f => f.CanvasZ).ToList();
+            }
+            finally
+            {
+                foreach (var riverPath in riverPaths.Values)
                 {
-                    this.fixturesAboveWater.Add(model);
-                }
-                else
-                {
-                    this.fixturesUnderWater.Add(model);
+                    riverPath.Dispose();
                 }
             }
-
-            this.fixturesAboveWater = this.fixturesAboveWater.OrderBy(f => f.CanvasZ).ToList();
-            this.fixturesUnderWater = this.fixturesUnderWater.OrderBy(f => f.CanvasZ).ToList();
-
-            // Dispose all paths
-            riverPaths.Select(d => d.Value).ToList().ForEach(r => r.Dispose());
 
             this.zoneConfiguration.Reporter.ProgressReset();
         }

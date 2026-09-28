@@ -97,7 +97,6 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                 // Clockwise on the map; model y points north
                 this.placementRotations[piece.Fixture.Id] = System.Numerics.Matrix4x4.CreateRotationZ(-(float)(piece.Heading * Math.PI / 180d));
-                this.placementHeights[piece.Fixture.Id] = piece.Fixture.Z;
                 this.fixtureRows.Add(piece.Fixture);
             }
         }
@@ -159,9 +158,6 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         // Rotation of each dungeon placement by fixture row id
         private readonly Dictionary<int, System.Numerics.Matrix4x4> placementRotations = new Dictionary<int, System.Numerics.Matrix4x4>();
-
-        // Placement height by fixture row id; drawing overwrites FixtureRow.Z, so every level starts from here
-        private readonly Dictionary<int, double> placementHeights = new Dictionary<int, double>();
 
         // Zone heights are dungeon.place heights plus this (every zone jump of Darkness Falls sits 16000 above its hall)
         private const double DUNGEON_Z_OFFSET = 16000;
@@ -232,7 +228,6 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var rotation = values[3] == 0 || axis.LengthSquared() == 0 ? System.Numerics.Matrix4x4.Identity : System.Numerics.Matrix4x4.CreateFromAxisAngle(Normalize(axis), -(float)values[3]);
 
                 this.placementRotations[id] = rotation;
-                this.placementHeights[id] = values[2];
                 this.fixtureRows.Add(new FixtureRow { Id = id, NifId = chunk, TextualName = chunks.ElementAtOrDefault(chunk), X = values[0], Y = values[1], Z = values[2], Scale = 100 });
                 id++;
             }
@@ -488,11 +483,6 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 {
                     var nifRow = this.NifRows.FirstOrDefault(n => n.NifId == fixtureRow.NifId);
                     if (nifRow == null) continue;
-
-                    if (this.placementHeights.TryGetValue(fixtureRow.Id, out var placementHeight))
-                    {
-                        fixtureRow.Z = placementHeight;
-                    }
 
                     var fixture = new DrawableFixture
                                   {
