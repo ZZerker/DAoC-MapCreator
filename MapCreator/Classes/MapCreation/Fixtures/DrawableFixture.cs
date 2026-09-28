@@ -179,6 +179,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 {
                     textureColor = System.Drawing.Color.FromArgb(255, (poly.MaterialColor >> 16) & 0xFF, (poly.MaterialColor >> 8) & 0xFF, poly.MaterialColor & 0xFF);
                 }
+                if (textureColor == null && textureMode != TextureMode.None && !poly.IsAdditive)
+                {
+                    this.ZoneConf.WarnOnce(string.Format("{0}: no texture or material color, drawn in the {1} color", this.NifName, this.RendererConf.Name));
+                }
                 var texture2Name = poly.Texture2 != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.Texture2), out var proxy2) ? proxy2 : poly.Texture2;
                 var texture = textureMode == TextureMode.Map && poly.Uvs != null ? TextureCache.Get(textureName, this.TextureDirectory) : null;
                 var texture2 = textureMode == TextureMode.Map && poly.Uvs2 != null ? TextureCache.Get(texture2Name, this.TextureDirectory) : null;

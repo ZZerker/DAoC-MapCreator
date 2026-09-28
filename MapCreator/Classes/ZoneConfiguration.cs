@@ -100,6 +100,19 @@ namespace MapCreator.Classes
 
         public IRenderReporter Reporter { get; }
 
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> loggedWarnings = new();
+
+        /// <summary>
+        /// Logs a warning once per zone; models are placed many times
+        /// </summary>
+        public void WarnOnce(string message)
+        {
+            if (this.loggedWarnings.TryAdd(message, 0))
+            {
+                this.Reporter.Log(message, LogLevel.Warning);
+            }
+        }
+
         public ZoneConfiguration(string zoneId, int mapSize, IRenderReporter reporter)
         {
             this.ZoneId = zoneId;

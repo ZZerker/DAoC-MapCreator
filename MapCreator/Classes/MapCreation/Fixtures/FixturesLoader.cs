@@ -540,6 +540,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                             {
                                 fixture.Tree = modelTree;
                             }
+                            else
+                            {
+                                this.zoneConf.WarnOnce(string.Format("Tree {0}: no texture color, drawn in the fallback color", nifRow.Filename));
+                            }
                         }
 
                         fixture.RendererConf = rConf ?? FixtureRendererConfigurations.GetRendererById("TreeShaded");
@@ -558,6 +562,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         if (fixture.Tree != null && !fixture.Tree.HasTextureColor)
                         {
                             SetModelTreeColor(fixture.Tree, treeNif);
+                        }
+                        if (fixture.Tree == null)
+                        {
+                            this.zoneConf.WarnOnce(string.Format("Tree cluster {0}: {1} is not in Treemap.csv, drawn in the fallback color", nifRow.Filename, fixture.TreeCluster.Tree));
                         }
 
                         // Loop the instances and transform the polygons
