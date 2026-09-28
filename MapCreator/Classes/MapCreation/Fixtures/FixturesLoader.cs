@@ -274,6 +274,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var bottom = (minY + maxY) / 2d - side / 2d;
             this.ApplyMapFrame(ref side, ref left, ref bottom);
             this.zoneConf.SetZoneSize(side);
+            this.zoneConf.Frame = MapFrame.FromModelBounds(left, bottom, side);
             this.zoneConf.Reporter.Log(string.Format("Dungeon frame: x {0:F0} to {1:F0}, y {2:F0} to {3:F0}", left, left + side, bottom, bottom + side), LogLevel.Notice);
 
             foreach (var fixtureRow in this.fixtureRows)
@@ -325,6 +326,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             this.ApplyMapFrame(ref side, ref left, ref bottom);
             var top = bottom + side;
             this.zoneConf.SetZoneSize(side);
+            this.zoneConf.Frame = MapFrame.FromModelBounds(left, bottom, side);
             this.zoneConf.Reporter.Log(string.Format("City frame: x {0:F0} to {1:F0}, y {2:F0} to {3:F0}", left, left + side, top - side, top), LogLevel.Notice);
 
             foreach (var fixtureRow in this.fixtureRows)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace MapCreator.Classes
 {
@@ -16,6 +17,8 @@ namespace MapCreator.Classes
         // (checked on the zone jumps of Darkness Falls, which fit the frame table exactly)
         public const double ORIGIN = 23807;
 
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
         private static readonly Lazy<Dictionary<string, MapFrame>> Frames = new Lazy<Dictionary<string, MapFrame>>(Load);
 
         public static MapFrame Get(string zoneId)
@@ -23,6 +26,22 @@ namespace MapCreator.Classes
             return Frames.Value.TryGetValue(zoneId, out var frame) ? frame : null;
         }
 
+        /// <summary>
+        /// Frame of the model bounds square, in model coordinates, as zone coordinates
+        /// </summary>
+        public static MapFrame FromModelBounds(double left, double bottom, double side)
+        {
+            return new MapFrame(ORIGIN - left - side, bottom + ORIGIN, side);
+        }
+
+        /// <summary>
+        /// Writes the frame next to the map as zNNN.frame.json, for tools that place zone coordinates on it (launcher deploy)
+        /// </summary>
+        public void Write(string zoneId, FileInfo mapFile)
+        {
+            var file = Path.Combine(mapFile.DirectoryName, Path.GetFileNameWithoutExtension(mapFile.Name) + ".frame.json");
+            File.WriteAllText(file, JsonSerializer.Serialize(new { zone = zoneId, offsetX = Math.Round(this.OffsetX), offsetY = Math.Round(this.OffsetY), width = Math.Round(this.Width) }, JsonOptions));
+        }
         private static Dictionary<string, MapFrame> Load()
         {
             var frames = new Dictionary<string, MapFrame>();

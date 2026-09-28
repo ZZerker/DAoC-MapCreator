@@ -45,6 +45,7 @@ namespace MapCreator.Classes.Rendering
                     map.Composite(models, 0, 0, CompositeOperator.SrcOver);
                 }
                 this.Write(map, mapFile);
+                conf.Frame?.Write(conf.ZoneId, mapFile);
 
                 foreach (var level in conf.Levels)
                 {

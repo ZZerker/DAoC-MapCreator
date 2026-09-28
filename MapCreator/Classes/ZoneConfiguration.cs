@@ -43,6 +43,11 @@ namespace MapCreator.Classes
         /// </summary>
         public double ZoneSize { get; private set; } = ZONE_MAX_COORDINATE;
 
+        /// <summary>
+        /// Zone coordinates a city or dungeon map shows, set when its models are placed
+        /// </summary>
+        public MapFrame Frame { get; set; }
+
         public double LocScale { get; private set; } = 1;
 
         public double MapScale { get; } = 1;
