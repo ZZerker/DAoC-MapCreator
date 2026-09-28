@@ -546,6 +546,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         var treeNif = this.NifRows.FirstOrDefault(n => n.Filename.ToLower() == fixture.TreeCluster.Tree.ToLower());
                         if (treeNif == null) continue;
                         var baseTreePolygons = treeNif.Polygons;
+                        if (baseTreePolygons == null)
+                        {
+                            continue;
+                        }
 
                         // Colored like the single tree, else the TreeShaded fallback green covers snowy clusters (Uppland 170)
                         fixture.Tree = trees.FirstOrDefault(t => string.Equals(t.Name, fixture.TreeCluster.Tree, StringComparison.OrdinalIgnoreCase));
@@ -588,6 +592,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                             fixture.RendererConf = FixtureRendererConfigurations.GetRendererBySize(GetFootprint(nifRow, fixtureRow));
                         }
                         else fixture.RendererConf = rConf.GetValueOrDefault();
+                    }
+
+                    // Model missing in the client (Green Glades trees), already warned once when loading
+                    if (fixture.RawPolygons == null)
+                    {
+                        continue;
                     }
 
                     // Calculate the final look of the model
