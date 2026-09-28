@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <PackageReference Include="Magick.NET-Q16-x64" Version="14.17.1" />
+    <PackageReference Include="Spectre.Console" Version="0.57.2" />
   </ItemGroup>
 
   <ItemGroup>

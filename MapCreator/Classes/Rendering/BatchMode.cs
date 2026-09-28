@@ -8,10 +8,14 @@ namespace MapCreator.Classes.Rendering
 {
     /// <summary>
     /// Renders without the window: MapCreator.exe --render 163,164|nf+outdoor|all [--size 2048] [--dir name] [--log render.log] [--parallel 4]
-    /// [--labels-only] [--no-keeps] [--no-depth-water]. Other options come from the settings the window saved; nothing is saved back.
+    /// [--labels-only] [--no-keeps] [--no-depth-water] [--no-console]. Other options come from the settings the window saved; nothing is saved back.
+    /// A console window shows the progress unless --no-console is given.
     /// </summary>
     internal static class BatchMode
     {
+        // The console window stays open this long after the batch, so unattended runs still end
+        private const int CLOSE_AFTER_SECONDS = 30;
+
         /// <summary>
         /// Runs the batch and returns the exit code (0 when every zone rendered), or null without --render
         /// </summary>
@@ -63,26 +67,50 @@ namespace MapCreator.Classes.Rendering
             };
 
             using var log = new FileLog(Path.Combine(settings.TargetPath, logName));
-            AppLog.Reporter = log;
+            using var dashboard = HasFlag(args, "--no-console") ? null : new BatchDashboard(log);
+            var reporter = (IRenderReporter)dashboard ?? log;
+            AppLog.Reporter = reporter;
+            try
+            {
+                return Run(settings, zoneTerms, reporter, dashboard);
+            }
+            finally
+            {
+                dashboard?.Finish(TimeSpan.FromSeconds(CLOSE_AFTER_SECONDS));
+            }
+        }
+
+        private static int Run(RenderSettings settings, List<string> zoneTerms, IRenderReporter reporter, BatchDashboard dashboard)
+        {
             if (!MpkWrapper.CheckGamePath())
             {
                 return 1;
             }
 
-            var zoneIds = ZoneGroups.Resolve(string.Join(",", zoneTerms), message => log.Log(message, LogLevel.Warning)).ToList();
+            var zoneIds = ZoneGroups.Resolve(string.Join(",", zoneTerms), message => reporter.Log(message, LogLevel.Warning)).ToList();
             var knownZoneIds = zoneIds.Where(DataWrapper.IsKnownZone).ToList();
             foreach (var zoneId in zoneIds.Except(knownZoneIds))
             {
-                log.Log(string.Format("Skipped: zone {0} is not in the zone list.", zoneId), LogLevel.Warning);
+                reporter.Log(string.Format("Skipped: zone {0} is not in the zone list.", zoneId), LogLevel.Warning);
             }
 
             var zones = knownZoneIds.Select(DataWrapper.GetZoneSelectionByZoneId).ToList();
-            log.Log(string.Format("Rendering {0} zones at {1} px, {2} at a time, into {3}", zones.Count, settings.MapSize, Math.Max(1, settings.Parallel), Path.Combine(settings.TargetPath, settings.DirectoryPattern ?? "")), LogLevel.Notice);
+            var threads = Math.Clamp(settings.Parallel, 1, Math.Max(1, zones.Count));
+            var target = Path.Combine(settings.TargetPath, settings.DirectoryPattern ?? "");
+            reporter.Log(string.Format("Rendering {0} zones at {1} px, {2} at a time, into {3}", zones.Count, settings.MapSize, threads, target), LogLevel.Notice);
+            dashboard?.Start(string.Format("{0} px into {1}", settings.MapSize, target), zones.Count, threads);
 
             var timer = Stopwatch.StartNew();
-            var batch = new ZoneBatch(settings, log) { ZoneIdsInLog = true };
+            var batch = new ZoneBatch(settings, reporter)
+                        {
+                            ZoneIdsInLog = true,
+                            ZoneStarted = (zone, _) => dashboard?.ZoneStarted(zone),
+                            ZoneFinished = (zone, outcome) => dashboard?.ZoneFinished(zone, outcome)
+                        };
             batch.Run(zones);
-            log.Log(string.Format("Done: {0} zones in {1:hh\\:mm\\:ss}, {2} failed", zones.Count, timer.Elapsed, batch.Failed), batch.Failed == 0 ? LogLevel.Success : LogLevel.Error);
+            reporter.Log(string.Format("Kept for reuse: {0} models, {1} textures ({2} MB), process memory {3} MB", MapCreation.Fixtures.FixtureCache.CachedModels, MapCreation.Fixtures.TextureCache.Count,
+                                       MapCreation.Fixtures.TextureCache.Bytes / (1024 * 1024), Process.GetCurrentProcess().PrivateMemorySize64 / (1024 * 1024)), LogLevel.Notice);
+            reporter.Log(string.Format("Done: {0} zones in {1:hh\\:mm\\:ss}, {2} failed, {3} with errors", zones.Count, timer.Elapsed, batch.Failed, batch.WithErrors), batch.Failed + batch.WithErrors == 0 ? LogLevel.Success : LogLevel.Error);
             return batch.Failed == 0 ? 0 : 1;
         }
 
