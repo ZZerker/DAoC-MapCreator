@@ -3,7 +3,7 @@
   <!--
     Overrides for drawing fixtures. Most of the look comes from the game data:
     textures and their coordinates from the models, trees from Treemap.csv.
-    Renderers: None, Shaded, Flat, Image.
+    Renderers: None, Shaded, Flat.
     texture: map (draw the texture, default), color (texture's average color), none.
     Without a texture a triangle uses the tree color, then color.
     max_size: models no pattern matches, at most this long in world units, use the category.
@@ -46,17 +46,6 @@
     <light min="0.6" max="1.0" direction="1.0,1.0,-1.0">false</light>
     <color>#FFF</color>
     <max_size>200</max_size>
-    <transparency>0</transparency>
-    <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">true</shadow>
-  </FixtureCategory>
-
-  <!-- Prerendered: Places an image in the map. The image called like the nif must be placed in data/prerendered/objects; do not remove/rename  -->
-  <FixtureCategory is_default="false">
-    <id>Prerendered</id>
-    <renderer>Image</renderer>
-    <!-- This will create a light overlay on the image, creates more realistic results -->
-    <light min="0.7" max="1.0" direction="1.0,1.0,-1.0">true</light>
-    <color>#DDD</color>
     <transparency>0</transparency>
     <shadow color="#000" offset_x="0" offset_y="0" size="1" transparency="25">true</shadow>
   </FixtureCategory>

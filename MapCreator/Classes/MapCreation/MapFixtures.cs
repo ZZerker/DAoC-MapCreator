@@ -27,18 +27,15 @@ using MapCreator.Classes.MapCreation.Fixtures;
 
 namespace MapCreator.Classes.MapCreation
 {
-	internal class MapFixtures : IDisposable
+	internal class MapFixtures
     {
         private readonly ZoneConfiguration zoneConfiguration;
         private readonly List<WaterConfiguration> rivers;
-        private readonly FixturesLoader loader;
 
-        private readonly List<DrawableFixture> fixtures = new List<DrawableFixture>();
+        private readonly List<DrawableFixture> fixtures;
 
         private List<DrawableFixture> fixturesUnderWater = new List<DrawableFixture>();
         private List<DrawableFixture> fixturesAboveWater = new List<DrawableFixture>();
-
-        private readonly Dictionary<string, MagickImage> modelImages = new Dictionary<string, MagickImage>();
 
         private TerrainHeights terrain;
 
@@ -55,11 +52,8 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration = zoneConfiguration;
             this.rivers = rivers;
 
-            // Loads CSV files and polygons
-            this.loader = loader ?? new FixturesLoader(zoneConfiguration);
-
-            // Prepare models
-            this.fixtures = this.loader.GetDrawableFixtures();
+            // Loads CSV files and polygons, then prepares the models
+            this.fixtures = (loader ?? new FixturesLoader(zoneConfiguration)).GetDrawableFixtures();
         }
 
         public void Start()
@@ -219,9 +213,6 @@ namespace MapCreator.Classes.MapCreation
                             case FixtureRendererType.Flat:
                                 this.DrawFlat((fixture.IsTree || fixture.IsTreeCluster) ? treeOverlay : modelsOverlay, fixture);
                                 break;
-                            case FixtureRendererType.Image:
-                                this.DrawImage(modelsOverlay, fixture);
-                                break;
                         }
 
                         var percent = 100 * processCounter / fixtures.Count();
@@ -334,116 +325,7 @@ namespace MapCreator.Classes.MapCreation
             }
         }
 
-        private void DrawImage(MagickImage overlay, DrawableFixture fixture)
-        {
-            //this.zoneConfiguration.Reporter.Log(string.Format("Image: {0} ({1}) ...", fixture.Name, fixture.NifName), LogLevel.notice);
-            var fileName = System.IO.Path.GetFileNameWithoutExtension(fixture.NifName);
-
-            // Load model image
-            if (!this.modelImages.ContainsKey(fileName))
-            {
-                var objectImageFile = string.Format("{0}\\data\\prerendered\\objects\\{1}.png", System.Windows.Forms.Application.StartupPath, fileName);
-                this.modelImages.Add(fileName, System.IO.File.Exists(objectImageFile) ? new MagickImage(objectImageFile) : null);
-            }
-
-            // Draw the image
-            if (this.modelImages.ContainsKey(fileName) && this.modelImages[fileName] != null)
-            {
-                var orginalNif = this.loader.NifRows.FirstOrDefault(n => n.NifId == fixture.FixtureRow.NifId);
-                if (orginalNif == null)
-                {
-                    this.zoneConfiguration.Reporter.Log(string.Format("Error with imaged nif ({0})!", fixture.FixtureRow.TextualName), LogLevel.Warning);
-                }
-
-                var objectSize = orginalNif.GetSize(0, 0);
-
-                // The final image
-                using (var modelImage = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
-                {
-                    // Place the replacing image
-                    using (var newModelImage = this.modelImages[fileName].Clone())
-                    {
-                        newModelImage.BackgroundColor = MagickColors.Transparent;
-
-                        double scaleWidthToImage = objectSize.Width / newModelImage.Width;
-                        double scaleHeightToImage = objectSize.Height / newModelImage.Height;
-                        var width = Convert.ToInt32(newModelImage.Width * scaleWidthToImage * fixture.Scale);
-                        var height = Convert.ToInt32(newModelImage.Height * scaleHeightToImage * fixture.Scale);
-
-                        // Resize to new size
-                        newModelImage.FilterType = FilterType.Gaussian;
-                        newModelImage.VirtualPixelMethod = VirtualPixelMethod.Transparent;
-                        newModelImage.Resize((uint)(width), (uint)(height));
-
-                        // Rotate the image
-                        //newModelImage.Rotate(fixture.FixtureRow.A * -1 * fixture.FixtureRow.AxisZ3D);
-                        newModelImage.Rotate((360d * fixture.FixtureRow.AxisZ3D - fixture.FixtureRow.A) * -1);
-
-                        // Place in center of modelImage
-                        modelImage.Composite(newModelImage, Gravity.Center, CompositeOperator.SrcOver);
-                    }
-
-                    // Draw the shaped model if wanted
-                    if (fixture.RendererConf.HasLight)
-                    {
-                        using (var modelShaped = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
-                        {
-                            var drawables = new Drawables();
-                            foreach (var drawableElement in fixture.DrawableElements)
-                            {
-                                var light = 1 - drawableElement.Lightning;
-                                drawables.FillColor(new MagickColor(
-                                    Convert.ToUInt16(ushort.MaxValue * light),
-                                    Convert.ToUInt16(ushort.MaxValue * light),
-                                    Convert.ToUInt16(ushort.MaxValue * light)
-                                ));
-                                drawables.Polygon(drawableElement.Coordinates);
-                            }
-
-                            DrawBatch(modelShaped, drawables);
-
-                            using(var modelMask = MagickWrapper.NewImage(MagickColors.Transparent, fixture.CanvasWidth, fixture.CanvasHeight))
-                            {
-                                modelShaped.Blur();
-                                modelMask.Composite(modelShaped, 0, 0, CompositeOperator.DstAtop);
-                                modelMask.Composite(modelImage, 0, 0, CompositeOperator.DstIn);
-                                modelMask.Level(new Percentage(20), new Percentage(100), Channels.All);
-                                modelImage.Composite(modelMask, 0, 0, CompositeOperator.ColorDodge);
-                            }
-                        }
-                    }
-
-                    if (fixture.RendererConf.HasShadow)
-                    {
-                        this.CastShadow(
-                                        modelImage,
-                                        fixture.RendererConf.ShadowOffsetX,
-                                        fixture.RendererConf.ShadowOffsetY,
-                                        fixture.RendererConf.ShadowSize,
-                                        new Percentage(100 - fixture.RendererConf.ShadowTransparency),
-                                        fixture.RendererConf.ShadowColor
-                                       );
-
-                        // Update the canvas position to match the new border
-                        fixture.CanvasX -= fixture.RendererConf.ShadowSize;
-                        fixture.CanvasY -= fixture.RendererConf.ShadowSize;
-                    }
-
-                    if (fixture.RendererConf.Transparency != 0)
-                    {
-                        var divideValue = 100.0 / (100.0 - fixture.RendererConf.Transparency);
-                        modelImage.Evaluate(Channels.Alpha, EvaluateOperator.Divide, divideValue);
-                    }
-
-                    // Place the image on the right position
-                    overlay.Composite(modelImage, Convert.ToInt32(fixture.CanvasX), Convert.ToInt32(fixture.CanvasY), CompositeOperator.SrcOver);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Draws the model's triangles in z order into a new canvas, textured or filled with their color
-        /// </summary>
+        // Solid surfaces first, then water over them, glows last
         private static int GetDrawPass(DrawableElement element)
         {
             return element.IsAdditive ? 2 : element.IsWater ? 1 : 0;
@@ -458,6 +340,9 @@ namespace MapCreator.Classes.MapCreation
             return this.terrain;
         }
 
+        /// <summary>
+        /// Draws the model's triangles in z order into a new canvas, textured or filled with their color
+        /// </summary>
         private MagickImage DrawTriangles(DrawableFixture fixture, bool lit)
         {
             if (fixture.RendererConf.Texture == TextureMode.Map)
@@ -531,11 +416,6 @@ namespace MapCreator.Classes.MapCreation
                     caster.Composite(shadow, shadow.Page.X, shadow.Page.Y, CompositeOperator.DstOver);
                 }
             }
-        }
-
-        public void Dispose()
-        {
-            this.modelImages.Select(i => i.Value).Where(i => i != null).ToList().ForEach(i => i.Dispose());
         }
     }
 }

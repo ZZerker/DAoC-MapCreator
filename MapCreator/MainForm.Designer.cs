@@ -41,7 +41,6 @@
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.preferencesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
-            this.createShapedNIFToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cachesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearfixturesPolygonCacheToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearheightmapsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -261,19 +260,10 @@
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.createShapedNIFToolStripMenuItem,
             this.cachesToolStripMenuItem});
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
             this.toolStripMenuItem1.Size = new System.Drawing.Size(46, 20);
             this.toolStripMenuItem1.Text = "&Tools";
-            // 
-            // createShapedNIFToolStripMenuItem
-            // 
-            this.createShapedNIFToolStripMenuItem.Name = "createShapedNIFToolStripMenuItem";
-            this.createShapedNIFToolStripMenuItem.Size = new System.Drawing.Size(170, 22);
-            this.createShapedNIFToolStripMenuItem.Text = "Create &shaped NIF";
-            this.createShapedNIFToolStripMenuItem.Visible = false;
-            this.createShapedNIFToolStripMenuItem.Click += new System.EventHandler(this.createShapedNIFToolStripMenuItem_Click);
             // 
             // cachesToolStripMenuItem
             // 
@@ -1534,7 +1524,6 @@
         private System.Windows.Forms.ToolStripMenuItem reportABugToolStripMenuItem;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
-        private System.Windows.Forms.ToolStripMenuItem createShapedNIFToolStripMenuItem;
         private System.Windows.Forms.Panel flowLayoutSizerPanel;
         private System.Windows.Forms.NumericUpDown mapTreeTransparencyTextBox;
         private System.Windows.Forms.Label label24;

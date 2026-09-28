@@ -18,10 +18,8 @@
 //
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using MPKLib;
 
 namespace MapCreator.Classes
@@ -39,76 +37,6 @@ namespace MapCreator.Classes
             }
 
             return true;
-        }
-
-        /// <summary>
-        /// Gets zones from zones.dat
-        /// </summary>
-        /// <returns></returns>
-        public static Dictionary<int, string> GetZones()
-        {
-            if (!CheckGamePath())
-            {
-                return null;
-            }
-
-            var zones = new Dictionary<int, string>();
-            var zonesMpk = string.Format("{0}\\zones\\zones.mpk", Properties.Settings.Default.game_path);
-
-            var mpak = Open(zonesMpk);
-
-            var zonesFile = mpak.GetFile("zones.dat");
-
-            using (Stream stream = new MemoryStream(zonesFile.Data))
-            {
-                using (var reader = new StreamReader(stream))
-                {
-                    string row;
-                    var recording = false;
-
-                    var currentZone = 0;
-                    var currentZoneName = "";
-                    Match match;
-
-                    while ((row = reader.ReadLine()) != null)
-                    {
-                        if (string.IsNullOrEmpty(row.Trim())) continue;
-
-                        // Sections
-                        // ALBION
-
-                        if (row.StartsWith("[zone"))
-                        {
-                            recording = true;
-                            var regex = new Regex(@"\[zone(.*)\]", RegexOptions.IgnoreCase);
-                            if ((match = regex.Match(row)) != null)
-                            {
-                                currentZone = Convert.ToInt32(match.Groups[1].Value);
-                            }
-                        }
-
-                        if (recording && row.StartsWith("name="))
-                        {
-                            var regex = new Regex(@"name=(.*)", RegexOptions.IgnoreCase);
-                            if ((match = regex.Match(row)) != null)
-                            {
-                                currentZoneName = match.Groups[1].Value;
-                            }
-                        }
-
-                        if (recording && currentZone > 0 && currentZoneName != "")
-                        {
-                            zones.Add(currentZone, currentZoneName);
-                            currentZone = 0;
-                            currentZoneName = "";
-                            recording = false;
-                        }
-
-                    }
-                }
-            }
-            
-            return zones;
         }
 
         /// <summary>

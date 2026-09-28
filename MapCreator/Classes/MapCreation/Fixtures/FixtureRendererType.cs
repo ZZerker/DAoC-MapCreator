@@ -4,7 +4,6 @@
 	{
 		None,
 		Shaded,
-		Flat,
-		Image
+		Flat
 	}
 }

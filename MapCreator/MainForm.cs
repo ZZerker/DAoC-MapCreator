@@ -624,11 +624,6 @@ namespace MapCreator
             OpenUrl(@"http://www.dolserver.net/viewtopic.php?f=69&t=21710");
         }
 
-        private void createShapedNIFToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            (new ShapedNifForm()).ShowDialog();
-        }
-
         private void clearfixturesPolygonCacheToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if(MessageBox.Show("Do you really want to delete the fixture polygon cache?", "Delete fixture polygons", MessageBoxButtons.YesNo) == DialogResult.Yes)
