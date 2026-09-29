@@ -41,9 +41,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\libs\ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
     <Reference Include="MPKLib">
       <HintPath>..\libs\MPKLib.dll</HintPath>
     </Reference>
