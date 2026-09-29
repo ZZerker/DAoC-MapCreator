@@ -9,7 +9,15 @@
         Width="1400" Height="900"
         MinWidth="900" MinHeight="600">
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="300" />
+            <RowDefinition Height="Auto" />
+            <!-- Activity panel: the window sets its height when the panel opens or closes -->
+            <RowDefinition Height="0" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <Border Grid.Row="0" Padding="12,8"
                 Background="{DynamicResource AppPanelBackground}"
                 BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1">
@@ -30,28 +38,39 @@
                 <ColumnDefinition Width="4" />
                 <ColumnDefinition Width="*" MinWidth="200" />
                 <ColumnDefinition Width="4" />
-                <ColumnDefinition Width="300" MinWidth="200" />
+                <ColumnDefinition Width="340" MinWidth="260" />
             </Grid.ColumnDefinitions>
 
             <views:ZoneBrowserView Grid.Column="0" DataContext="{Binding ZoneBrowser}" />
             <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
             <TextBlock Grid.Column="2" Classes="placeholder" Text="Map viewer" />
             <GridSplitter Grid.Column="3" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
-            <TextBlock Grid.Column="4" Classes="placeholder" Text="Render options" />
+            <views:OptionsView Grid.Column="4" DataContext="{Binding Options}" />
         </Grid>
 
-        <Border Grid.Row="2" Padding="12,8"
+        <GridSplitter Grid.Row="2" Height="4" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                      Background="{DynamicResource AppBorderBrush}" IsVisible="{Binding Render.IsActivityExpanded}" />
+
+        <Border Grid.Row="3" ClipToBounds="True" IsVisible="{Binding Render.IsActivityExpanded}">
+            <views:RenderView Margin="12,8" DataContext="{Binding Render}" />
+        </Border>
+
+        <Border Grid.Row="4" Padding="12,8" DataContext="{Binding Render}"
                 Background="{DynamicResource AppPanelBackground}"
                 BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">
-            <StackPanel>
-                <Grid ColumnDefinitions="Auto,*">
-                    <Button Grid.Column="0" Content="{Binding ZoneBrowser.RenderLabel}" IsEnabled="False" />
-                    <TextBlock Grid.Column="1" Classes="muted" Text="Render progress" VerticalAlignment="Center" Margin="16,0,0,0" />
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" x:DataType="vm:RenderViewModel">
+                <Button Grid.Column="0" Content="{Binding ButtonText}" Command="{Binding RenderOrCancelCommand}" MinWidth="150" />
+                <Grid Grid.Column="1" ColumnDefinitions="*,Auto" Margin="16,0" IsVisible="{Binding HasRun}">
+                    <ProgressBar Grid.Column="0" Value="{Binding Progress}" Minimum="0" Maximum="100" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding ProgressText}" VerticalAlignment="Center" Margin="12,0,0,0" />
                 </Grid>
-                <Expander Header="Activity" Margin="0,8,0,0" HorizontalAlignment="Stretch">
-                    <TextBlock Classes="muted" Text="Render log" />
-                </Expander>
-            </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Closing after the running zones finish" Foreground="#E8C547" Margin="0,0,16,0" IsVisible="{Binding IsClosePending}" />
+                    <TextBlock Classes="muted" Text="{Binding CountsText}" IsVisible="{Binding HasRun}" />
+                    <TextBlock Text="{Binding ElapsedText}" Margin="12,0,0,0" IsVisible="{Binding HasRun}" />
+                </StackPanel>
+                <ToggleButton Grid.Column="3" Content="Activity" IsChecked="{Binding IsActivityExpanded}" Margin="16,0,0,0" />
+            </Grid>
         </Border>
     </Grid>
 </Window>

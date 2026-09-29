@@ -42,7 +42,9 @@ namespace MapCreator.Classes.Rendering
                 DrawFixturesBelowWater = settings.DrawFixturesBelowWater,
                 DrawKeeps = settings.DrawKeeps,
                 DrawTrees = settings.DrawTrees,
-                TreeTransparency = settings.TreeTransparency
+                TreeTransparency = settings.TreeTransparency,
+                LabelDirectory = string.IsNullOrEmpty(settings.LabelDirectory) ? null : settings.LabelDirectory,
+                LabelSize = settings.LabelSize
             };
         }
 

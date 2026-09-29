@@ -86,6 +86,8 @@ namespace MapCreator.Tests
                 DrawKeeps = false,
                 DrawTrees = false,
                 TreeTransparency = 55,
+                LabelDirectory = "labeled",
+                LabelSize = 1024,
                 TickedZones = new List<string> { "163", "171" }
             };
 
@@ -121,6 +123,8 @@ namespace MapCreator.Tests
             Assert.False(loaded.DrawKeeps);
             Assert.False(loaded.DrawTrees);
             Assert.Equal(55, loaded.TreeTransparency);
+            Assert.Equal("labeled", loaded.LabelDirectory);
+            Assert.Equal(1024, loaded.LabelSize);
             Assert.Equal(new[] { "163", "171" }, loaded.TickedZones);
             Assert.False(File.Exists(this.SettingsPath + ".tmp"));
         }
@@ -174,6 +178,8 @@ namespace MapCreator.Tests
             Assert.Equal(new double[] { 1, 1, -1 }, loaded.LightmapZVector);
             Assert.Equal(Color.FromArgb(0, 64, 128).ToArgb(), loaded.RiversColor.ToArgb());
             Assert.Equal(new[] { "000" }, loaded.TickedZones);
+            Assert.Equal("", loaded.LabelDirectory);
+            Assert.Equal(0, loaded.LabelSize);
         }
 
         [Fact]

@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -21,9 +22,9 @@ namespace MapCreator.Ui.ViewModels
         private const int STATUS_CHUNK = 50;
 
         private readonly AppSettings settings;
-        private readonly RenderSettings renderSettings;
         private readonly List<ZoneRowViewModel> zones;
-        private bool savePending;
+        private readonly Dictionary<string, ZoneRowViewModel> rowsById;
+        private int statusGeneration;
 
         [ObservableProperty]
         private string searchText = "";
@@ -39,10 +40,13 @@ namespace MapCreator.Ui.ViewModels
         [ObservableProperty]
         private bool isGroupSearch;
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsEditable))]
+        private bool isRendering;
+
         internal ZoneBrowserViewModel(AppSettings settings, RenderSettings renderSettings)
         {
             this.settings = settings;
-            this.renderSettings = renderSettings;
 
             var entries = DataWrapper.GetAllZones();
             var ticked = settings.TickedZones.ToHashSet();
@@ -53,12 +57,12 @@ namespace MapCreator.Ui.ViewModels
                 .OrderBy(g => g.Key, StringComparer.Ordinal)
                 .Select(g => new ZoneRowViewModel(g.First(), ticked.Contains(g.Key)))
                 .ToList();
-            var rowsById = this.zones.ToDictionary(z => z.Id);
+            this.rowsById = this.zones.ToDictionary(z => z.Id);
 
             this.AllGroup = new ZoneGroupViewModel("All", this.zones);
-            this.RealmGroups = BuildGroups(entries, z => z.Realm, rowsById);
-            this.ExpansionGroups = BuildGroups(entries, z => z.Expansion, rowsById);
-            this.TypeGroups = BuildGroups(entries, z => z.Type, rowsById);
+            this.RealmGroups = BuildGroups(entries, z => z.Realm, this.rowsById);
+            this.ExpansionGroups = BuildGroups(entries, z => z.Expansion, this.rowsById);
+            this.TypeGroups = BuildGroups(entries, z => z.Type, this.rowsById);
 
             foreach (var zone in this.zones)
             {
@@ -67,7 +71,7 @@ namespace MapCreator.Ui.ViewModels
 
             this.TickedCount = this.zones.Count(z => z.IsTicked);
             this.ShownZones = this.zones;
-            this.StartStatusScan();
+            this.RefreshStatuses(renderSettings);
         }
 
         public ZoneGroupViewModel AllGroup { get; }
@@ -81,6 +85,9 @@ namespace MapCreator.Ui.ViewModels
         public string ShownSummary => string.Format("{0} of {1} shown", this.ShownZones.Count, this.zones.Count);
 
         public string RenderLabel => this.TickedCount == 1 ? "Render 1 zone" : string.Format("Render {0} zones", this.TickedCount);
+
+        // Ticks are read-only while a render runs
+        public bool IsEditable => !this.IsRendering;
 
         /// <summary>
         /// "rendered" with the file date, "archive newer" when a zone archive changed after the render, or "not rendered"
@@ -107,21 +114,83 @@ namespace MapCreator.Ui.ViewModels
             this.ApplyFilter();
         }
 
+        /// <summary>
+        /// Computes the status of every zone in the background; a newer call makes the running one stop
+        /// </summary>
+        internal void RefreshStatuses(RenderSettings renderSettings)
+        {
+            var generation = Interlocked.Increment(ref this.statusGeneration);
+            var rows = this.zones.ToList();
+            var gamePath = this.settings.GamePath;
+            Task.Run(() =>
+            {
+                for (var start = 0; start < rows.Count; start += STATUS_CHUNK)
+                {
+                    if (Volatile.Read(ref this.statusGeneration) != generation)
+                    {
+                        return;
+                    }
+
+                    var chunk = rows.Skip(start).Take(STATUS_CHUNK).ToList();
+                    var statuses = chunk.Select(row => ScanStatus(renderSettings, gamePath, row.Zone)).ToList();
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (this.statusGeneration != generation)
+                        {
+                            return;
+                        }
+
+                        for (var i = 0; i < chunk.Count; i++)
+                        {
+                            chunk[i].Status = statuses[i];
+                        }
+                    });
+                }
+            });
+        }
+
+        internal void SetStatus(string zoneId, string status)
+        {
+            if (this.rowsById.TryGetValue(zoneId, out var row))
+            {
+                row.Status = status;
+            }
+        }
+
+        internal static string ScanStatus(RenderSettings renderSettings, string gamePath, ZoneSelection zone)
+        {
+            try
+            {
+                return GetStatus(renderSettings, gamePath, zone);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
+            {
+                return "unknown";
+            }
+        }
+
         [RelayCommand]
         private void TickShown()
         {
-            foreach (var zone in this.ShownZones)
-            {
-                zone.IsTicked = true;
-            }
+            this.TickAll(this.ShownZones, true);
         }
 
         [RelayCommand]
         private void UntickShown()
         {
-            foreach (var zone in this.ShownZones)
+            this.TickAll(this.ShownZones, false);
+        }
+
+        private void TickAll(IEnumerable<ZoneRowViewModel> rows, bool tick)
+        {
+            if (this.IsRendering)
             {
-                zone.IsTicked = false;
+                return;
+            }
+
+            foreach (var zone in rows)
+            {
+                zone.IsTicked = tick;
             }
         }
 
@@ -183,61 +252,8 @@ namespace MapCreator.Ui.ViewModels
             }
 
             this.TickedCount += ((ZoneRowViewModel)sender).IsTicked ? 1 : -1;
-
-            // A group click ticks many zones; save once afterwards
-            if (!this.savePending)
-            {
-                this.savePending = true;
-                Dispatcher.UIThread.Post(this.SaveTicks, DispatcherPriority.Background);
-            }
-        }
-
-        private void SaveTicks()
-        {
-            this.savePending = false;
             this.settings.TickedZones = this.zones.Where(z => z.IsTicked).Select(z => z.Id).ToList();
-            try
-            {
-                this.settings.Save();
-            }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
-            {
-                AppLog.Log(string.Format("Ticked zones not saved ({0})", ex.Message), LogLevel.Warning);
-            }
-        }
-
-        private void StartStatusScan()
-        {
-            var rows = this.zones.ToList();
-            var gamePath = this.settings.GamePath;
-            var target = this.renderSettings;
-            Task.Run(() =>
-            {
-                for (var start = 0; start < rows.Count; start += STATUS_CHUNK)
-                {
-                    var chunk = rows.Skip(start).Take(STATUS_CHUNK).ToList();
-                    var statuses = chunk.Select(row => ScanStatus(target, gamePath, row.Zone)).ToList();
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        for (var i = 0; i < chunk.Count; i++)
-                        {
-                            chunk[i].Status = statuses[i];
-                        }
-                    });
-                }
-            });
-        }
-
-        private static string ScanStatus(RenderSettings renderSettings, string gamePath, ZoneSelection zone)
-        {
-            try
-            {
-                return GetStatus(renderSettings, gamePath, zone);
-            }
-            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is ArgumentException || ex is NotSupportedException)
-            {
-                return "unknown";
-            }
+            SettingsSaver.Request();
         }
     }
 }

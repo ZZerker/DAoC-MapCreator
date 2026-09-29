@@ -24,8 +24,8 @@
 
     <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="8">
         <Expander Grid.Row="0" Header="Groups" IsExpanded="True" HorizontalAlignment="Stretch">
-            <ScrollViewer MaxHeight="280">
-                <StackPanel>
+            <ScrollViewer x:Name="GroupScroller" MaxHeight="280">
+                <StackPanel IsEnabled="{Binding IsEditable}">
                     <CheckBox Content="{Binding AllGroup.Label}"
                               IsChecked="{Binding AllGroup.State, Mode=OneWay}"
                               Command="{Binding AllGroup.ToggleCommand}" />
@@ -50,8 +50,8 @@
                  Text="{Binding SearchText}" />
 
         <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*" Margin="0,8">
-            <Button Grid.Column="0" Content="Tick shown" Command="{Binding TickShownCommand}" />
-            <Button Grid.Column="1" Content="Untick shown" Command="{Binding UntickShownCommand}" Margin="8,0,0,0" />
+            <Button Grid.Column="0" Content="Tick shown" Command="{Binding TickShownCommand}" IsEnabled="{Binding IsEditable}" />
+            <Button Grid.Column="1" Content="Untick shown" Command="{Binding UntickShownCommand}" IsEnabled="{Binding IsEditable}" Margin="8,0,0,0" />
             <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <TextBlock Classes="muted" Text="{Binding ShownSummary}" HorizontalAlignment="Right" />
                 <TextBlock Classes="muted" Text="group terms" HorizontalAlignment="Right" IsVisible="{Binding IsGroupSearch}" />
@@ -62,7 +62,8 @@
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:ZoneRowViewModel">
                     <Grid ColumnDefinitions="Auto,40,*">
-                        <CheckBox Grid.Column="0" IsChecked="{Binding IsTicked}" MinWidth="0" VerticalAlignment="Center" />
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsTicked}" MinWidth="0" VerticalAlignment="Center"
+                                  IsEnabled="{Binding $parent[ListBox].((vm:ZoneBrowserViewModel)DataContext).IsEditable}" />
                         <TextBlock Grid.Column="1" Text="{Binding Id}" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="2" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />

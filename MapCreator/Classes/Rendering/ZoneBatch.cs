@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,7 +53,10 @@ namespace MapCreator.Classes.Rendering
         /// </summary>
         public int WithErrors => this.withErrors;
 
-        public void Run(IReadOnlyList<ZoneSelection> zones)
+        /// <summary>
+        /// Renders the zones; after a cancel the running zones finish and no new zone starts
+        /// </summary>
+        public void Run(IReadOnlyList<ZoneSelection> zones, CancellationToken cancellationToken = default)
         {
             var parallel = Math.Clamp(settings.Parallel, 1, Math.Max(1, zones.Count));
             var started = 0;
@@ -60,6 +64,10 @@ namespace MapCreator.Classes.Rendering
             {
                 foreach (var zone in zones)
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
                     this.Render(zone, ++started, this.ZoneIdsInLog ? new ZoneReporter(reporter, zone.Id) : reporter);
                 }
                 return;
@@ -67,12 +75,29 @@ namespace MapCreator.Classes.Rendering
 
             var finished = 0;
             reporter.ProgressStart(string.Format("Rendering {0} zones, {1} at a time ...", zones.Count, parallel));
-            Parallel.ForEach(zones, new ParallelOptions { MaxDegreeOfParallelism = parallel }, zone =>
+            try
             {
-                this.Render(zone, Interlocked.Increment(ref started), new ZoneReporter(reporter, zone.Id));
-                reporter.ProgressUpdate(100 * Interlocked.Increment(ref finished) / zones.Count);
-            });
+                Parallel.ForEach(zones, new ParallelOptions { MaxDegreeOfParallelism = parallel, CancellationToken = cancellationToken }, zone =>
+                {
+                    this.Render(zone, Interlocked.Increment(ref started), new ZoneReporter(reporter, zone.Id));
+                    reporter.ProgressUpdate(100 * Interlocked.Increment(ref finished) / zones.Count);
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                // Thrown after the running zones have finished
+            }
             reporter.ProgressReset();
+        }
+
+        /// <summary>
+        /// The closing lines of a batch: what the caches keep and the zone counts
+        /// </summary>
+        public void LogSummary(int zoneCount, TimeSpan elapsed)
+        {
+            reporter.Log(string.Format("Kept for reuse: {0} models, {1} textures ({2} MB), process memory {3} MB", MapCreation.Fixtures.FixtureCache.CachedModels, MapCreation.Fixtures.TextureCache.Count,
+                                       MapCreation.Fixtures.TextureCache.Bytes / (1024 * 1024), Process.GetCurrentProcess().PrivateMemorySize64 / (1024 * 1024)), LogLevel.Notice);
+            reporter.Log(string.Format("Done: {0} zones in {1:hh\\:mm\\:ss}, {2} failed, {3} with errors", zoneCount, elapsed, this.Failed, this.WithErrors), this.Failed + this.WithErrors == 0 ? LogLevel.Success : LogLevel.Error);
         }
 
         private void Render(ZoneSelection zone, int number, IRenderReporter zoneReporter)

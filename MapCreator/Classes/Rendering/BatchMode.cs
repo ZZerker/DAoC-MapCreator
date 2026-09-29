@@ -119,9 +119,7 @@ namespace MapCreator.Classes.Rendering
                             ZoneFinished = (zone, outcome) => dashboard?.ZoneFinished(zone, outcome)
                         };
             batch.Run(zones);
-            reporter.Log(string.Format("Kept for reuse: {0} models, {1} textures ({2} MB), process memory {3} MB", MapCreation.Fixtures.FixtureCache.CachedModels, MapCreation.Fixtures.TextureCache.Count,
-                                       MapCreation.Fixtures.TextureCache.Bytes / (1024 * 1024), Process.GetCurrentProcess().PrivateMemorySize64 / (1024 * 1024)), LogLevel.Notice);
-            reporter.Log(string.Format("Done: {0} zones in {1:hh\\:mm\\:ss}, {2} failed, {3} with errors", zones.Count, timer.Elapsed, batch.Failed, batch.WithErrors), batch.Failed + batch.WithErrors == 0 ? LogLevel.Success : LogLevel.Error);
+            batch.LogSummary(zones.Count, timer.Elapsed);
             return batch.Failed == 0 ? 0 : 1;
         }
 

@@ -70,6 +70,10 @@ namespace MapCreator.Classes
         public bool DrawTrees { get; set; } = true;
         public int TreeTransparency { get; set; } = 25;
 
+        // Labeled copies of the maps go into this directory under the target path ("" draws none), scaled to LabelSize (0 keeps the map size)
+        public string LabelDirectory { get; set; } = "";
+        public int LabelSize { get; set; }
+
         public List<string> TickedZones { get; set; } = new() { "000" };
 
         public static AppSettings Load(string path)
@@ -249,6 +253,7 @@ namespace MapCreator.Classes
             this.TargetDirectoryPattern ??= defaults.TargetDirectoryPattern;
             this.MapFilePattern ??= defaults.MapFilePattern;
             this.MapType ??= defaults.MapType;
+            this.LabelDirectory ??= defaults.LabelDirectory;
             this.TickedZones ??= defaults.TickedZones;
             if (this.LightmapZVector == null || this.LightmapZVector.Length != 3)
             {
@@ -332,6 +337,24 @@ namespace MapCreator.Classes
         /// <summary>
         /// Writes colors as "#RRGGBB"; unreadable values become Color.Empty and are replaced by the default after loading
         /// </summary>
+        internal static bool TryParseHexColor(string text, out Color color)
+        {
+            if (text != null && text.Length == 7 && text[0] == '#'
+                && int.TryParse(text.AsSpan(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var rgb))
+            {
+                color = Color.FromArgb((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
+                return true;
+            }
+
+            color = Color.Empty;
+            return false;
+        }
+
+        internal static string ToHexColor(Color color)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "#{0:X2}{1:X2}{2:X2}", color.R, color.G, color.B);
+        }
+
         private sealed class HexColorConverter : JsonConverter<Color>
         {
             public override Color Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -342,19 +365,12 @@ namespace MapCreator.Classes
                     return Color.Empty;
                 }
 
-                var text = reader.GetString();
-                if (text != null && text.Length == 7 && text[0] == '#'
-                    && int.TryParse(text.AsSpan(1), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out var rgb))
-                {
-                    return Color.FromArgb((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF);
-                }
-
-                return Color.Empty;
+                return TryParseHexColor(reader.GetString(), out var color) ? color : Color.Empty;
             }
 
             public override void Write(Utf8JsonWriter writer, Color value, JsonSerializerOptions options)
             {
-                writer.WriteStringValue(string.Format(CultureInfo.InvariantCulture, "#{0:X2}{1:X2}{2:X2}", value.R, value.G, value.B));
+                writer.WriteStringValue(ToHexColor(value));
             }
         }
     }

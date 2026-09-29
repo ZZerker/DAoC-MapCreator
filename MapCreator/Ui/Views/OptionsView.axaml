@@ -1,0 +1,171 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MapCreator.Ui.ViewModels"
+             x:Class="MapCreator.Ui.Views.OptionsView"
+             x:DataType="vm:OptionsViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Expander">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style Selector="Grid.row">
+            <Setter Property="Margin" Value="0,2" />
+        </Style>
+        <Style Selector="Grid.row > TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+        <Style Selector="NumericUpDown">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="CheckBox">
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+        <Style Selector="TextBox.error">
+            <Setter Property="BorderBrush" Value="#F06262" />
+        </Style>
+        <Style Selector="TextBlock.error">
+            <Setter Property="Foreground" Value="#F06262" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+        <Style Selector="Border.swatch">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Margin="8">
+
+            <Expander Header="Output" IsExpanded="True">
+                <StackPanel IsEnabled="{Binding IsEditable}">
+                    <TextBlock Classes="muted" Text="Output folder" />
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,6">
+                        <TextBox Grid.Column="0" Text="{Binding TargetPath}" PlaceholderText="Program folder" />
+                        <Button Grid.Column="1" Content="Browse" Margin="6,0,0,0" Click="OnBrowseClick" />
+                    </Grid>
+                    <TextBlock Classes="muted" Text="Subfolder pattern" />
+                    <TextBox Text="{Binding TargetDirectoryPattern}" PlaceholderText="maps" Margin="0,2,0,6" />
+                    <TextBlock Classes="muted" Text="File pattern" />
+                    <TextBox Text="{Binding MapFilePattern}" PlaceholderText="zone{id}_{size}" Margin="0,2,0,0" />
+                    <TextBlock Classes="muted" FontSize="11" Text="Placeholders: {id} {size} {name} {realm} {expansion} {type}" TextWrapping="Wrap" Margin="0,2,0,6" />
+                    <Grid Classes="row" ColumnDefinitions="*,120">
+                        <TextBlock Text="Format" />
+                        <ComboBox Grid.Column="1" SelectedIndex="{Binding FormatIndex}" HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="PNG" />
+                            <ComboBoxItem Content="JPG" />
+                        </ComboBox>
+                    </Grid>
+                    <Grid Classes="row" ColumnDefinitions="*,120" IsEnabled="{Binding IsQualityEnabled}">
+                        <TextBlock Text="JPG quality" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding MapQuality}" Minimum="10" Maximum="100" Increment="5" FormatString="0" />
+                    </Grid>
+                    <Grid Classes="row" ColumnDefinitions="*,120">
+                        <TextBlock Text="Size (px)" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding SizeChoices}" SelectedIndex="{Binding SizeIndex}" HorizontalAlignment="Stretch" />
+                    </Grid>
+                    <Grid Classes="row" ColumnDefinitions="*,120">
+                        <TextBlock Text="Zones at a time" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding RenderParallel}" Minimum="1" Maximum="16" Increment="1" FormatString="0" />
+                    </Grid>
+                    <CheckBox Content="Skip existing maps" IsChecked="{Binding SkipIfFileExists}" />
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Terrain and light">
+                <StackPanel IsEnabled="{Binding IsEditable}">
+                    <CheckBox Content="Background" IsChecked="{Binding DrawBackground}" />
+                    <CheckBox Content="Lightmap" IsChecked="{Binding Lightmap}" />
+                    <StackPanel IsEnabled="{Binding Lightmap}" Margin="16,0,0,0">
+                        <Grid Classes="row" ColumnDefinitions="*,120">
+                            <TextBlock Text="Z scale" />
+                            <NumericUpDown Grid.Column="1" Value="{Binding LightmapZScale}" Minimum="0" Maximum="100" Increment="1" FormatString="0.00" />
+                        </Grid>
+                        <Grid Classes="row" ColumnDefinitions="*,120">
+                            <TextBlock Text="Min light" />
+                            <NumericUpDown Grid.Column="1" Value="{Binding LightmapMinLight}" Minimum="0" Maximum="100" Increment="0.1" FormatString="0.00" />
+                        </Grid>
+                        <Grid Classes="row" ColumnDefinitions="*,120">
+                            <TextBlock Text="Max light" />
+                            <NumericUpDown Grid.Column="1" Value="{Binding LightmapMaxLight}" Minimum="0" Maximum="100" Increment="0.1" FormatString="0.00" />
+                        </Grid>
+                        <TextBlock Classes="muted" Text="Light vector" Margin="0,4,0,2" />
+                        <Grid ColumnDefinitions="*,4,*,4,*">
+                            <NumericUpDown Grid.Column="0" Value="{Binding LightmapZVectorX}" Minimum="-100" Maximum="100" Increment="0.1" FormatString="0.00" ShowButtonSpinner="False" />
+                            <NumericUpDown Grid.Column="2" Value="{Binding LightmapZVectorY}" Minimum="-100" Maximum="100" Increment="0.1" FormatString="0.00" ShowButtonSpinner="False" />
+                            <NumericUpDown Grid.Column="4" Value="{Binding LightmapZVectorZ}" Minimum="-100" Maximum="100" Increment="0.1" FormatString="0.00" ShowButtonSpinner="False" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Water">
+                <StackPanel IsEnabled="{Binding IsEditable}">
+                    <CheckBox Content="Rivers and lakes" IsChecked="{Binding Rivers}" />
+                    <StackPanel IsEnabled="{Binding Rivers}" Margin="16,0,0,0">
+                        <CheckBox Content="Client colors" IsChecked="{Binding RiversUseDefaultColor}" />
+                        <Grid Classes="row" ColumnDefinitions="*,Auto" IsEnabled="{Binding IsRiversColorEnabled}">
+                            <TextBox Grid.Column="0" Text="{Binding RiversColorText}" PlaceholderText="#RRGGBB"
+                                     Classes.error="{Binding IsRiversColorInvalid}" />
+                            <Border Grid.Column="1" Classes="swatch" Background="{Binding RiversSwatch}" />
+                        </Grid>
+                        <TextBlock Classes="error" Text="Use #RRGGBB" IsVisible="{Binding IsRiversColorInvalid}" />
+                        <Grid Classes="row" ColumnDefinitions="*,120">
+                            <TextBlock Text="Opacity (%)" />
+                            <NumericUpDown Grid.Column="1" Value="{Binding RiverOpacity}" Minimum="0" Maximum="100" Increment="5" FormatString="0" />
+                        </Grid>
+                        <CheckBox Content="Depth shaded water" IsChecked="{Binding DepthShadedWater}" />
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Bounds">
+                <StackPanel IsEnabled="{Binding IsEditable}">
+                    <CheckBox Content="Bounds" IsChecked="{Binding Bounds}" />
+                    <StackPanel IsEnabled="{Binding Bounds}" Margin="16,0,0,0">
+                        <Grid Classes="row" ColumnDefinitions="*,Auto">
+                            <TextBox Grid.Column="0" Text="{Binding BoundsColorText}" PlaceholderText="#RRGGBB"
+                                     Classes.error="{Binding IsBoundsColorInvalid}" />
+                            <Border Grid.Column="1" Classes="swatch" Background="{Binding BoundsSwatch}" />
+                        </Grid>
+                        <TextBlock Classes="error" Text="Use #RRGGBB" IsVisible="{Binding IsBoundsColorInvalid}" />
+                        <Grid Classes="row" ColumnDefinitions="*,120">
+                            <TextBlock Text="Opacity (%)" />
+                            <NumericUpDown Grid.Column="1" Value="{Binding BoundsOpacity}" Minimum="0" Maximum="100" Increment="5" FormatString="0" />
+                        </Grid>
+                        <CheckBox Content="Exclude bounds from the map" IsChecked="{Binding ExcludeBoundsFromMap}" />
+                    </StackPanel>
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Models">
+                <StackPanel IsEnabled="{Binding IsEditable}">
+                    <CheckBox Content="Buildings and objects" IsChecked="{Binding DrawFixtures}" />
+                    <CheckBox Content="Objects below water" IsChecked="{Binding DrawFixturesBelowWater}" />
+                    <CheckBox Content="Keeps" IsChecked="{Binding DrawKeeps}" />
+                    <CheckBox Content="Trees" IsChecked="{Binding DrawTrees}" />
+                    <Grid Classes="row" ColumnDefinitions="*,120" IsEnabled="{Binding DrawTrees}" Margin="16,2,0,2">
+                        <TextBlock Text="Tree transparency (%)" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding TreeTransparency}" Minimum="0" Maximum="100" Increment="5" FormatString="0" />
+                    </Grid>
+                </StackPanel>
+            </Expander>
+
+            <Expander Header="Labels">
+                <StackPanel IsEnabled="{Binding IsEditable}">
+                    <TextBlock Classes="muted" Text="Labeled copies folder (empty: none)" />
+                    <TextBox Text="{Binding LabelDirectory}" PlaceholderText="none" Margin="0,2,0,6" />
+                    <Grid Classes="row" ColumnDefinitions="*,120" IsEnabled="{Binding HasLabelDirectory}">
+                        <TextBlock Text="Size (0: map size)" />
+                        <NumericUpDown Grid.Column="1" Value="{Binding LabelSize}" Minimum="0" Maximum="8192" Increment="256" FormatString="0" />
+                    </Grid>
+                </StackPanel>
+            </Expander>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
