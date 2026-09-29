@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NifUtil", "NifUtil\NifUtil.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Niflib", "external\niflib.net\Niflib.csproj", "{EC36A004-E138-4E6A-BC73-021353BAED5A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mpk.Tests", "Mpk.Tests\Mpk.Tests.csproj", "{0430FB0E-461C-4562-90F2-DE6EB1C18829}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,6 +29,10 @@ Global
 		{EC36A004-E138-4E6A-BC73-021353BAED5A}.Debug|x64.Build.0 = Debug|Any CPU
 		{EC36A004-E138-4E6A-BC73-021353BAED5A}.Release|x64.ActiveCfg = Release|Any CPU
 		{EC36A004-E138-4E6A-BC73-021353BAED5A}.Release|x64.Build.0 = Release|Any CPU
+		{0430FB0E-461C-4562-90F2-DE6EB1C18829}.Debug|x64.ActiveCfg = Debug|x64
+		{0430FB0E-461C-4562-90F2-DE6EB1C18829}.Debug|x64.Build.0 = Debug|x64
+		{0430FB0E-461C-4562-90F2-DE6EB1C18829}.Release|x64.ActiveCfg = Release|x64
+		{0430FB0E-461C-4562-90F2-DE6EB1C18829}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

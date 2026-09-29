@@ -311,3 +311,6 @@ Output/
 
 # Downloaded tools (texconv.exe from DirectXTex)
 tools/bin/
+
+# MPK test fixtures (game data, local only)
+Mpk.Tests/TestData/
