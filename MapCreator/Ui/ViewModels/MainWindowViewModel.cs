@@ -23,6 +23,7 @@ namespace MapCreator.Ui.ViewModels
             this.Options = new OptionsViewModel(settings);
             this.Options.OutputChanged += this.OnOutputChanged;
             this.Render = new RenderViewModel(reporter, this.ZoneBrowser, this.Options);
+            this.MapViewer = new MapViewerViewModel(this.ZoneBrowser, this.Render);
         }
 
         public string GamePath { get; }
@@ -32,6 +33,8 @@ namespace MapCreator.Ui.ViewModels
         public OptionsViewModel Options { get; }
 
         public RenderViewModel Render { get; }
+
+        public MapViewerViewModel MapViewer { get; }
 
         private void OnOutputChanged()
         {

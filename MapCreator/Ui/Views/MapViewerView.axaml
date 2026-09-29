@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MapCreator.Ui.ViewModels"
+             x:Class="MapCreator.Ui.Views.MapViewerView"
+             x:DataType="vm:MapViewerViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto" Margin="8,8,8,0">
+            <TextBlock Grid.Column="0" Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="Fit" Click="OnFitClick" Margin="8,0,0,0" />
+            <Button Grid.Column="2" Content="1:1" Click="OnActualSizeClick" Margin="4,0,0,0" />
+            <TextBlock Grid.Column="3" x:Name="ZoomText" Classes="muted" MinWidth="44" TextAlignment="Right" VerticalAlignment="Center" Margin="8,0,0,0" />
+            <CheckBox Grid.Column="4" Content="Labels" IsChecked="{Binding ShowLabels}" Margin="12,0,0,0" />
+            <Button Grid.Column="5" Content="Open folder" Command="{Binding OpenFolderCommand}" Margin="8,0,0,0" />
+            <Button Grid.Column="6" Content="Render this zone" Command="{Binding RenderThisZoneCommand}" Margin="8,0,0,0" />
+        </Grid>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,4,8,8">
+            <TextBlock Classes="muted" Text="{Binding InfoText}" ToolTip.Tip="{Binding FilePath}" />
+            <TextBlock Classes="muted" Text="{Binding FrameText}" Margin="16,0,0,0" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Background="{DynamicResource AppPanelBackground}"
+                BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">
+            <Grid>
+                <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <Image x:Name="MapImage" Source="{Binding Image}" Stretch="Fill"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </ScrollViewer>
+                <TextBlock Classes="placeholder" Text="{Binding Message}" IsHitTestVisible="False"
+                           IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

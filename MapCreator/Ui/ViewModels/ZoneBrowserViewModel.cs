@@ -38,6 +38,9 @@ namespace MapCreator.Ui.ViewModels
         private int tickedCount;
 
         [ObservableProperty]
+        private ZoneRowViewModel selectedRow;
+
+        [ObservableProperty]
         private bool isGroupSearch;
 
         [ObservableProperty]

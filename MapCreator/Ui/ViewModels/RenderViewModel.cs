@@ -143,11 +143,24 @@ namespace MapCreator.Ui.ViewModels
         {
             if (!this.IsRendering)
             {
-                this.StartRender();
+                this.StartRender(AppSettings.Current.TickedZones);
                 return;
             }
 
             this.RequestCancel();
+        }
+
+        /// <summary>
+        /// Renders just this zone, leaving the ticks alone
+        /// </summary>
+        internal void RenderZone(string zoneId)
+        {
+            if (this.IsRendering)
+            {
+                return;
+            }
+
+            this.StartRender(new[] { zoneId });
         }
 
         /// <summary>
@@ -172,7 +185,7 @@ namespace MapCreator.Ui.ViewModels
             AppLog.Log("Cancel requested: the running zones finish, no new zone starts.", LogLevel.Warning);
         }
 
-        private void StartRender()
+        private void StartRender(IReadOnlyList<string> zoneIds)
         {
             this.IsActivityExpanded = true;
             if (!GameFolderLocator.CheckGamePath())
@@ -187,7 +200,7 @@ namespace MapCreator.Ui.ViewModels
             try
             {
                 renderSettings = RenderSettings.FromSettings(AppSettings.Current);
-                foreach (var zoneId in AppSettings.Current.TickedZones.Distinct().OrderBy(id => id, StringComparer.Ordinal))
+                foreach (var zoneId in zoneIds.Distinct().OrderBy(id => id, StringComparer.Ordinal))
                 {
                     if (DataWrapper.IsKnownZone(zoneId))
                     {

@@ -43,7 +43,7 @@
 
             <views:ZoneBrowserView Grid.Column="0" DataContext="{Binding ZoneBrowser}" />
             <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
-            <TextBlock Grid.Column="2" Classes="placeholder" Text="Map viewer" />
+            <views:MapViewerView Grid.Column="2" DataContext="{Binding MapViewer}" />
             <GridSplitter Grid.Column="3" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
             <views:OptionsView Grid.Column="4" DataContext="{Binding Options}" />
         </Grid>

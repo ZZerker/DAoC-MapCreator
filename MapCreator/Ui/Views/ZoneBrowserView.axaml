@@ -58,7 +58,7 @@
             </StackPanel>
         </Grid>
 
-        <ListBox Grid.Row="3" ItemsSource="{Binding ShownZones}">
+        <ListBox Grid.Row="3" ItemsSource="{Binding ShownZones}" SelectedItem="{Binding SelectedRow, Mode=TwoWay}">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:ZoneRowViewModel">
                     <Grid ColumnDefinitions="Auto,40,*">

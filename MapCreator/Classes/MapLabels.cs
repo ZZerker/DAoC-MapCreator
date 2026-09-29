@@ -29,6 +29,8 @@ namespace MapCreator.Classes
 
         public sealed record Label(string Kind, string Text, double X, double Y, int Priority, int Realm, string Edge);
 
+        private sealed record LabelFile(string Zone, List<Label> Labels);
+
         private sealed record ZoneArea(string Id, string Name, int Region, int Type, double Left, double Top, double Width, double Height);
 
         /// <summary>
@@ -41,6 +43,28 @@ namespace MapCreator.Classes
             var file = Path.Combine(mapFile.DirectoryName, Path.GetFileNameWithoutExtension(mapFile.Name) + ".labels.json");
             File.WriteAllText(file, JsonSerializer.Serialize(new { zone = zoneId, labels }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
             return labels;
+        }
+
+        /// <summary>
+        /// Reads the zNNN.labels.json next to the map; null when it is missing or unreadable, an empty list when it holds no labels
+        /// </summary>
+        public static List<Label> Read(FileInfo mapFile)
+        {
+            var file = Path.Combine(mapFile.DirectoryName, Path.GetFileNameWithoutExtension(mapFile.Name) + ".labels.json");
+            try
+            {
+                if (!File.Exists(file))
+                {
+                    return null;
+                }
+
+                var content = JsonSerializer.Deserialize<LabelFile>(File.ReadAllText(file), new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+                return content?.Labels?.Where(l => l != null).ToList();
+            }
+            catch (Exception ex) when (ex is JsonException || ex is IOException || ex is UnauthorizedAccessException)
+            {
+                return null;
+            }
         }
 
         public static List<Label> Get(string zoneId, bool keeps = true, MapFrame frame = null)
