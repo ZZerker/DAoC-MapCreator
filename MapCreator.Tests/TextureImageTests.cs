@@ -114,6 +114,62 @@ namespace MapCreator.Tests
             }
         }
 
+        private static MagickImage CreateImage(Func<int, int, byte[]> pixel)
+        {
+            var data = new byte[SIZE * SIZE * 4];
+            for (var y = 0; y < SIZE; y++)
+            {
+                for (var x = 0; x < SIZE; x++)
+                {
+                    pixel(x, y).CopyTo(data, (y * SIZE + x) * 4);
+                }
+            }
+
+            return new MagickImage(data, new PixelReadSettings((uint)SIZE, (uint)SIZE, StorageType.Char, PixelMapping.RGBA));
+        }
+
+        [Fact]
+        public void AntiTileFlattensTheLowFrequencyBrightness()
+        {
+            // One brightness wave per tile with a little noise: the blotch the flattening is meant to reduce
+            using var image = CreateImage((x, y) =>
+            {
+                var value = (byte)(128 + 90 * Math.Sin(2 * Math.PI * x / SIZE) + (x * 7 + y * 13) % 5);
+                return new byte[] { value, value, value, 255 };
+            });
+            var plain = new TextureImage(image);
+            var flat = new TextureImage(image, true);
+
+            // The anti-tile sample also mixes a shifted copy and adds variation; the wave must still lose clearly
+            Assert.True(BlockRange(flat) < BlockRange(plain) * 0.75, "The flattened texture keeps too much of the brightness wave");
+        }
+
+        private static double BlockRange(TextureImage texture)
+        {
+            double min = double.MaxValue;
+            double max = double.MinValue;
+            for (var by = 0; by < 4; by++)
+            {
+                for (var bx = 0; bx < 4; bx++)
+                {
+                    double sum = 0;
+                    for (var j = 0; j < 4; j++)
+                    {
+                        for (var i = 0; i < 4; i++)
+                        {
+                            texture.Sample((bx + (i + 0.5) / 4) / 4, (by + (j + 0.5) / 4) / 4, 0, out var r, out _, out _, out _);
+                            sum += r;
+                        }
+                    }
+
+                    min = Math.Min(min, sum / 16);
+                    max = Math.Max(max, sum / 16);
+                }
+            }
+
+            return max - min;
+        }
+
         [Fact]
         public void AntiTileKeepsTheTextureMean()
         {
@@ -137,7 +193,7 @@ namespace MapCreator.Tests
             for (var c = 0; c < 3; c++)
             {
                 var actual = sum[c] / (GRID * GRID);
-                Assert.True(Math.Abs(actual - expected[c]) <= expected[c] * 0.1, "Channel " + c + " mean " + actual + " is not within 10 percent of " + expected[c]);
+                Assert.True(Math.Abs(actual - expected[c]) <= expected[c] * 0.12, "Channel " + c + " mean " + actual + " is not within 12 percent of " + expected[c]);
             }
         }
     }

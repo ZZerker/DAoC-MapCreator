@@ -14,6 +14,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // A building is rarely more than 100 px wide on a map, larger textures only cost memory
         private const int MAX_TEXTURE_SIZE = 256;
 
+        // Ground grass covers big areas and shows its texels
+        private const int GRASS_MAX_TEXTURE_SIZE = 512;
+
         private static readonly ConcurrentDictionary<string, Lazy<TextureImage>> Textures = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
@@ -47,12 +50,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 using var image = new MagickImage(file);
                 image.Alpha(AlphaOption.Set);
-                if (image.Width > MAX_TEXTURE_SIZE || image.Height > MAX_TEXTURE_SIZE)
+                var isGrass = Path.GetFileNameWithoutExtension(file).Contains("grass", StringComparison.OrdinalIgnoreCase);
+                var maxSize = isGrass ? GRASS_MAX_TEXTURE_SIZE : MAX_TEXTURE_SIZE;
+                if (image.Width > maxSize || image.Height > maxSize)
                 {
-                    image.Resize(new MagickGeometry(MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE) { IgnoreAspectRatio = false });
+                    image.Resize(new MagickGeometry((uint)maxSize, (uint)maxSize) { IgnoreAspectRatio = false });
                 }
 
-                return new TextureImage(image, Path.GetFileNameWithoutExtension(file).Contains("grass", StringComparison.OrdinalIgnoreCase));
+                return new TextureImage(image, isGrass);
             }
             catch (Exception ex) when (ex is MagickException or IOException)
             {
@@ -83,6 +88,16 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // Blend weight noise: one lattice cell is about 2.7 texture repeats
         private const double NOISE_CELL = 2.7;
 
+        // Flatten: the wrapped box blur radius as a fraction of the texture size, and how much of the low-pass is removed
+        private const double GRASS_FLATTEN_RADIUS_FRACTION = 0.25;
+        private const double GRASS_FLATTEN_STRENGTH = 0.8;
+
+        // Large-scale variation: noise cell in texture repeats, brightness amplitude, red/blue shift relative to it, hash seed
+        private const double GRASS_VARIATION_SCALE = 9.3;
+        private const double GRASS_VARIATION = 0.12;
+        private const double GRASS_HUE_SHIFT = 0.5;
+        private const int GRASS_VARIATION_SEED = 7;
+
         private readonly double[] mean;
 
         public bool AntiTile { get; }
@@ -101,7 +116,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             this.heights = new int[count];
             this.levels = new byte[count][];
 
-            using var level = (MagickImage)image.Clone();
+            // Grass is flattened before the mips are built, so every level and the mean are of the flattened texture
+            using var level = antiTile ? Flatten(image) : (MagickImage)image.Clone();
             for (var i = 0; i < count; i++)
             {
                 if (i > 0)
@@ -155,10 +171,91 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             r = Math.Clamp(this.mean[0] + (r * w + r2 * (1 - w) - this.mean[0]) * scale, 0, 255);
             g = Math.Clamp(this.mean[1] + (g * w + g2 * (1 - w) - this.mean[1]) * scale, 0, 255);
             b = Math.Clamp(this.mean[2] + (b * w + b2 * (1 - w) - this.mean[2]) * scale, 0, 255);
+
+            // Slow brightness change over the lawn, warmer where brighter
+            var variation = GRASS_VARIATION * (2 * Noise(u / GRASS_VARIATION_SCALE, v / GRASS_VARIATION_SCALE, GRASS_VARIATION_SEED) - 1);
+            r = Math.Clamp(r * (1 + variation) * (1 + GRASS_HUE_SHIFT * variation), 0, 255);
+            g = Math.Clamp(g * (1 + variation), 0, 255);
+            b = Math.Clamp(b * (1 + variation) * (1 - GRASS_HUE_SHIFT * variation), 0, 255);
+        }
+
+        // Grass texture with the wrapped low-pass mostly removed, so one tile has no dark or bright blotch
+        private static MagickImage Flatten(MagickImage image)
+        {
+            var width = (int)image.Width;
+            var height = (int)image.Height;
+            byte[] data;
+            using (var pixels = image.GetPixels())
+            {
+                data = pixels.ToByteArray(PixelMapping.RGBA);
+            }
+
+            var radius = Math.Max(1, (int)(Math.Min(width, height) * GRASS_FLATTEN_RADIUS_FRACTION));
+            var tmp = new double[width * height * 3];
+            var low = new double[width * height * 3];
+            var window = 2 * radius + 1;
+            var mean = new double[3];
+
+            for (var c = 0; c < 3; c++)
+            {
+                for (var y = 0; y < height; y++)
+                {
+                    double sum = 0;
+                    for (var k = -radius; k <= radius; k++)
+                    {
+                        sum += data[Index(k, y, width, height) + c];
+                    }
+
+                    for (var x = 0; x < width; x++)
+                    {
+                        tmp[(y * width + x) * 3 + c] = sum / window;
+                        sum += data[Index(x + radius + 1, y, width, height) + c] - data[Index(x - radius, y, width, height) + c];
+                    }
+                }
+
+                for (var x = 0; x < width; x++)
+                {
+                    double sum = 0;
+                    for (var k = -radius; k <= radius; k++)
+                    {
+                        sum += tmp[(WrapIndex(k, height) * width + x) * 3 + c];
+                    }
+
+                    for (var y = 0; y < height; y++)
+                    {
+                        low[(y * width + x) * 3 + c] = sum / window;
+                        sum += tmp[(WrapIndex(y + radius + 1, height) * width + x) * 3 + c] - tmp[(WrapIndex(y - radius, height) * width + x) * 3 + c];
+                    }
+                }
+
+                for (var i = 0; i < width * height; i++)
+                {
+                    mean[c] += data[i * 4 + c];
+                }
+
+                mean[c] /= width * height;
+            }
+
+            for (var i = 0; i < width * height; i++)
+            {
+                for (var c = 0; c < 3; c++)
+                {
+                    var flat = data[i * 4 + c] - low[i * 3 + c] * GRASS_FLATTEN_STRENGTH + mean[c] * GRASS_FLATTEN_STRENGTH;
+                    data[i * 4 + c] = (byte)Math.Clamp(Math.Round(flat), 0, 255);
+                }
+            }
+
+            return new MagickImage(data, new PixelReadSettings((uint)width, (uint)height, StorageType.Char, PixelMapping.RGBA));
+        }
+
+        private static int WrapIndex(int i, int size)
+        {
+            i %= size;
+            return i < 0 ? i + size : i;
         }
 
         // Smooth value noise in 0..1 from a hashed integer lattice
-        private static double Noise(double x, double y)
+        private static double Noise(double x, double y, int seed = 0)
         {
             var x0 = Math.Floor(x);
             var y0 = Math.Floor(y);
@@ -169,16 +266,16 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var ix = (int)x0;
             var iy = (int)y0;
 
-            var top = Hash(ix, iy) + (Hash(ix + 1, iy) - Hash(ix, iy)) * fx;
-            var bottom = Hash(ix, iy + 1) + (Hash(ix + 1, iy + 1) - Hash(ix, iy + 1)) * fx;
+            var top = Hash(ix, iy, seed) + (Hash(ix + 1, iy, seed) - Hash(ix, iy, seed)) * fx;
+            var bottom = Hash(ix, iy + 1, seed) + (Hash(ix + 1, iy + 1, seed) - Hash(ix, iy + 1, seed)) * fx;
             return top + (bottom - top) * fy;
         }
 
-        private static double Hash(int x, int y)
+        private static double Hash(int x, int y, int seed)
         {
             unchecked
             {
-                var h = (uint)x * 374761393u + (uint)y * 668265263u;
+                var h = (uint)x * 374761393u + (uint)y * 668265263u + (uint)seed * 2246822519u;
                 h = (h ^ (h >> 13)) * 1274126177u;
                 h ^= h >> 16;
                 return h / 4294967296.0;
