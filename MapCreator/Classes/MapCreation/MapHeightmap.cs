@@ -34,6 +34,8 @@ namespace MapCreator.Classes.MapCreation
 
         private MagickImage heightmap = null;
 
+        internal static string CacheDirectory { get; } = Path.Combine(AppContext.BaseDirectory, "data", "heightmaps");
+
         internal MagickImage Heightmap => this.heightmap;
 
         private MagickImage heightmapScaled = null;
@@ -46,7 +48,7 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration.Reporter.Log("Preloading zone heightmap ...", LogLevel.Notice);
             this.terrainfactor = Convert.ToInt32(zoneConfiguration.SectorDat.Get("terrain", "scalefactor"));
             this.offsetfactor = Convert.ToInt32(zoneConfiguration.SectorDat.Get("terrain", "offsetfactor"));
-            this.heightmapFile = new FileInfo(Path.Combine(AppContext.BaseDirectory, "data", "heightmaps", string.Format("zone{0}_heightmap.png", zoneConfiguration.ZoneId)));
+            this.heightmapFile = new FileInfo(Path.Combine(CacheDirectory, string.Format("zone{0}_heightmap.png", zoneConfiguration.ZoneId)));
 
             if (!System.IO.Directory.Exists(this.heightmapFile.DirectoryName))
             {

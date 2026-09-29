@@ -9,6 +9,9 @@ namespace MapCreator.Ui.ViewModels
         [ObservableProperty]
         private string outputFolder;
 
+        [ObservableProperty]
+        private string gamePath;
+
         public MainWindowViewModel()
         {
             // Warnings outside a render (settings, zone list) go to the activity log as well
@@ -17,16 +20,15 @@ namespace MapCreator.Ui.ViewModels
 
             var settings = AppSettings.Current;
             var renderSettings = RenderSettings.FromSettings(settings);
-            this.GamePath = string.IsNullOrEmpty(settings.GamePath) ? "not set" : settings.GamePath;
+            this.ShowGamePath(settings.GamePath);
             this.OutputFolder = renderSettings.TargetPath;
             this.ZoneBrowser = new ZoneBrowserViewModel(settings, renderSettings);
             this.Options = new OptionsViewModel(settings);
             this.Options.OutputChanged += this.OnOutputChanged;
             this.Render = new RenderViewModel(reporter, this.ZoneBrowser, this.Options);
             this.MapViewer = new MapViewerViewModel(this.ZoneBrowser, this.Render);
+            this.Settings = new SettingsViewModel(settings, this.Options, this.ZoneBrowser, this.ShowGamePath);
         }
-
-        public string GamePath { get; }
 
         public ZoneBrowserViewModel ZoneBrowser { get; }
 
@@ -35,6 +37,13 @@ namespace MapCreator.Ui.ViewModels
         public RenderViewModel Render { get; }
 
         public MapViewerViewModel MapViewer { get; }
+
+        public SettingsViewModel Settings { get; }
+
+        private void ShowGamePath(string path)
+        {
+            this.GamePath = string.IsNullOrEmpty(path) ? "not set" : path;
+        }
 
         private void OnOutputChanged()
         {

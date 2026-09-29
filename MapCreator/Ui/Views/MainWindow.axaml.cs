@@ -39,6 +39,12 @@ namespace MapCreator.Ui.Views
                 this.viewModel.Render.PropertyChanged += this.OnRenderChanged;
                 this.viewModel.Render.ActiveZones.CollectionChanged += this.OnActiveZonesChanged;
                 this.UpdateActivityRow();
+
+                // The flyout content lives in a popup and may not inherit the window's data context
+                if (this.SettingsButton.Flyout is Flyout { Content: Control content })
+                {
+                    content.DataContext = this.viewModel.Settings;
+                }
             }
         }
 

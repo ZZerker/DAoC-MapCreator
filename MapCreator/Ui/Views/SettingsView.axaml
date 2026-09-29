@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MapCreator.Ui.ViewModels"
+             x:Class="MapCreator.Ui.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.status">
+            <Setter Property="Foreground" Value="#F06262" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
+        <Style Selector="TextBlock.status.ok">
+            <Setter Property="Foreground" Value="#5CC46E" />
+        </Style>
+    </UserControl.Styles>
+
+    <StackPanel>
+        <StackPanel IsEnabled="{Binding CanEdit}">
+            <TextBlock Classes="heading" Text="Game folder" Margin="0,0,0,2" />
+            <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,2,0,2">
+                <TextBox Grid.Column="0" Text="{Binding GamePathText}" PlaceholderText="Folder with camelot.exe" />
+                <Button Grid.Column="1" Content="Browse" Margin="6,0,0,0" Click="OnBrowseGameClick" />
+                <Button Grid.Column="2" Content="Auto-detect" Command="{Binding AutoDetectCommand}" Margin="6,0,0,0" />
+            </Grid>
+            <TextBlock Classes="status" Classes.ok="{Binding IsGameFound}" Text="{Binding GameStatus}" />
+            <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap" Text="{Binding GameNote}"
+                       IsVisible="{Binding GameNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+            <TextBlock Classes="heading" Text="Output folder" Margin="0,12,0,2" />
+            <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+                <TextBox Grid.Column="0" Text="{Binding TargetPath}" PlaceholderText="Program folder" />
+                <Button Grid.Column="1" Content="Browse" Margin="6,0,0,0" Click="OnBrowseOutputClick" />
+            </Grid>
+
+            <TextBlock Classes="heading" Text="Caches" Margin="0,12,0,2" />
+            <StackPanel Margin="0,2,0,0">
+                <Button Content="Clear model cache" Command="{Binding AskClearModelCacheCommand}" IsVisible="{Binding !IsConfirmingModelCache}" />
+                <StackPanel IsVisible="{Binding IsConfirmingModelCache}">
+                    <TextBlock TextWrapping="Wrap" Text="Delete the model cache? It is re-created on the next render, which is slow." />
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <Button Content="Yes" Command="{Binding ConfirmClearModelCacheCommand}" />
+                        <Button Content="No" Command="{Binding CancelClearModelCacheCommand}" />
+                    </StackPanel>
+                </StackPanel>
+                <Button Content="Clear heightmaps" Command="{Binding AskClearHeightmapsCommand}" IsVisible="{Binding !IsConfirmingHeightmaps}" Margin="0,6,0,0" />
+                <StackPanel IsVisible="{Binding IsConfirmingHeightmaps}" Margin="0,6,0,0">
+                    <TextBlock TextWrapping="Wrap" Text="Delete the heightmaps? They are re-created on the next render." />
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                        <Button Content="Yes" Command="{Binding ConfirmClearHeightmapsCommand}" />
+                        <Button Content="No" Command="{Binding CancelClearHeightmapsCommand}" />
+                    </StackPanel>
+                </StackPanel>
+                <TextBlock Classes="muted" FontSize="11" Margin="0,4,0,0" Text="{Binding CacheResult}"
+                           IsVisible="{Binding CacheResult, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+        </StackPanel>
+
+        <TextBlock Classes="heading" Text="About" Margin="0,12,0,2" />
+        <TextBlock Text="{Binding Version}" />
+        <TextBlock Classes="muted" Text="{Binding Copyright}" />
+        <TextBlock Classes="muted" Text="Fork of Merec's MapCreator, GPL v2 or later" Margin="0,0,0,6" />
+        <TextBlock Classes="muted" FontSize="11" Text="Niflib (GPL v2)" />
+        <TextBlock Classes="muted" FontSize="11" Text="IBM Plex Sans in the TokaZerk UI font (SIL OFL 1.1)" />
+        <TextBlock Classes="muted" FontSize="11" Text="Magick.NET (Apache 2.0)" />
+        <TextBlock Classes="muted" FontSize="11" Text="Avalonia (MIT)" />
+        <TextBlock Classes="muted" FontSize="11" Text="CommunityToolkit.Mvvm (MIT)" />
+        <TextBlock Classes="muted" FontSize="11" Text="Spectre.Console (MIT)" />
+    </StackPanel>
+</UserControl>

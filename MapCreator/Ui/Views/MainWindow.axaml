@@ -28,7 +28,13 @@
                 <TextBlock Grid.Column="2" Classes="muted" Text="Output" VerticalAlignment="Center" Margin="0,0,8,0" />
                 <TextBlock Grid.Column="3" Text="{Binding OutputFolder}" ToolTip.Tip="{Binding OutputFolder}"
                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,24,0" />
-                <Button Grid.Column="4" Content="Settings" IsEnabled="False" />
+                <Button Grid.Column="4" x:Name="SettingsButton" Content="Settings">
+                    <Button.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedRight">
+                            <views:SettingsView Width="420" />
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
             </Grid>
         </Border>
 
