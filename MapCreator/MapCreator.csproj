@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
-    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>MapCreator</RootNamespace>
     <AssemblyName>MapCreatorNext</AssemblyName>
     <StartupObject>MapCreator.Program</StartupObject>
@@ -16,9 +15,6 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
-    <ApplicationDefaultFont>Microsoft Sans Serif, 8.25pt</ApplicationDefaultFont>
-    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
     <MagickCopyNativeWindows>true</MagickCopyNativeWindows>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
@@ -43,19 +39,11 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Magick.NET-Q16-x64" Version="14.17.1" />
     <PackageReference Include="Spectre.Console" Version="0.57.2" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.12" />
   </ItemGroup>
 
   <ItemGroup>
     <AvaloniaResource Include="icon.ico" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="MWCommon">
-      <HintPath>..\libs\MWCommon.dll</HintPath>
-    </Reference>
-    <Reference Include="MWControls">
-      <HintPath>..\libs\MWControls.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -65,24 +53,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <Compile Update="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
-    </Compile>
     <None Update="data\*.xsd">
       <Generator>MSDataSetGenerator</Generator>
       <LastGenOutput>%(Filename).Designer.cs</LastGenOutput>
