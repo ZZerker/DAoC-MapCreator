@@ -128,10 +128,15 @@ Unknown names are logged as a warning and skipped.
 ### Please note
 - Rendering is CPU and memory heavy, depending on the map size and the number of parallel zones.
 - Use map sizes that are a power of 2: 512, 1024, 2048, 4096. The terrain textures have a native resolution of 4096 pixels.
-- The first render converts the models and fills the cache (`data\polys8.mpk`); later renders are faster. "Clear fixture polygon cache" in the Tools menu deletes it.
+- The first render converts the models and fills the cache (`data\polys8`, one file per model); later renders are faster. "Clear fixture polygon cache" in the Tools menu deletes it.
 
 ## Changelog
-**Unreleased**
+**2.2.0** (2026-09-29)
+- Map labels drawn by MapCreator in the TokaZerk UI font (`--labels <dir> [--label-size N]`, `--labels-only` relabels existing renders): keeps, towers (GT, WT, OP, SP), neighbor zones, towns, channelers, dungeon entrances, bosses, ToA artifact encounters, and trainers and services in the capitals. Cities and dungeons are labeled in their frame. The point data files are not part of the release yet
+- Battleground keeps and towers
+- Walls built as bare vertical sheets (Avalon Isle's city wall) show their top edge
+- Billboard trees that lose their leaves when seen from above are filled with their color
+- Much faster model cache: one file per model, loaded outside the global lock (a full run went from 3.5 hours to 23 minutes)
 - Trees are drawn with their textures instead of one average color
 - Live console view for batch runs; the log is written directly and every line carries its zone id
 - Errors are no longer swallowed: a model that cannot be drawn is logged with the reason, and the zone ends "Finished with N errors"
@@ -143,8 +148,8 @@ Unknown names are logged as a warning and skipped.
 - Tree clusters and trees only `fixtures.xml` knows get their tree color; a warning is logged when a model falls back to its category color
 - Passage of Conflict entrances labeled on the Irish Sea maps
 - Less memory: models and textures only one zone uses are released after it, image leaks closed. The model cache is saved safely, so an interrupted save no longer breaks it
-- Fixes: overlapping lakes no longer fade each other (bog of zone 269), no bright circles around Mag Mell (Eden's Lough Derg copies), models with their own ground no longer show it as a square (wreck in zone 077), dungeon water only over its basin (zone 332), room maps win over the dark slot gradient, a `fixtures.xml` entry without category no longer stops every render, the bounds color field works
-- The model cache moves to `polys8.mpk` and is rebuilt on the first render
+- Fixes: seams between tiled ground models, the Agramon arena mountaintop, water proxies nested below their node (Galladoria), models missing in the client are skipped, battleground portal keep positions, overlapping lakes no longer fade each other (bog of zone 269), no bright circles around Mag Mell (Eden's Lough Derg copies), models with their own ground no longer show it as a square (wreck in zone 077), dungeon water only over its basin (zone 332), room maps win over the dark slot gradient, a `fixtures.xml` entry without category no longer stops every render, the bounds color field works
+- The model cache moves to the `data\polys8` folder; an existing `polys8.mpk` is split into it once
 
 **2.1.0** (2026-09-26)
 - Baked lighting (dark maps) on buildings and city floors
