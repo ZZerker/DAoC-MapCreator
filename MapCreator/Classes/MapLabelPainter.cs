@@ -59,6 +59,7 @@ namespace MapCreator.Classes
         private static readonly Dictionary<string, (bool Bold, double Points)> Styles = new()
         {
             { "keep", (true, 11) },
+            { "tower", (true, 9) },
             { "place", (true, 10) },
             { "town", (true, 10) },
             { "neighbor", (true, 11) },
@@ -73,7 +74,7 @@ namespace MapCreator.Classes
         };
 
         // Drawing order: what matters most claims its place first
-        private static readonly string[] Order = { "neighbor", "keep", "town", "portal", "porter", "entrance", "boss", "artifact", "place", "stable", "trainer", "dock" };
+        private static readonly string[] Order = { "neighbor", "keep", "town", "portal", "porter", "entrance", "tower", "boss", "artifact", "place", "stable", "trainer", "dock" };
 
         private sealed record Box(double Left, double Top, double Right, double Bottom)
         {
@@ -114,7 +115,7 @@ namespace MapCreator.Classes
             var margin = Math.Max(4, size / 96);
             var legend = PlaceLegend(map, labels, scale, margin);
             var boxes = legend.Box == null ? new List<Box>() : new List<Box> { legend.Box };
-            var shown = labels.Where(l => l.Priority <= maxPriority && l.Kind != "tower")
+            var shown = labels.Where(l => l.Priority <= maxPriority)
                               .OrderBy(l => l.Priority).ThenBy(l => Array.IndexOf(Order, l.Kind) is var i && i >= 0 ? i : Order.Length).ToList();
 
             // Marks first, so no text covers a dot or icon; a mark stays even when its text finds no room
@@ -153,7 +154,7 @@ namespace MapCreator.Classes
                 var height = metrics.Ascent - metrics.Descent;
                 var color = label.Kind switch
                 {
-                    "keep" => RealmText.TryGetValue(label.Realm, out var realm) ? realm : Text,
+                    "keep" or "tower" => RealmText.TryGetValue(label.Realm, out var realm) ? realm : Text,
                     "neighbor" => NeighborText,
                     "boss" => BossText,
                     "artifact" => ArtifactText,
@@ -168,7 +169,7 @@ namespace MapCreator.Classes
                 }
 
                 // Keeps are labeled clear of their walls, other points right next to their mark
-                var gap = scale * (label.Kind == "keep" ? 14 : label.Kind == "trainer" ? 0 : 6);
+                var gap = scale * (label.Kind == "keep" ? 14 : label.Kind == "tower" ? 8 : label.Kind == "trainer" ? 0 : 6);
                 var candidates = label.Kind == "trainer"
                                      ? new[] { (x - width / 2, y - height / 2) }
                                      : new[] { (x - width / 2, y + gap), (x - width / 2, y - gap - height), (x + gap, y - height / 2), (x - gap - width, y - height / 2) };

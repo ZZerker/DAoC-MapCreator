@@ -20,6 +20,8 @@ namespace MapCreator.Classes
 
         private static readonly string[] TowerWords = { "tower", "outpost", "spire" };
 
+        private static readonly (string Word, string Short)[] TowerShortNames = { ("Guardtower", "GT"), ("Guard Tower", "GT"), ("Watchtower", "WT"), ("Watch Tower", "WT"), ("Outpost", "OP"), ("Spire", "SP") };
+
         // Old frontier zones only get their neighbors: their client points (keep teleports named DFEntrance) are unreliable
         private static readonly HashSet<string> OldFrontiers = new() { "011", "012", "014", "015", "111", "112", "113", "115", "210", "211", "212", "214" };
 
@@ -136,8 +138,20 @@ namespace MapCreator.Classes
                     continue;
                 }
                 var isTower = TowerWords.Any(w => name.Contains(w, StringComparison.OrdinalIgnoreCase));
-                yield return new Label(isTower ? "tower" : "keep", name, x / zone.Width, y / zone.Height, isTower ? 3 : 1, int.Parse(fields[3]), null);
+                yield return new Label(isTower ? "tower" : "keep", isTower ? ShortTowerName(name) : name, x / zone.Width, y / zone.Height, isTower ? 2 : 1, int.Parse(fields[3]), null);
             }
+        }
+
+        private static string ShortTowerName(string name)
+        {
+            foreach (var (word, abbreviation) in TowerShortNames)
+            {
+                if (name.EndsWith(" " + word, StringComparison.OrdinalIgnoreCase))
+                {
+                    return name[..^word.Length] + abbreviation;
+                }
+            }
+            return name;
         }
 
         private static IEnumerable<Label> GetPoints(ZoneArea zone, MapFrame frame)
