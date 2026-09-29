@@ -52,7 +52,7 @@
                       Background="{DynamicResource AppBorderBrush}" IsVisible="{Binding Render.IsActivityExpanded}" />
 
         <Border Grid.Row="3" ClipToBounds="True" IsVisible="{Binding Render.IsActivityExpanded}">
-            <views:RenderView Margin="12,8" DataContext="{Binding Render}" />
+            <views:RenderView x:Name="ActivityView" Margin="12,8" DataContext="{Binding Render}" />
         </Border>
 
         <Border Grid.Row="4" Padding="12,8" DataContext="{Binding Render}"

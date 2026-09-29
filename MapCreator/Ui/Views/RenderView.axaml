@@ -18,8 +18,8 @@
             <ColumnDefinition Width="*" MinWidth="200" />
         </Grid.ColumnDefinitions>
 
-        <ScrollViewer Grid.Column="0" Margin="0,0,8,0">
-            <StackPanel>
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="0,0,8,0">
+            <StackPanel Grid.Row="0" x:Name="RunningPanel">
                 <TextBlock Classes="heading" Text="Rendering" />
                 <ItemsControl ItemsSource="{Binding ActiveZones}">
                     <ItemsControl.ItemTemplate>
@@ -37,7 +37,9 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Classes="heading" Text="Finished" />
+            </StackPanel>
+            <TextBlock Grid.Row="1" x:Name="FinishedHeading" Classes="heading" Text="Finished" />
+            <ScrollViewer Grid.Row="2">
                 <ItemsControl ItemsSource="{Binding FinishedZones}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:FinishedZoneViewModel">
@@ -50,8 +52,8 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </StackPanel>
-        </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
 
         <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
 
