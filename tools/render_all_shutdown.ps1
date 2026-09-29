@@ -11,13 +11,13 @@ param(
 )
 
 $root = Split-Path $PSScriptRoot -Parent
-$exe = Join-Path $root 'Releases\MapCreator.exe'
+$exe = Join-Path $root 'Releases\MapCreatorNext.exe'
 $output = Join-Path $root 'Output'
 $transcript = Join-Path $output "$Dir`_run.log"
 Start-Transcript -Path $transcript -Force | Out-Null
 
 try {
-    if (Get-Process MapCreator -ErrorAction SilentlyContinue) {
+    if (Get-Process MapCreator, MapCreatorNext -ErrorAction SilentlyContinue) {
         throw 'MapCreator is running and locks Releases. Close it first.'
     }
 

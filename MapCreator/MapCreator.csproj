@@ -5,7 +5,7 @@
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>MapCreator</RootNamespace>
-    <AssemblyName>MapCreator</AssemblyName>
+    <AssemblyName>MapCreatorNext</AssemblyName>
     <StartupObject>MapCreator.Program</StartupObject>
     <ApplicationIcon>icon.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
@@ -20,6 +20,7 @@
     <ApplicationDefaultFont>Microsoft Sans Serif, 8.25pt</ApplicationDefaultFont>
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
     <MagickCopyNativeWindows>true</MagickCopyNativeWindows>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -36,8 +37,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Magick.NET-Q16-x64" Version="14.17.1" />
     <PackageReference Include="Spectre.Console" Version="0.57.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="icon.ico" />
   </ItemGroup>
 
   <ItemGroup>

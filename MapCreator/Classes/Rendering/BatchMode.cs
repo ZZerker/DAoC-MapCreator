@@ -7,7 +7,7 @@ using System.Linq;
 namespace MapCreator.Classes.Rendering
 {
     /// <summary>
-    /// Renders without the window: MapCreator.exe --render 163,164|nf+outdoor|all [--size 2048] [--dir name] [--log render.log] [--parallel 4]
+    /// Renders without the window: MapCreatorNext.exe --render 163,164|nf+outdoor|all [--size 2048] [--dir name] [--log render.log] [--parallel 4]
     /// [--labels dir] [--label-size 1024] [--labels-only] [--no-keeps] [--no-depth-water] [--no-console].
     /// Other options come from the settings the window saved; nothing is saved back.
     /// A console window shows the progress unless --no-console is given.

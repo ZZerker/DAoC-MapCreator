@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Windows.Forms;
+using Avalonia;
 
 namespace MapCreator
 {
@@ -14,8 +14,6 @@ namespace MapCreator
             System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = culture;
             System.Globalization.CultureInfo.CurrentCulture = culture;
             System.Globalization.CultureInfo.CurrentUICulture = culture;
-
-            ApplicationConfiguration.Initialize();
 
             var settings = Classes.AppSettings.Current;
             if (!Classes.GameFolderLocator.IsGameFolder(settings.GamePath))
@@ -35,7 +33,13 @@ namespace MapCreator
                 return;
             }
 
-            Application.Run(new MainForm());
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        }
+
+        // Also used by the XAML previewer
+        public static AppBuilder BuildAvaloniaApp()
+        {
+            return AppBuilder.Configure<Ui.App>().UsePlatformDetect().LogToTrace();
         }
     }
 }

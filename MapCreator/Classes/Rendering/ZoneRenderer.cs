@@ -15,7 +15,7 @@ namespace MapCreator.Classes.Rendering
         {
             reporter.Log(string.Format("Start creating map for zone {0} ...", zone.Id), LogLevel.Notice);
 
-            var mapFile = this.GetTargetFile(zone);
+            var mapFile = GetTargetFile(settings, zone);
             if (!Directory.Exists(mapFile.DirectoryName))
             {
                 Directory.CreateDirectory(mapFile.DirectoryName);
@@ -154,19 +154,22 @@ namespace MapCreator.Classes.Rendering
             return fixtures;
         }
 
-        private FileInfo GetTargetFile(ZoneSelection zone)
+        /// <summary>
+        /// The image file a render of the zone writes
+        /// </summary>
+        internal static FileInfo GetTargetFile(RenderSettings renderSettings, ZoneSelection zone)
         {
-            var directory = string.IsNullOrEmpty(settings.DirectoryPattern) ? "maps" : settings.DirectoryPattern;
-            directory = Tools.MakeValidDirectoryName(this.ReplacePlaceholders(directory, zone));
+            var directory = string.IsNullOrEmpty(renderSettings.DirectoryPattern) ? "maps" : renderSettings.DirectoryPattern;
+            directory = Tools.MakeValidDirectoryName(ReplacePlaceholders(renderSettings, directory, zone));
 
-            var fileName = string.IsNullOrEmpty(settings.FilePattern) ? "zone{id}_{size}" : settings.FilePattern;
-            fileName = Tools.MakeValidFileName(this.ReplacePlaceholders(fileName, zone));
+            var fileName = string.IsNullOrEmpty(renderSettings.FilePattern) ? "zone{id}_{size}" : renderSettings.FilePattern;
+            fileName = Tools.MakeValidFileName(ReplacePlaceholders(renderSettings, fileName, zone));
 
-            var extension = settings.FileType == "PNG" ? "png" : "jpg";
-            return new FileInfo(string.Format("{0}\\{1}\\{2}.{3}", settings.TargetPath, directory, fileName, extension));
+            var extension = renderSettings.FileType == "PNG" ? "png" : "jpg";
+            return new FileInfo(string.Format("{0}\\{1}\\{2}.{3}", renderSettings.TargetPath, directory, fileName, extension));
         }
 
-        private string ReplacePlaceholders(string pattern, ZoneSelection zone)
+        private static string ReplacePlaceholders(RenderSettings renderSettings, string pattern, ZoneSelection zone)
         {
             return pattern
                 .Replace("{id}", zone.Id)
@@ -174,7 +177,7 @@ namespace MapCreator.Classes.Rendering
                 .Replace("{realm}", zone.Realm)
                 .Replace("{expansion}", zone.Expansion)
                 .Replace("{type}", zone.Type)
-                .Replace("{size}", settings.MapSize.ToString());
+                .Replace("{size}", renderSettings.MapSize.ToString());
         }
     }
 }

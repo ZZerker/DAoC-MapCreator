@@ -1,0 +1,57 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MapCreator.Ui.ViewModels"
+        xmlns:views="using:MapCreator.Ui.Views"
+        x:Class="MapCreator.Ui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/icon.ico"
+        Title="MapCreator"
+        Width="1400" Height="900"
+        MinWidth="900" MinHeight="600">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <Border Grid.Row="0" Padding="12,8"
+                Background="{DynamicResource AppPanelBackground}"
+                BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,*,Auto,*,Auto">
+                <TextBlock Grid.Column="0" Classes="muted" Text="Game" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBlock Grid.Column="1" Text="{Binding GamePath}" ToolTip.Tip="{Binding GamePath}"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,24,0" />
+                <TextBlock Grid.Column="2" Classes="muted" Text="Output" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBlock Grid.Column="3" Text="{Binding OutputFolder}" ToolTip.Tip="{Binding OutputFolder}"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,24,0" />
+                <Button Grid.Column="4" Content="Settings" IsEnabled="False" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400" MinWidth="280" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="*" MinWidth="200" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="300" MinWidth="200" />
+            </Grid.ColumnDefinitions>
+
+            <views:ZoneBrowserView Grid.Column="0" DataContext="{Binding ZoneBrowser}" />
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
+            <TextBlock Grid.Column="2" Classes="placeholder" Text="Map viewer" />
+            <GridSplitter Grid.Column="3" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
+            <TextBlock Grid.Column="4" Classes="placeholder" Text="Render options" />
+        </Grid>
+
+        <Border Grid.Row="2" Padding="12,8"
+                Background="{DynamicResource AppPanelBackground}"
+                BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">
+            <StackPanel>
+                <Grid ColumnDefinitions="Auto,*">
+                    <Button Grid.Column="0" Content="{Binding ZoneBrowser.RenderLabel}" IsEnabled="False" />
+                    <TextBlock Grid.Column="1" Classes="muted" Text="Render progress" VerticalAlignment="Center" Margin="16,0,0,0" />
+                </Grid>
+                <Expander Header="Activity" Margin="0,8,0,0" HorizontalAlignment="Stretch">
+                    <TextBlock Classes="muted" Text="Render log" />
+                </Expander>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

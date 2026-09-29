@@ -14,14 +14,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$exe = Join-Path $root 'Releases\MapCreator.exe'
+$exe = Join-Path $root 'Releases\MapCreatorNext.exe'
 
-# Every exe location (Release, Visual Studio debug) gets its own user.config
-$targetMapPath = Get-ChildItem "$env:LOCALAPPDATA\MapCreator" -Recurse -Filter user.config |
-    Sort-Object LastWriteTime -Descending |
-    ForEach-Object { ([xml](Get-Content $_.FullName -Raw)).SelectSingleNode("//setting[@name='targetMapPath']/value").InnerText } |
-    Where-Object { $_ } |
-    Select-Object -First 1
+# The settings file the exe reads
+$settingsFile = Join-Path $env:LOCALAPPDATA 'MapCreator\settings.json'
+$targetMapPath = $null
+if (Test-Path $settingsFile) {
+    $targetMapPath = (Get-Content $settingsFile -Raw | ConvertFrom-Json).targetPath
+}
 if (-not $targetMapPath) {
     $targetMapPath = Split-Path $exe -Parent
 }

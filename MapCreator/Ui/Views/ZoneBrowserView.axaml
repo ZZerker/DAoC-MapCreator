@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MapCreator.Ui.ViewModels"
+             x:Class="MapCreator.Ui.Views.ZoneBrowserView"
+             x:DataType="vm:ZoneBrowserViewModel">
+
+    <UserControl.Resources>
+        <DataTemplate x:Key="GroupTemplate" x:DataType="vm:ZoneGroupViewModel">
+            <CheckBox Content="{Binding Label}"
+                      IsChecked="{Binding State, Mode=OneWay}"
+                      Command="{Binding ToggleCommand}"
+                      Margin="0,0,12,0" />
+        </DataTemplate>
+        <ItemsPanelTemplate x:Key="WrapPanelTemplate">
+            <WrapPanel />
+        </ItemsPanelTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="ListBox ListBoxItem">
+            <Setter Property="Padding" Value="6,3" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="8">
+        <Expander Grid.Row="0" Header="Groups" IsExpanded="True" HorizontalAlignment="Stretch">
+            <ScrollViewer MaxHeight="280">
+                <StackPanel>
+                    <CheckBox Content="{Binding AllGroup.Label}"
+                              IsChecked="{Binding AllGroup.State, Mode=OneWay}"
+                              Command="{Binding AllGroup.ToggleCommand}" />
+                    <TextBlock Classes="heading" Text="Realm" />
+                    <ItemsControl ItemsSource="{Binding RealmGroups}"
+                                  ItemTemplate="{StaticResource GroupTemplate}"
+                                  ItemsPanel="{StaticResource WrapPanelTemplate}" />
+                    <TextBlock Classes="heading" Text="Expansion" />
+                    <ItemsControl ItemsSource="{Binding ExpansionGroups}"
+                                  ItemTemplate="{StaticResource GroupTemplate}"
+                                  ItemsPanel="{StaticResource WrapPanelTemplate}" />
+                    <TextBlock Classes="heading" Text="Type" />
+                    <ItemsControl ItemsSource="{Binding TypeGroups}"
+                                  ItemTemplate="{StaticResource GroupTemplate}"
+                                  ItemsPanel="{StaticResource WrapPanelTemplate}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Expander>
+
+        <TextBox Grid.Row="1" Margin="0,8,0,0"
+                 PlaceholderText="Name, id or terms like nf+outdoor"
+                 Text="{Binding SearchText}" />
+
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*" Margin="0,8">
+            <Button Grid.Column="0" Content="Tick shown" Command="{Binding TickShownCommand}" />
+            <Button Grid.Column="1" Content="Untick shown" Command="{Binding UntickShownCommand}" Margin="8,0,0,0" />
+            <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock Classes="muted" Text="{Binding ShownSummary}" HorizontalAlignment="Right" />
+                <TextBlock Classes="muted" Text="group terms" HorizontalAlignment="Right" IsVisible="{Binding IsGroupSearch}" />
+            </StackPanel>
+        </Grid>
+
+        <ListBox Grid.Row="3" ItemsSource="{Binding ShownZones}">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ZoneRowViewModel">
+                    <Grid ColumnDefinitions="Auto,40,*">
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsTicked}" MinWidth="0" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding Id}" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0" Classes="muted" FontSize="11" Text="{Binding Details}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Classes="muted" FontSize="11" Text="{Binding Status}" Margin="8,0,0,0" />
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>
