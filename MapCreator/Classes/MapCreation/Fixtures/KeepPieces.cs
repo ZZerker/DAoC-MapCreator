@@ -149,7 +149,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // Archive entries differ in case (mainKeep_lvl4.NIF)
         private static string GetNifName(string model)
         {
-            var archive = Path.Combine(Properties.Settings.Default.game_path, "frontiers", "NIFS", model + ".npk");
+            var archive = Path.Combine(AppSettings.Current.GamePath, "frontiers", "NIFS", model + ".npk");
             if (!File.Exists(archive))
             {
                 return model + ".nif";
@@ -161,7 +161,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static (int Region, double Left, double Top, double Size)? GetZoneArea(string zoneId)
         {
-            var zonesDat = DatFile.FromMpk(Path.Combine(Properties.Settings.Default.game_path, "zones", "zones.mpk"), "zones.dat");
+            var zonesDat = DatFile.FromMpk(Path.Combine(AppSettings.Current.GamePath, "zones", "zones.mpk"), "zones.dat");
             var section = "zone" + zoneId;
             if (zonesDat == null || zonesDat.Get(section, "frontiers") != "1"
                 || !int.TryParse(zonesDat.Get(section, "region"), out var region)
@@ -177,7 +177,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private static List<KeepRow> LoadKeepRows()
         {
             var rows = new List<KeepRow>();
-            var file = Path.Combine(System.Windows.Forms.Application.StartupPath, "data", "Keeps.csv");
+            var file = Path.Combine(AppContext.BaseDirectory, "data", "Keeps.csv");
             if (!File.Exists(file))
             {
                 return rows;
@@ -199,7 +199,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static Tables LoadTables()
         {
-            var mpk = Path.Combine(Properties.Settings.Default.game_path, "frontiers", "frontiers.mpk");
+            var mpk = Path.Combine(AppSettings.Current.GamePath, "frontiers", "frontiers.mpk");
             var tables = new Tables(new Dictionary<int, string>(), new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase), new Dictionary<int, string>());
 
             var pieceFiles = new Dictionary<int, string>();

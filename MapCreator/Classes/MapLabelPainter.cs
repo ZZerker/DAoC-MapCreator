@@ -17,7 +17,7 @@ namespace MapCreator.Classes
         // Maps below this size only keep the labels of priority 1
         private const int SMALL_MAP = 512;
 
-        private static readonly string FontDirectory = Path.Combine(System.Windows.Forms.Application.StartupPath, "data", "fonts");
+        private static readonly string FontDirectory = Path.Combine(AppContext.BaseDirectory, "data", "fonts");
         private static readonly string BoldFont = Path.Combine(FontDirectory, "TokaFontBold.ttf");
         private static readonly string RegularFont = Path.Combine(FontDirectory, "TokaFontRegular.ttf");
 

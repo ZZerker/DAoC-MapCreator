@@ -21,7 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
+using System.IO;
 using System.Xml.Linq;
 
 namespace MapCreator.Classes.MapCreation.Fixtures
@@ -47,7 +47,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         static FixtureRendererConfigurations()
         {
             // Read Zones
-            FixturesXml = XDocument.Load(string.Format("{0}\\fixtures.xml", Application.StartupPath));
+            FixturesXml = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "fixtures.xml"));
             ParseFixturesXml();
         }
 

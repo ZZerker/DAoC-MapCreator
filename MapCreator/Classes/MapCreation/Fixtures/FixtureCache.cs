@@ -30,7 +30,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static volatile bool housekeepingDone;
 
-        private static string PolysCacheDirectory => Path.Combine(System.Windows.Forms.Application.StartupPath, "data", POLYS_CACHE_DIRECTORY);
+        private static string PolysCacheDirectory => Path.Combine(AppContext.BaseDirectory, "data", POLYS_CACHE_DIRECTORY);
 
         public static IReadOnlyList<TreeRow> Trees => TreeData.Value.Trees;
 
@@ -257,7 +257,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private static void DeleteOldCache(string fileName)
         {
-            var file = Path.Combine(System.Windows.Forms.Application.StartupPath, "data", fileName);
+            var file = Path.Combine(AppContext.BaseDirectory, "data", fileName);
             if (File.Exists(file))
             {
                 File.Delete(file);
@@ -267,7 +267,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // Zones ship their own variants of shared models, so the cache name contains the archive folder
         private static string GetCacheName(string archivePath, string variant)
         {
-            var name = Path.GetRelativePath(Properties.Settings.Default.game_path, Path.ChangeExtension(archivePath, null)).Replace('\\', '_').ToLowerInvariant();
+            var name = Path.GetRelativePath(AppSettings.Current.GamePath, Path.ChangeExtension(archivePath, null)).Replace('\\', '_').ToLowerInvariant();
             return name + (variant == null ? "" : "_" + variant) + ".poly";
         }
 
@@ -285,8 +285,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                                NumberGroupSizes = new int[] { 2 }
                            };
 
-            var treeMpk = string.Format("{0}\\zones\\trees\\treemap.mpk", Properties.Settings.Default.game_path);
-            var treeClusterMpk = string.Format("{0}\\zones\\trees\\tree_clusters.mpk", Properties.Settings.Default.game_path);
+            var treeMpk = string.Format("{0}\\zones\\trees\\treemap.mpk", AppSettings.Current.GamePath);
+            var treeClusterMpk = string.Format("{0}\\zones\\trees\\tree_clusters.mpk", AppSettings.Current.GamePath);
 
             var treeRows = new List<TreeRow>();
             foreach (var row in DataWrapper.GetFileContent(treeMpk, "Treemap.csv"))
@@ -347,7 +347,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 return DefaultTreeColor;
             }
 
-            var treeTextureFile = Path.Combine(Properties.Settings.Default.game_path, "zones", "trees", textureName);
+            var treeTextureFile = Path.Combine(AppSettings.Current.GamePath, "zones", "trees", textureName);
             if (!File.Exists(treeTextureFile))
             {
                 AppLog.Log(string.Format("Texture {0} for tree {1} not found. Using default color.", textureName, treeRow.Name), LogLevel.Warning);

@@ -48,7 +48,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
 
             var name = Path.GetFileNameWithoutExtension(texture);
-            var gamePath = Properties.Settings.Default.game_path;
+            var gamePath = AppSettings.Current.GamePath;
             var folders = SharedTextureFolders.Select(f => Path.Combine(gamePath, f));
             if (!string.IsNullOrEmpty(modelDirectory))
             {

@@ -17,13 +17,13 @@ namespace MapCreator
 
             ApplicationConfiguration.Initialize();
 
-            var settings = Properties.Settings.Default;
-            if (!Classes.GameFolderLocator.IsGameFolder(settings.game_path))
+            var settings = Classes.AppSettings.Current;
+            if (!Classes.GameFolderLocator.IsGameFolder(settings.GamePath))
             {
                 var gameFolder = Classes.GameFolderLocator.Find();
                 if (gameFolder != null)
                 {
-                    settings.game_path = gameFolder;
+                    settings.GamePath = gameFolder;
                     settings.Save();
                 }
             }

@@ -46,7 +46,7 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration.Reporter.Log("Preloading zone heightmap ...", LogLevel.Notice);
             this.terrainfactor = Convert.ToInt32(zoneConfiguration.SectorDat.Get("terrain", "scalefactor"));
             this.offsetfactor = Convert.ToInt32(zoneConfiguration.SectorDat.Get("terrain", "offsetfactor"));
-            this.heightmapFile = new FileInfo(string.Format("{0}\\data\\heightmaps\\zone{1}_heightmap.png", System.Windows.Forms.Application.StartupPath, zoneConfiguration.ZoneId));
+            this.heightmapFile = new FileInfo(Path.Combine(AppContext.BaseDirectory, "data", "heightmaps", string.Format("zone{0}_heightmap.png", zoneConfiguration.ZoneId)));
 
             if (!System.IO.Directory.Exists(this.heightmapFile.DirectoryName))
             {

@@ -110,7 +110,7 @@ namespace MapCreator.Classes
 
         private static IEnumerable<Label> GetKeeps(ZoneArea zone)
         {
-            var file = Path.Combine(System.Windows.Forms.Application.StartupPath, "data", "Keeps.csv");
+            var file = Path.Combine(AppContext.BaseDirectory, "data", "Keeps.csv");
             if (!File.Exists(file))
             {
                 yield break;
@@ -159,7 +159,7 @@ namespace MapCreator.Classes
             var zoneNumber = int.Parse(zone.Id).ToString();
             foreach (var name in PointFiles)
             {
-                var file = Path.Combine(System.Windows.Forms.Application.StartupPath, "data", name);
+                var file = Path.Combine(AppContext.BaseDirectory, "data", name);
                 if (!File.Exists(file))
                 {
                     continue;
@@ -188,7 +188,7 @@ namespace MapCreator.Classes
         private static List<ZoneArea> LoadZones()
         {
             var zones = new List<ZoneArea>();
-            var zonesDat = DatFile.FromMpk(Path.Combine(Properties.Settings.Default.game_path, "zones", "zones.mpk"), "zones.dat");
+            var zonesDat = DatFile.FromMpk(Path.Combine(AppSettings.Current.GamePath, "zones", "zones.mpk"), "zones.dat");
             if (zonesDat == null)
             {
                 return zones;

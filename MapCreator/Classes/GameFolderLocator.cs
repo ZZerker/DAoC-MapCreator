@@ -18,7 +18,7 @@ namespace MapCreator.Classes
 
         public static bool CheckGamePath()
         {
-            var checkFile = string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "camelot.exe");
+            var checkFile = string.Format("{0}\\{1}", AppSettings.Current.GamePath, "camelot.exe");
             if (!File.Exists(checkFile))
             {
                 AppLog.Log("camelot.exe not found in gamepath!");

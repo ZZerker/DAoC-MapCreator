@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Resources;
 using System.Runtime.Versioning;
@@ -18,4 +19,5 @@ using System.Runtime.Versioning;
 [assembly: AssemblyFileVersion("2.2.0.0")]
 [assembly: AssemblyInformationalVersion("2.1.0")]
 [assembly: NeutralResourcesLanguageAttribute("en")]
+[assembly: InternalsVisibleTo("MapCreator.Tests")]
 [assembly: SupportedOSPlatform("windows")]

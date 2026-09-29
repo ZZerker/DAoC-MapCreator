@@ -21,7 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Windows.Forms;
 using System.Xml.Linq;
 using MapCreator.data;
 
@@ -43,11 +42,11 @@ namespace MapCreator.Classes
         static DataWrapper()
         {
             // Read Zones
-            ZonesXml = XDocument.Load(string.Format("{0}\\data\\zones.xml", Application.StartupPath));
+            ZonesXml = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "data", "zones.xml"));
             AddClientZones();
 
             // Create/Read data xml file
-            PresetsDataFile = string.Format("{0}\\presets.xml", Application.StartupPath);
+            PresetsDataFile = Path.Combine(AppContext.BaseDirectory, "presets.xml");
             if (!File.Exists(PresetsDataFile))
             {
                 mapCreatorData.ZoneSelectionPresets.WriteXml(PresetsDataFile);
@@ -100,7 +99,7 @@ namespace MapCreator.Classes
         /// </summary>
         private static void AddClientZones()
         {
-            var gamePath = Properties.Settings.Default.game_path;
+            var gamePath = AppSettings.Current.GamePath;
             if (!GameFolderLocator.IsGameFolder(gamePath))
             {
                 return;

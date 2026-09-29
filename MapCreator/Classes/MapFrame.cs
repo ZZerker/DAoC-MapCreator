@@ -65,7 +65,7 @@ namespace MapCreator.Classes
         private static Dictionary<string, MapFrame> Load()
         {
             var frames = new Dictionary<string, MapFrame>();
-            var file = Path.Combine(System.Windows.Forms.Application.StartupPath, "data", "MapFrames.csv");
+            var file = Path.Combine(AppContext.BaseDirectory, "data", "MapFrames.csv");
             if (!File.Exists(file))
             {
                 return frames;

@@ -142,7 +142,7 @@ namespace MapCreator.Classes
 
             if (this.IsDungeon)
             {
-                this.Levels = MapLevel.Load(Properties.Settings.Default.game_path, zoneId);
+                this.Levels = MapLevel.Load(AppSettings.Current.GamePath, zoneId);
             }
 
             // Check if file exists, else map to datXXX.mpk
@@ -181,28 +181,28 @@ namespace MapCreator.Classes
             switch (expansion)
             {
                 case GameExpansion.Foundations:
-                    zoneDataDirectory = string.Format("{0}\\phousing\\zones\\zone{1}", Properties.Settings.Default.game_path, zoneId);
+                    zoneDataDirectory = string.Format("{0}\\phousing\\zones\\zone{1}", AppSettings.Current.GamePath, zoneId);
                     break;
                 case GameExpansion.NewFrontiers:
-                    zoneDataDirectory = string.Format("{0}\\frontiers\\zones\\zone{1}", Properties.Settings.Default.game_path, zoneId);
+                    zoneDataDirectory = string.Format("{0}\\frontiers\\zones\\zone{1}", AppSettings.Current.GamePath, zoneId);
                     break;
                 case GameExpansion.Tutorial:
-                    zoneDataDirectory = string.Format("{0}\\tutorial\\zones\\zone{1}", Properties.Settings.Default.game_path, zoneId);
+                    zoneDataDirectory = string.Format("{0}\\tutorial\\zones\\zone{1}", AppSettings.Current.GamePath, zoneId);
                     break;
                 default:
-                    zoneDataDirectory = string.Format("{0}\\zones\\zone{1}", Properties.Settings.Default.game_path, zoneId);
+                    zoneDataDirectory = string.Format("{0}\\zones\\zone{1}", AppSettings.Current.GamePath, zoneId);
                     break;
             }
 
             // Special path for tutorial zones
             if (zoneId == "027")
             {
-                zoneDataDirectory = string.Format("{0}\\tutorial\\zones\\zone{1}", Properties.Settings.Default.game_path, zoneId);
+                zoneDataDirectory = string.Format("{0}\\tutorial\\zones\\zone{1}", AppSettings.Current.GamePath, zoneId);
             }
 
             if (!File.Exists(Path.Combine(zoneDataDirectory, "dat" + zoneId + ".mpk")))
             {
-                zoneDataDirectory = ZoneCatalog.FindZoneDirectory(Properties.Settings.Default.game_path, zoneId) ?? zoneDataDirectory;
+                zoneDataDirectory = ZoneCatalog.FindZoneDirectory(AppSettings.Current.GamePath, zoneId) ?? zoneDataDirectory;
             }
 
             return zoneDataDirectory;

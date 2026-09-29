@@ -511,7 +511,7 @@ namespace MapCreator.Classes.MapCreation
             this.zoneConfiguration.Reporter.Log("Drawing debug bound images ...", LogLevel.Warning);
             this.zoneConfiguration.Reporter.ProgressStartMarquee("Debug bound images ...");
 
-            var debugDir = new DirectoryInfo(string.Format("{0}\\debug\\bound\\{1}", System.Windows.Forms.Application.StartupPath, this.zoneConfiguration.ZoneId));
+            var debugDir = new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "debug", "bound", this.zoneConfiguration.ZoneId));
             if (!debugDir.Exists) debugDir.Create();
             debugDir.GetFiles().ToList().ForEach(f => f.Delete());
 

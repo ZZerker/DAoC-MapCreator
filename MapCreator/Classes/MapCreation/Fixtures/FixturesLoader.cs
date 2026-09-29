@@ -45,7 +45,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         {
             this.zoneConf = zoneConfiguration;
 
-            var gamePath = Properties.Settings.Default.game_path;
+            var gamePath = AppSettings.Current.GamePath;
             this.nifSearchPaths = new List<string>
                                   {
                                       Path.Combine(gamePath, "Newtowns\\zones\\Nifs"),

@@ -139,7 +139,7 @@ namespace MapCreator.Classes.MapCreation
         {
             if (this.waterTexture != null) return this.waterTexture;
 
-            var textureFile = string.Format("{0}\\data\\textures\\watery.dds", System.Windows.Forms.Application.StartupPath);
+            var textureFile = Path.Combine(AppContext.BaseDirectory, "data", "textures", "watery.dds");
             
             var tex = new MagickImage(textureFile);
             tex.ColorSpace = ColorSpace.Gray;
@@ -157,7 +157,7 @@ namespace MapCreator.Classes.MapCreation
         {
             if (this.lavaTexture != null) return this.lavaTexture;
 
-            var textureFile = string.Format("{0}\\data\\textures\\lava.dds", System.Windows.Forms.Application.StartupPath);
+            var textureFile = Path.Combine(AppContext.BaseDirectory, "data", "textures", "lava.dds");
 
             var tex = new MagickImage(textureFile);
             //tex.ColorSpace = ColorSpace.GRAY;
@@ -271,7 +271,7 @@ namespace MapCreator.Classes.MapCreation
 
         private void DebugRiver(int index, WaterConfiguration river, List<PointD> riverCoordinates)
         {
-            var debugFilename = string.Format("{0}\\debug\\rivers\\{1}_{2}_{3}.jpg", System.Windows.Forms.Application.StartupPath, this.zoneConfiguration.ZoneId, index, river.Name);
+            var debugFilename = Path.Combine(AppContext.BaseDirectory, "debug", "rivers", string.Format("{0}_{1}_{2}.jpg", this.zoneConfiguration.ZoneId, index, river.Name));
 
             if (index == 0)
             {

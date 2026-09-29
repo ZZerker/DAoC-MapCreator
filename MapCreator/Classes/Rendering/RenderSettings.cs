@@ -1,3 +1,4 @@
+using System;
 using System.Drawing;
 
 namespace MapCreator.Classes.Rendering
@@ -8,40 +9,40 @@ namespace MapCreator.Classes.Rendering
     internal sealed record RenderSettings
     {
         /// <summary>
-        /// The options the window last saved
+        /// The saved options
         /// </summary>
-        public static RenderSettings FromSaved(Properties.Settings saved)
+        public static RenderSettings FromSettings(AppSettings settings)
         {
             return new RenderSettings
             {
-                MapSize = (int)saved.mapWidth,
-                Parallel = (int)saved.renderParallel,
-                TargetPath = !string.IsNullOrEmpty(saved.targetMapPath) ? saved.targetMapPath : System.Windows.Forms.Application.StartupPath,
-                DirectoryPattern = saved.targetDirectoryPattern,
-                FilePattern = saved.mapFilePattern,
-                FileType = saved.mapType,
-                Quality = (uint)saved.mapQuality,
-                SkipIfFileExists = saved.skipIfFileExists,
-                DrawBackground = saved.mapGenerateBackground,
-                Lightmap = saved.mapGenerateHeightmap,
-                LightmapZScale = (double)saved.mapHeightmapZScale,
-                LightmapLightMin = (double)saved.mapHeightmapMinLight,
-                LightmapLightMax = (double)saved.mapHeightmapMaxLight,
-                LightmapZVector = new[] { (double)saved.mapHeightmapZVector1, (double)saved.mapHeightmapZVector2, (double)saved.mapHeightmapZVector3 },
-                Rivers = saved.mapGenerateRivers,
-                RiversUseDefaultColor = saved.mapRiverColorUseDefault,
-                RiversColor = saved.mapRiverColor,
-                RiverOpacity = (int)saved.mapRiverOpacity,
-                DepthShadedWater = saved.mapDepthShadedWater,
-                Bounds = saved.mapGenerateBounds,
-                BoundsColor = saved.mapBoundsColor,
-                BoundsOpacity = (int)saved.mapBoundsOpacity,
-                ExcludeBoundsFromMap = saved.removeBoundsFromMap,
-                DrawFixtures = saved.mapDrawBuildings,
-                DrawFixturesBelowWater = saved.mapDrawBuildingsBelowWater,
-                DrawKeeps = saved.mapDrawKeeps,
-                DrawTrees = saved.mapDrawTrees,
-                TreeTransparency = (int)saved.mapTreeTransparency
+                MapSize = settings.MapSize,
+                Parallel = settings.RenderParallel,
+                TargetPath = !string.IsNullOrEmpty(settings.TargetPath) ? settings.TargetPath : AppContext.BaseDirectory,
+                DirectoryPattern = settings.TargetDirectoryPattern,
+                FilePattern = settings.MapFilePattern,
+                FileType = settings.MapType,
+                Quality = (uint)settings.MapQuality,
+                SkipIfFileExists = settings.SkipIfFileExists,
+                DrawBackground = settings.DrawBackground,
+                Lightmap = settings.Lightmap,
+                LightmapZScale = settings.LightmapZScale,
+                LightmapLightMin = settings.LightmapMinLight,
+                LightmapLightMax = settings.LightmapMaxLight,
+                LightmapZVector = (double[])settings.LightmapZVector.Clone(),
+                Rivers = settings.Rivers,
+                RiversUseDefaultColor = settings.RiversUseDefaultColor,
+                RiversColor = settings.RiversColor,
+                RiverOpacity = settings.RiverOpacity,
+                DepthShadedWater = settings.DepthShadedWater,
+                Bounds = settings.Bounds,
+                BoundsColor = settings.BoundsColor,
+                BoundsOpacity = settings.BoundsOpacity,
+                ExcludeBoundsFromMap = settings.ExcludeBoundsFromMap,
+                DrawFixtures = settings.DrawFixtures,
+                DrawFixturesBelowWater = settings.DrawFixturesBelowWater,
+                DrawKeeps = settings.DrawKeeps,
+                DrawTrees = settings.DrawTrees,
+                TreeTransparency = settings.TreeTransparency
             };
         }
 

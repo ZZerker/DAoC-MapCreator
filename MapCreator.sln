@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mpk.Tests", "Mpk.Tests\Mpk.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mpk", "Mpk\Mpk.csproj", "{EAE9B5EF-7876-470B-A406-493BA4BF0578}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapCreator.Tests", "MapCreator.Tests\MapCreator.Tests.csproj", "{DD833D93-FFAE-4AE4-A018-0F9567434947}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -39,6 +41,10 @@ Global
 		{EAE9B5EF-7876-470B-A406-493BA4BF0578}.Debug|x64.Build.0 = Debug|x64
 		{EAE9B5EF-7876-470B-A406-493BA4BF0578}.Release|x64.ActiveCfg = Release|x64
 		{EAE9B5EF-7876-470B-A406-493BA4BF0578}.Release|x64.Build.0 = Release|x64
+		{DD833D93-FFAE-4AE4-A018-0F9567434947}.Debug|x64.ActiveCfg = Debug|x64
+		{DD833D93-FFAE-4AE4-A018-0F9567434947}.Debug|x64.Build.0 = Debug|x64
+		{DD833D93-FFAE-4AE4-A018-0F9567434947}.Release|x64.ActiveCfg = Release|x64
+		{DD833D93-FFAE-4AE4-A018-0F9567434947}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

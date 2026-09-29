@@ -62,7 +62,7 @@ namespace MapCreator.Classes.Rendering
                 return null;
             }
 
-            var saved = RenderSettings.FromSaved(Properties.Settings.Default);
+            var saved = RenderSettings.FromSettings(AppSettings.Current);
             var settings = saved with
             {
                 MapSize = size > 0 ? size : saved.MapSize,
