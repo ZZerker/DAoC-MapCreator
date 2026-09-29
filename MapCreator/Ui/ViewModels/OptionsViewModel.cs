@@ -33,12 +33,18 @@ namespace MapCreator.Ui.ViewModels
         private bool isBoundsColorInvalid;
 
         internal OptionsViewModel(AppSettings settings)
+            : this(settings, PresetStore.Load(PresetStore.DefaultPath))
+        {
+        }
+
+        internal OptionsViewModel(AppSettings settings, PresetStore presetStore)
         {
             this.settings = settings;
-            this.sizes = StandardSizes.Union(new[] { settings.MapSize }).OrderBy(s => s).ToList();
+            this.sizes = StandardSizes.Union(new[] { settings.MapSize }).Union(presetStore.Presets.Select(p => p.MapSize)).OrderBy(s => s).ToList();
             this.SizeChoices = this.sizes.Select(s => s.ToString(CultureInfo.InvariantCulture)).ToList();
             this.riversColorText = AppSettings.ToHexColor(settings.RiversColor);
             this.boundsColorText = AppSettings.ToHexColor(settings.BoundsColor);
+            this.Presets = new PresetsViewModel(this, settings, presetStore);
         }
 
         /// <summary>
@@ -47,6 +53,8 @@ namespace MapCreator.Ui.ViewModels
         public event Action OutputChanged;
 
         public bool IsEditable => !this.IsRendering;
+
+        public PresetsViewModel Presets { get; }
 
         public IReadOnlyList<string> SizeChoices { get; }
 
@@ -95,14 +103,14 @@ namespace MapCreator.Ui.ViewModels
             set => this.Update(this.settings.MapQuality, (int)value, v => this.settings.MapQuality = v);
         }
 
-        public int SizeIndex
+        public string SelectedSize
         {
-            get => this.sizes.IndexOf(this.settings.MapSize);
+            get => this.settings.MapSize.ToString(CultureInfo.InvariantCulture);
             set
             {
-                if (value >= 0 && value < this.sizes.Count)
+                if (int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var size) && this.sizes.Contains(size))
                 {
-                    this.UpdateOutput(this.settings.MapSize, this.sizes[value], v => this.settings.MapSize = v);
+                    this.UpdateOutput(this.settings.MapSize, size, v => this.settings.MapSize = v);
                 }
             }
         }
@@ -304,6 +312,20 @@ namespace MapCreator.Ui.ViewModels
         {
             get => this.settings.LabelSize;
             set => this.Update(this.settings.LabelSize, (int)value, v => this.settings.LabelSize = v);
+        }
+
+        /// <summary>
+        /// Shows the values in AppSettings after a preset was copied into it
+        /// </summary>
+        internal void ReloadFromSettings()
+        {
+            this.riversColorText = AppSettings.ToHexColor(this.settings.RiversColor);
+            this.boundsColorText = AppSettings.ToHexColor(this.settings.BoundsColor);
+            this.IsRiversColorInvalid = false;
+            this.IsBoundsColorInvalid = false;
+            this.OnPropertyChanged(string.Empty);
+            this.OutputChanged?.Invoke();
+            SettingsSaver.Request();
         }
 
         /// <summary>

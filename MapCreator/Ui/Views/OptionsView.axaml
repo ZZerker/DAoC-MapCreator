@@ -42,6 +42,41 @@
     <ScrollViewer>
         <StackPanel Margin="8">
 
+            <ContentControl Content="{Binding Presets}" Margin="0,0,0,10">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate x:DataType="vm:PresetsViewModel">
+                        <StackPanel IsEnabled="{Binding IsEditable}">
+                            <TextBlock Classes="muted" Text="Preset" />
+                            <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,6">
+                                <ComboBox Grid.Column="0" ItemsSource="{Binding Names}" SelectedItem="{Binding SelectedName}"
+                                          PlaceholderText="No preset" HorizontalAlignment="Stretch" />
+                                <TextBlock Grid.Column="1" Classes="muted" Text="modified" IsVisible="{Binding IsModified}"
+                                           VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </Grid>
+                            <UniformGrid Columns="4">
+                                <Button Content="Save" Command="{Binding SaveCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,4,0" />
+                                <Button Content="Save as" Command="{Binding SaveAsCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,4,0" />
+                                <Button Content="Rename" Command="{Binding RenameCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Margin="0,0,4,0" />
+                                <Button Content="Delete" Command="{Binding DeleteCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+                            </UniformGrid>
+                            <StackPanel IsVisible="{Binding IsEditing}" Margin="0,6,0,0">
+                                <TextBox Text="{Binding EditText}" PlaceholderText="Preset name" Classes.error="{Binding HasEditError}">
+                                    <TextBox.KeyBindings>
+                                        <KeyBinding Gesture="Enter" Command="{Binding ConfirmEditCommand}" />
+                                        <KeyBinding Gesture="Escape" Command="{Binding CancelEditCommand}" />
+                                    </TextBox.KeyBindings>
+                                </TextBox>
+                                <TextBlock Classes="error" Text="{Binding EditError}" IsVisible="{Binding HasEditError}" />
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,6,0,0">
+                                    <Button Content="OK" Command="{Binding ConfirmEditCommand}" />
+                                    <Button Content="Cancel" Command="{Binding CancelEditCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+
             <Expander Header="Output" IsExpanded="True">
                 <StackPanel IsEnabled="{Binding IsEditable}">
                     <TextBlock Classes="muted" Text="Output folder" />
@@ -67,7 +102,7 @@
                     </Grid>
                     <Grid Classes="row" ColumnDefinitions="*,120">
                         <TextBlock Text="Size (px)" />
-                        <ComboBox Grid.Column="1" ItemsSource="{Binding SizeChoices}" SelectedIndex="{Binding SizeIndex}" HorizontalAlignment="Stretch" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding SizeChoices}" SelectedItem="{Binding SelectedSize}" HorizontalAlignment="Stretch" />
                     </Grid>
                     <Grid Classes="row" ColumnDefinitions="*,120">
                         <TextBlock Text="Zones at a time" />

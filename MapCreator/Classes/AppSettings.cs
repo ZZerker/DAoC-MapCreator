@@ -20,7 +20,7 @@ namespace MapCreator.Classes
 
         private static readonly Lazy<AppSettings> Loaded = new(() => Load(DefaultPath));
 
-        private static readonly JsonSerializerOptions JsonOptions = new()
+        internal static readonly JsonSerializerOptions JsonOptions = new()
         {
             WriteIndented = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -75,6 +75,9 @@ namespace MapCreator.Classes
         public int LabelSize { get; set; }
 
         public List<string> TickedZones { get; set; } = new() { "000" };
+
+        // Name of the preset last loaded or saved, "" for none (batch mode ignores it)
+        public string ActivePreset { get; set; } = "";
 
         public static AppSettings Load(string path)
         {
@@ -141,9 +144,14 @@ namespace MapCreator.Classes
 
         public void Save(string path)
         {
+            WriteAtomic(path, JsonSerializer.Serialize(this, JsonOptions));
+        }
+
+        internal static void WriteAtomic(string path, string json)
+        {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));
             var tempPath = path + ".tmp";
-            File.WriteAllText(tempPath, JsonSerializer.Serialize(this, JsonOptions));
+            File.WriteAllText(tempPath, json);
             File.Move(tempPath, path, true);
         }
 
@@ -232,7 +240,7 @@ namespace MapCreator.Classes
             }
         }
 
-        private static void KeepBadCopy(string path)
+        internal static void KeepBadCopy(string path)
         {
             try
             {
@@ -255,6 +263,7 @@ namespace MapCreator.Classes
             this.MapType ??= defaults.MapType;
             this.LabelDirectory ??= defaults.LabelDirectory;
             this.TickedZones ??= defaults.TickedZones;
+            this.ActivePreset ??= defaults.ActivePreset;
             if (this.LightmapZVector == null || this.LightmapZVector.Length != 3)
             {
                 this.LightmapZVector = defaults.LightmapZVector;
