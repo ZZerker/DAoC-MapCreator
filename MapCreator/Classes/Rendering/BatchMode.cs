@@ -93,7 +93,7 @@ namespace MapCreator.Classes.Rendering
 
         private static int Run(RenderSettings settings, List<string> zoneTerms, IRenderReporter reporter, BatchDashboard dashboard)
         {
-            if (!MpkWrapper.CheckGamePath())
+            if (!GameFolderLocator.CheckGamePath())
             {
                 return 1;
             }

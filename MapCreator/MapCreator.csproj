@@ -41,9 +41,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="MPKLib">
-      <HintPath>..\libs\MPKLib.dll</HintPath>
-    </Reference>
     <Reference Include="MWCommon">
       <HintPath>..\libs\MWCommon.dll</HintPath>
     </Reference>
@@ -55,6 +52,7 @@
   <ItemGroup>
     <ProjectReference Include="..\external\niflib.net\Niflib.csproj" />
     <ProjectReference Include="..\NifUtil\NifUtil.csproj" />
+    <ProjectReference Include="..\Mpk\Mpk.csproj" />
   </ItemGroup>
 
   <ItemGroup>

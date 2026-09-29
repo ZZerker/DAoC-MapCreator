@@ -20,9 +20,8 @@
 using System;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using ImageMagick;
-using MPKLib;
+using Mpk;
 
 namespace MapCreator.Classes.MapCreation
 {
@@ -79,26 +78,36 @@ namespace MapCreator.Classes.MapCreation
             var tileWidth = 512.0;
             var tileTemplate = "";
 
-            MPAK mpak = null;
+            MpkArchive archive = null;
             if (File.Exists(texMpk))
             {
-                mpak = MpkWrapper.Open(texMpk);
+                archive = MpkArchive.Open(texMpk);
 
-                if (mpak.Files.Any(f => f.Name.ToLower() == "tex00-00.dds"))
+                if (archive.Contains("tex00-00.dds"))
                 {
                     tileTemplate += "tex0{0}-0{1}.dds";
                     tileWidth = 512.0;
+                }
+                else
+                {
+                    archive.Dispose();
+                    archive = null;
                 }
             }
 
             if (string.IsNullOrEmpty(tileTemplate) && File.Exists(lodMpk))
             {
-                mpak = MpkWrapper.Open(lodMpk);
+                archive = MpkArchive.Open(lodMpk);
 
-                if (mpak.Files.Any(f => f.Name.ToLower() == "lod00-00.dds"))
+                if (archive.Contains("lod00-00.dds"))
                 {
                     tileTemplate += "lod0{0}-0{1}.dds";
                     tileWidth = 256.0;
+                }
+                else
+                {
+                    archive.Dispose();
+                    archive = null;
                 }
             }
 
@@ -114,26 +123,33 @@ namespace MapCreator.Classes.MapCreation
 
             var map = MagickWrapper.NewImage(Color.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize);
 
-            for (var col = 0; col <= 7; col++)
+            try
             {
-                var x = TileEdge(col, tileWidth, resizeFactor);
-                var width = TileEdge(col + 1, tileWidth, resizeFactor) - x;
-
-                for (var row = 0; row <= 7; row++)
+                for (var col = 0; col <= 7; col++)
                 {
-                    var y = TileEdge(row, tileWidth, resizeFactor);
-                    var height = TileEdge(row + 1, tileWidth, resizeFactor) - y;
-                    var filename = string.Format(tileTemplate, col, row);
+                    var x = TileEdge(col, tileWidth, resizeFactor);
+                    var width = TileEdge(col + 1, tileWidth, resizeFactor) - x;
 
-                    using (var mapTile = new MagickImage(mpak.GetFile(filename).Data))
+                    for (var row = 0; row <= 7; row++)
                     {
-                        mapTile.Resize(new MagickGeometry((uint)width, (uint)height) { IgnoreAspectRatio = true });
-                        map.Composite(mapTile, x, y, CompositeOperator.SrcOver);
-                    }
-                }
+                        var y = TileEdge(row, tileWidth, resizeFactor);
+                        var height = TileEdge(row + 1, tileWidth, resizeFactor) - y;
+                        var filename = string.Format(tileTemplate, col, row);
 
-                var percent = 100 * col / 8;
-                this.zoneConfiguration.Reporter.ProgressUpdate(percent);
+                        using (var mapTile = new MagickImage(archive.ReadBytes(filename)))
+                        {
+                            mapTile.Resize(new MagickGeometry((uint)width, (uint)height) { IgnoreAspectRatio = true });
+                            map.Composite(mapTile, x, y, CompositeOperator.SrcOver);
+                        }
+                    }
+
+                    var percent = 100 * col / 8;
+                    this.zoneConfiguration.Reporter.ProgressUpdate(percent);
+                }
+            }
+            finally
+            {
+                archive.Dispose();
             }
 
             this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging ...");

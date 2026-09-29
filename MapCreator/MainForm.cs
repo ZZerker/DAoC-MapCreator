@@ -489,7 +489,7 @@ namespace MapCreator
 
         private async Task RenderSelectedZonesAsync()
         {
-            if (!MpkWrapper.CheckGamePath())
+            if (!GameFolderLocator.CheckGamePath())
             {
                 return;
             }

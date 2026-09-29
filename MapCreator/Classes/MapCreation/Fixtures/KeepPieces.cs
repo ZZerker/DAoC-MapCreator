@@ -150,7 +150,13 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private static string GetNifName(string model)
         {
             var archive = Path.Combine(Properties.Settings.Default.game_path, "frontiers", "NIFS", model + ".npk");
-            return File.Exists(archive) ? MpkWrapper.Open(archive).Files.Select(f => f.Name).FirstOrDefault(n => n.EndsWith(".nif", StringComparison.OrdinalIgnoreCase)) ?? model + ".nif" : model + ".nif";
+            if (!File.Exists(archive))
+            {
+                return model + ".nif";
+            }
+
+            using var mpk = Mpk.MpkArchive.Open(archive);
+            return mpk.Entries.Select(e => e.Name).FirstOrDefault(n => n.EndsWith(".nif", StringComparison.OrdinalIgnoreCase)) ?? model + ".nif";
         }
 
         private static (int Region, double Left, double Top, double Size)? GetZoneArea(string zoneId)

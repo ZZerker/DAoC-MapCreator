@@ -16,6 +16,18 @@ namespace MapCreator.Classes
             return !string.IsNullOrEmpty(path) && File.Exists(Path.Combine(path, "camelot.exe"));
         }
 
+        public static bool CheckGamePath()
+        {
+            var checkFile = string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "camelot.exe");
+            if (!File.Exists(checkFile))
+            {
+                AppLog.Log("camelot.exe not found in gamepath!");
+                return false;
+            }
+
+            return true;
+        }
+
         public static string Find()
         {
             return Candidates().FirstOrDefault(IsGameFolder);

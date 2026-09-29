@@ -20,25 +20,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // One .poly file per model and source archive, with blended texture layers, vertex colors, dark maps (also "_dm_" detail maps), water and additive flags
         private const string POLYS_CACHE_DIRECTORY = "polys8";
 
-        // The same files in one archive, which had to be read in full for every load; moved into the folder once
-        private const string POLYS_ARCHIVE_FILE = "polys8.mpk";
-
-        // Guards the move out of the archive, shared with other processes
-        private const string POLYS_MUTEX = "MapCreatorPolysCache";
-
         private static readonly Lazy<(List<TreeRow> Trees, List<TreeClusterRow> Clusters)> TreeData = new(LoadTreeData);
 
         // Models other zones can reuse; each loads at most once however many zones ask
         private static readonly ConcurrentDictionary<string, Lazy<Polygon[]>> Polygons = new(StringComparer.OrdinalIgnoreCase);
 
-        // Guards only the one-time housekeeping (old cache cleanup, archive migration) and Clear(), never a model load
+        // Guards only the one-time housekeeping (old cache cleanup) and Clear(), never a model load
         private static readonly object PolysLock = new();
 
-        private static volatile bool archiveMoved;
+        private static volatile bool housekeepingDone;
 
         private static string PolysCacheDirectory => Path.Combine(System.Windows.Forms.Application.StartupPath, "data", POLYS_CACHE_DIRECTORY);
-
-        private static string PolysArchiveFile => Path.Combine(System.Windows.Forms.Application.StartupPath, "data", POLYS_ARCHIVE_FILE);
 
         public static IReadOnlyList<TreeRow> Trees => TreeData.Value.Trees;
 
@@ -89,80 +81,26 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         {
             lock (PolysLock)
             {
-                using var polysMutex = LockCacheFile();
-                try
+                Polygons.Clear();
+                housekeepingDone = false;
+                if (Directory.Exists(PolysCacheDirectory))
                 {
-                    Polygons.Clear();
-                    archiveMoved = false;
-                    File.Delete(PolysArchiveFile);
-                    if (Directory.Exists(PolysCacheDirectory))
-                    {
-                        Directory.Delete(PolysCacheDirectory, true);
-                    }
+                    Directory.Delete(PolysCacheDirectory, true);
                 }
-                finally
-                {
-                    polysMutex.ReleaseMutex();
-                }
-            }
-        }
-
-        private static Mutex LockCacheFile()
-        {
-            var polysMutex = new Mutex(false, POLYS_MUTEX);
-            try
-            {
-                polysMutex.WaitOne();
-            }
-            catch (AbandonedMutexException)
-            {
-            }
-            return polysMutex;
-        }
-
-        // The archive was opened in full (30 s for 2,500 models) under the lock; each entry becomes its own file
-        private static void MoveArchiveToFiles(IRenderReporter reporter)
-        {
-            using var polysMutex = LockCacheFile();
-            try
-            {
-                if (File.Exists(PolysArchiveFile))
-                {
-                    reporter.Log(string.Format("Moving the model cache {0} into single files ...", POLYS_ARCHIVE_FILE), LogLevel.Notice);
-                    reporter.ProgressStartMarquee("Moving the model cache ...");
-                    Directory.CreateDirectory(PolysCacheDirectory);
-                    var archive = MpkWrapper.Open(PolysArchiveFile);
-                    foreach (var entry in archive.Files)
-                    {
-                        var cacheFile = Path.Combine(PolysCacheDirectory, entry.Name);
-                        if (!File.Exists(cacheFile))
-                        {
-                            WriteCacheFile(cacheFile, temporaryFile => File.WriteAllBytes(temporaryFile, archive.GetFile(entry.Name).Data));
-                        }
-                    }
-
-                    // Only once every entry is written, so an interrupted move continues next time
-                    File.Delete(PolysArchiveFile);
-                    reporter.Log(string.Format("Model cache moved: {0} models", archive.Files.Length), LogLevel.Success);
-                }
-            }
-            finally
-            {
-                polysMutex.ReleaseMutex();
             }
         }
 
         // Once per process before the first model file is read
-        private static void EnsureHousekeeping(IRenderReporter reporter)
+        private static void EnsureHousekeeping()
         {
-            if (archiveMoved)
+            if (housekeepingDone)
             {
                 return;
             }
 
             lock (PolysLock)
             {
-                if (archiveMoved)
+                if (housekeepingDone)
                 {
                     return;
                 }
@@ -174,9 +112,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 DeleteOldCache("polys5.mpk");
                 DeleteOldCache("polys6.mpk");
                 DeleteOldCache("polys7.mpk");
+                DeleteOldCache("polys8.mpk");
                 Directory.CreateDirectory(PolysCacheDirectory);
-                MoveArchiveToFiles(reporter);
-                archiveMoved = true;
+                housekeepingDone = true;
             }
         }
 
@@ -185,7 +123,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             reporter.Log("Loading polygons ...", LogLevel.Notice);
             reporter.ProgressStart("Loading polygons ...");
 
-            EnsureHousekeeping(reporter);
+            EnsureHousekeeping();
 
             // Models from the zone's own archives are not kept for other zones
             var loadedLocally = new Dictionary<string, Polygon[]>(StringComparer.OrdinalIgnoreCase);

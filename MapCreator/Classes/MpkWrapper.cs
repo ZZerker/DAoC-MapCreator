@@ -19,66 +19,39 @@
 
 using System;
 using System.IO;
-using System.Linq;
-using MPKLib;
+using Mpk;
 
 namespace MapCreator.Classes
 {
 	internal static class MpkWrapper
     {
-
-        public static bool CheckGamePath()
-        {
-            var checkFile = string.Format("{0}\\{1}", Properties.Settings.Default.game_path, "camelot.exe");
-            if (!File.Exists(checkFile))
-            {
-                AppLog.Log("camelot.exe not found in gamepath!");
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Loads an archive read only. MPAK.Load(path) asks for write access, which fails while parallel processes read the same file.
-        /// </summary>
-        public static MPAK Open(string mpk)
-        {
-            var mpak = new MPAK();
-            using (var stream = new FileStream(mpk, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                mpak.Load(stream);
-            }
-            return mpak;
-        }
-
         public static StreamReader GetFileFromMpk(string mpk, string filename)
         {
-            var mpak = Open(mpk);
-
-            if (mpak.Files.Any(f => f.Name.ToLower() == filename.ToLower()))
+            using var archive = MpkArchive.Open(mpk);
+            var entry = archive.Find(filename);
+            if (entry == null)
             {
-                return new StreamReader(new MemoryStream(mpak.GetFile(filename).Data));
+                return null;
             }
 
-            return null;
+            return new StreamReader(new MemoryStream(archive.ReadBytes(entry)));
         }
 
         public static Byte[] GetFileBytesFromMpk(string mpk, string filename)
         {
-            var mpak = Open(mpk);
-            var file = mpak.GetFile(filename);
-            if (file == null)
-            {
-                throw new FileNotFoundException(string.Format("{0} not found in {1}", filename, mpk));
-            }
-
-            return file.Data;
+            using var archive = MpkArchive.Open(mpk);
+            return archive.ReadBytes(filename);
         }
 
         public static bool ContainsFile(string mpk, string filename)
         {
-            return File.Exists(mpk) && Open(mpk).Files.Any(f => string.Equals(f.Name, filename, StringComparison.OrdinalIgnoreCase));
+            if (!File.Exists(mpk))
+            {
+                return false;
+            }
+
+            using var archive = MpkArchive.Open(mpk);
+            return archive.Contains(filename);
         }
 
 
