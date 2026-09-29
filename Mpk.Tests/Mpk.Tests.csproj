@@ -28,6 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Mpk\Mpk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>TestDataDirectory</_Parameter1>
       <_Parameter2>$(MSBuildProjectDirectory)\TestData</_Parameter2>
