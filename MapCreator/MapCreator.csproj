@@ -65,7 +65,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="data\textures\*;data\Zones.xml;data\MapFrames.csv;data\ZoomAreas.csv;data\Keeps.csv;data\Landmarks.csv;data\Bosses.csv;data\CityNpcs.csv;data\Entrances.csv;data\Towns.csv;data\Artifacts.csv;data\fonts\*;fixtures.xml;fixtures.xsd">
+    <None Update="data\textures\*;data\Zones.xml;data\MapFrames.csv;data\ZoomAreas.csv;data\WarMaps.csv;data\Keeps.csv;data\Landmarks.csv;data\Bosses.csv;data\CityNpcs.csv;data\Entrances.csv;data\Towns.csv;data\Artifacts.csv;data\fonts\*;fixtures.xml;fixtures.xsd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -1,7 +1,7 @@
 # Puts a UI map set (MapCreatorNext.exe --ui-maps <render dir> --dir <set>) into the TokaZerk UI repo.
 # <set>\512 goes to Maps and Maps_large, <set>\256 to Maps_small, as DXT1 DDS without mipmaps (texconv). Every zNNN*.dds and rNNN.dds
 # in those folders is replaced, so only our maps remain; areas.dat and regions.dat come from the set. UI assets (map_gitter.dds,
-# no_map.dds, Warmap\) stay. Nothing is committed.
+# no_map.dds) stay. The war map textures in warmap\ are replaced the same way. Nothing is committed.
 # Usage: .\deploy_ui_maps.ps1 -Source D:\PrivatProjects\DAoC-MapCreator\Output\ui_maps8 [-Repo D:\PrivatProjects\tokajerui.git]
 param(
     [Parameter(Mandatory)][string]$Source,
@@ -42,4 +42,29 @@ foreach ($folder in $folders.Keys) {
     Copy-Item (Join-Path $converted[$size] '*.dds') $target
     Copy-Item (Join-Path $Source "$size\areas.dat"), (Join-Path $Source "$size\regions.dat") $target -Force
     Write-Host ("{0}: {1} old maps removed, {2} written" -f $folder, $old.Count, (Get-ChildItem $converted[$size] -Filter *.dds).Count)
+    # Old war map copies, referenced by no XML; the war maps live in warmap\
+    $oldWarmap = Join-Path $target 'Warmap'
+    if (Test-Path $oldWarmap) {
+        Remove-Item $oldWarmap -Recurse
+    }
+}
+
+# War maps: .tga as written, .png converted to DDS; every texture in warmap\ is replaced, files we do not write are removed
+$warSource = Join-Path $Source 'warmap'
+$warTarget = Join-Path $Repo 'warmap'
+if (Test-Path $warSource) {
+    $pngs = Get-ChildItem $warSource -Recurse -Filter *.png
+    foreach ($png in $pngs) {
+        & $texconv -nologo -y -f BC1_UNORM -m 1 -bc xu -o $png.DirectoryName $png.FullName | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "texconv failed for $($png.FullName)"
+        }
+    }
+    Get-ChildItem $warTarget -Recurse -File | Where-Object { $_.Extension -in '.dds', '.tga' } | Remove-Item
+    foreach ($file in Get-ChildItem $warSource -Recurse -File | Where-Object { $_.Extension -in '.dds', '.tga' }) {
+        $destination = Join-Path $warTarget $file.FullName.Substring($warSource.Length + 1)
+        New-Item -ItemType Directory -Force (Split-Path $destination) | Out-Null
+        Copy-Item $file.FullName $destination
+    }
+    Write-Host ("warmap: {0} textures" -f (Get-ChildItem $warTarget -Recurse -File | Where-Object { $_.Extension -in '.dds', '.tga' }).Count)
 }

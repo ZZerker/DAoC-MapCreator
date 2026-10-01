@@ -70,7 +70,60 @@ namespace MapCreator.Classes
                 written += sources.Count;
                 reporter.Log(string.Format("{0} px: {1} zone maps, {2} level maps, {3} regions rewritten", size, sources.Count, levels.Count, rewritten.Count), LogLevel.Success);
             }
+
+            reporter.Log(string.Format("{0} war map textures", WriteWarMaps(renderDirectory, Path.Combine(targetDirectory, "warmap"), reporter)), LogLevel.Success);
             return written;
+        }
+
+        /// <summary>
+        /// The war map textures of data\WarMaps.csv from the zone renders, without labels (the UI draws the keeps); a .dds texture is
+        /// written as .png for the deploy to convert, a .tga as the 32 bit TGA the UI loads
+        /// </summary>
+        private static int WriteWarMaps(string renderDirectory, string directory, IRenderReporter reporter)
+        {
+            var file = Path.Combine(AppContext.BaseDirectory, "data", "WarMaps.csv");
+            if (!File.Exists(file))
+            {
+                return 0;
+            }
+
+            var textures = File.ReadLines(file).Where(l => l.Length > 0 && !l.StartsWith('#')).Select(l => l.Split(';')).Where(f => f.Length >= 5)
+                               .Select(f => (File: f[0].Trim(), Zone: f[1].Trim(), X: int.Parse(f[2]), Y: int.Parse(f[3]), Side: int.Parse(f[4])))
+                               .GroupBy(t => t.File);
+            var count = 0;
+            foreach (var texture in textures)
+            {
+                var width = texture.Max(t => t.X + t.Side);
+                var height = texture.Max(t => t.Y + t.Side);
+                using var map = MagickWrapper.NewImage(MagickColors.Black, width, height);
+                foreach (var tile in texture)
+                {
+                    var mapFile = MainMap(renderDirectory, tile.Zone);
+                    if (!File.Exists(mapFile))
+                    {
+                        reporter.Log(string.Format("War map {0}: zone {1} is not rendered", texture.Key, tile.Zone), LogLevel.Warning);
+                        continue;
+                    }
+                    using var zoneMap = new MagickImage(mapFile);
+                    zoneMap.Resize((uint)tile.Side, (uint)tile.Side);
+                    map.Composite(zoneMap, tile.X, tile.Y, CompositeOperator.Over);
+                }
+
+                var target = Path.Combine(directory, texture.Key.Replace('/', Path.DirectorySeparatorChar));
+                Directory.CreateDirectory(Path.GetDirectoryName(target));
+                map.Depth = 8;
+                if (Path.GetExtension(target).Equals(".tga", StringComparison.OrdinalIgnoreCase))
+                {
+                    map.Alpha(AlphaOption.Opaque);
+                    map.Write(target, MagickFormat.Tga);
+                }
+                else
+                {
+                    map.Write(Path.ChangeExtension(target, ".png"), MagickFormat.Png);
+                }
+                count++;
+            }
+            return count;
         }
 
         /// <summary>

@@ -1,0 +1,41 @@
+# War map textures of the TokaZerk UI: file (in the UI's warmap folder; .dds files are written as .png and converted on deploy);zone;x;y;side in pixels
+# New Frontiers atlases, layout of the ImageAreaTemplates in realmwar_alb/hib/mid.xml
+alb/nf_albmap.tga;178;0;0;128
+alb/nf_albmap.tga;175;128;0;128
+alb/nf_albmap.tga;177;0;128;128
+alb/nf_albmap.tga;176;128;128;128
+hib/nf_hibmap.tga;174;0;0;128
+hib/nf_hibmap.tga;171;128;0;128
+hib/nf_hibmap.tga;173;0;128;128
+hib/nf_hibmap.tga;172;128;128;128
+mid/nf_midmap.tga;169;0;0;128
+mid/nf_midmap.tga;170;128;0;128
+mid/nf_midmap.tga;167;0;128;128
+mid/nf_midmap.tga;168;128;128;128
+agramon/z163.dds;163;0;0;256
+# Old frontiers (OF\realmwar_*.xml, one texture per zone, names from assets.xml)
+alb/war_sauvage.dds;011;0;0;128
+alb/war_snow.dds;012;0;0;128
+alb/war_penni.dds;014;0;0;128
+alb/war_hada.dds;015;0;0;128
+hib/mount_col.dds;210;0;0;128
+hib/cruachan_gorge.dds;211;0;0;128
+hib/breifine.dds;212;0;0;128
+hib/emain.dds;214;0;0;128
+mid/war_uppland.dds;111;0;0;128
+mid/war_yggdra.dds;112;0;0;128
+mid/war_jamland.dds;113;0;0;128
+mid/war_odins.dds;115;0;0;128
+# Old frontier atlases named in OF\realmwar_*.xml, same layout as New Frontiers
+alb/albmap.tga;015;0;0;128
+alb/albmap.tga;012;128;0;128
+alb/albmap.tga;014;0;128;128
+alb/albmap.tga;011;128;128;128
+hib/hibmap2.tga;210;0;0;128
+hib/hibmap2.tga;214;128;0;128
+hib/hibmap2.tga;211;0;128;128
+hib/hibmap2.tga;212;128;128;128
+mid/midmap.tga;112;0;0;128
+mid/midmap.tga;111;128;0;128
+mid/midmap.tga;115;0;128;128
+mid/midmap.tga;113;128;128;128
