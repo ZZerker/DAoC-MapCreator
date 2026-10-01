@@ -1,0 +1,4 @@
+# Zoomed rooms of indoor zones without levels in areas.dat: zone;x;y;side;name, in zone coordinates (from the old TokaZerk UI areas.dat)
+347;5307;44065;7280;MM347_00
+347;18997;21444;7280;MM347_01
+347;33685;6395;7268;MM347_02

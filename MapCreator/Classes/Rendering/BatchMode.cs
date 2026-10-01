@@ -11,7 +11,7 @@ namespace MapCreator.Classes.Rendering
     /// [--labels dir] [--label-size 1024] [--labels-only] [--no-keeps] [--no-depth-water] [--no-console] [--ui].
     /// Other options come from the settings the window saved; nothing is saved back.
     /// A console window shows the progress unless --no-console is given; with --ui the window opens and renders instead.
-    /// --regions <render dir> stitches its zone maps into region maps instead of rendering (RegionMaps).
+    /// --ui-maps <render dir> builds the TokaZerk UI map set from its renders instead of rendering (UiMaps).
     /// </summary>
     internal static class BatchMode
     {
@@ -23,10 +23,10 @@ namespace MapCreator.Classes.Rendering
         /// </summary>
         public static int? TryRun(string[] args)
         {
-            var regionSource = GetValue(args, "--regions");
-            if (regionSource != null)
+            var uiSource = GetValue(args, "--ui-maps");
+            if (uiSource != null)
             {
-                return RunRegions(args, regionSource);
+                return RunUiMaps(args, uiSource);
             }
 
             var settings = ParseArgs(args, out var zoneTerms, out var logName);
@@ -145,17 +145,24 @@ namespace MapCreator.Classes.Rendering
             return batch.Failed == 0 ? 0 : 1;
         }
 
-        // --regions <render dir> [--dir <target dir>] [--region-size 512] [--game <game folder for zones.dat>], log in regions.log
-        private static int RunRegions(string[] args, string source)
+        // --ui-maps <render dir> [--dir <target dir>] [--game <game folder>], log in ui_maps.log
+        private static int RunUiMaps(string[] args, string source)
         {
             var targetPath = RenderSettings.FromSettings(AppSettings.Current).TargetPath;
-            var size = int.TryParse(GetValue(args, "--region-size"), out var regionSize) ? regionSize : 512;
-            using var log = new FileLog(Path.Combine(targetPath, "regions.log"));
+            using var log = new FileLog(Path.Combine(targetPath, "ui_maps.log"));
             AppLog.Reporter = log;
-            var written = RegionMaps.Write(Path.Combine(targetPath, source), Path.Combine(targetPath, GetValue(args, "--dir") ?? source + "_regions"), size,
+            try
+            {
+                var written = UiMaps.Write(Path.Combine(targetPath, source), Path.Combine(targetPath, GetValue(args, "--dir") ?? source + "_ui"),
                                            GetValue(args, "--game") ?? AppSettings.Current.GamePath, log);
-            log.Log(string.Format("{0} region maps written", written), written > 0 ? LogLevel.Success : LogLevel.Warning);
-            return written > 0 ? 0 : 1;
+                log.Log(string.Format("{0} zone maps written", written), written > 0 ? LogLevel.Success : LogLevel.Warning);
+                return written > 0 ? 0 : 1;
+            }
+            catch (Exception ex)
+            {
+                log.Log(ex.ToString(), LogLevel.Error);
+                return 1;
+            }
         }
 
         private static string GetValue(string[] args, string name)

@@ -1,20 +1,27 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using ImageMagick;
 
 namespace MapCreator.Classes
 {
     /// <summary>
-    /// Stitches rendered zone maps (zNNN.png) into region maps rNNN.png like the client's ui\maps\rNNN.dds: the outdoor zones of a
-    /// region placed by zones.dat, framed by the square around them, centered; labeled with the zone names
+    /// Stitches rendered zone maps into a region map like the client's ui\maps\rNNN.dds: the zones placed by zones.dat,
+    /// framed by the square around them, centered; labeled with the zone names
     /// </summary>
     internal static class RegionMaps
     {
-        private const int NEW_FRONTIERS = 163;
-
         private static readonly MagickColor Background = MagickColor.FromRgb(30, 30, 30);
+
+        /// <summary>
+        /// One zone of a region: its place in zones.dat, its name and its rendered map
+        /// </summary>
+        internal sealed record Tile(MapLabels.ZoneArea Area, string Name, string MapFile);
+
+        /// <summary>
+        /// Where a tile landed on the region map, in pixels
+        /// </summary>
+        internal sealed record Placement(int Left, int Top, int Width, int Height);
 
         /// <summary>
         /// Left, top and side of the square the client frames a region with, in the units of the zone areas
@@ -30,56 +37,32 @@ namespace MapCreator.Classes
         }
 
         /// <summary>
-        /// Writes one map per region the client has a map for, with at least one rendered zone, and returns how many were written
+        /// The region map at the given size and where each tile went, in the order of the tiles
         /// </summary>
-        public static int Write(string renderDirectory, string targetDirectory, int size, string gamePath, IRenderReporter reporter)
+        public static MagickImage Stitch(IReadOnlyList<Tile> tiles, int size, out List<Placement> placements)
         {
-            Directory.CreateDirectory(targetDirectory);
-            var outdoor = MapLabels.LoadZones(gamePath).Where(z => z.Type == MapLabels.OUTDOOR && !MapLabels.IsPlaceholder(z.Name ?? "")).ToList();
-            // zones.dat keeps the old frontier zones in the realm regions; the client's realm maps leave them out
-            var frontierNames = outdoor.Where(z => z.Region == NEW_FRONTIERS).Select(z => z.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var regions = outdoor.Where(z => z.Region == NEW_FRONTIERS || !frontierNames.Contains(z.Name ?? ""))
-                                 .GroupBy(z => z.Region)
-                                 .OrderBy(g => g.Key);
-            var written = 0;
-            foreach (var region in regions)
+            var (left, top, side) = GetFrame(tiles.Select(t => t.Area).ToList());
+            var scale = size / side;
+            var map = MagickWrapper.NewImage(Background, size, size);
+            var labels = new List<MapLabels.Label>();
+            placements = new List<Placement>();
+            foreach (var tile in tiles)
             {
-                // Only regions the client has a map for; others group copies and test zones
-                var zones = region.ToList();
-                if (zones.Count < 2 || !File.Exists(Path.Combine(gamePath, "ui", "maps", "r" + region.Key.ToString("000") + ".dds")))
-                {
-                    continue;
-                }
-
-                var rendered = zones.Where(z => File.Exists(Path.Combine(renderDirectory, "z" + z.Id + ".png"))).ToList();
-                if (rendered.Count == 0)
-                {
-                    continue;
-                }
-
-                var (left, top, side) = GetFrame(zones);
-                var scale = size / side;
-                using var map = MagickWrapper.NewImage(Background, size, size);
-                var labels = new List<MapLabels.Label>();
-                foreach (var zone in rendered)
-                {
-                    using var zoneMap = new MagickImage(Path.Combine(renderDirectory, "z" + zone.Id + ".png"));
-                    var x = (int)Math.Round((zone.Left - left) * scale);
-                    var y = (int)Math.Round((zone.Top - top) * scale);
-                    var width = (int)Math.Round((zone.Left + zone.Width - left) * scale) - x;
-                    var height = (int)Math.Round((zone.Top + zone.Height - top) * scale) - y;
-                    zoneMap.Resize(new MagickGeometry((uint)width, (uint)height) { IgnoreAspectRatio = true });
-                    map.Composite(zoneMap, x, y, CompositeOperator.SrcOver);
-                    labels.Add(new MapLabels.Label("zone", zone.Name, (zone.Left + zone.Width / 2 - left) / side, (zone.Top + zone.Height / 2 - top) / side, 1, 0, null));
-                }
-
-                MapLabelPainter.Draw(map, labels);
-                map.Depth = 8;
-                map.Write(Path.Combine(targetDirectory, "r" + region.Key.ToString("000") + ".png"));
-                reporter.Log(string.Format("Region {0:000}: {1} of {2} zones", region.Key, rendered.Count, zones.Count), LogLevel.Notice);
-                written++;
+                var area = tile.Area;
+                var x = (int)Math.Round((area.Left - left) * scale);
+                var y = (int)Math.Round((area.Top - top) * scale);
+                var width = (int)Math.Round((area.Left + area.Width - left) * scale) - x;
+                var height = (int)Math.Round((area.Top + area.Height - top) * scale) - y;
+                placements.Add(new Placement(x, y, width, height));
+                using var zoneMap = new MagickImage(tile.MapFile);
+                zoneMap.Resize(new MagickGeometry((uint)width, (uint)height) { IgnoreAspectRatio = true });
+                map.Composite(zoneMap, x, y, CompositeOperator.SrcOver);
+                labels.Add(new MapLabels.Label("zone", tile.Name, (area.Left + area.Width / 2 - left) / side, (area.Top + area.Height / 2 - top) / side, 1, 0, null));
             }
-            return written;
+
+            MapLabelPainter.Draw(map, labels);
+            map.Depth = 8;
+            return map;
         }
     }
 }
