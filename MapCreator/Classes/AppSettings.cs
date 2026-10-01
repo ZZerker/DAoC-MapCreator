@@ -67,6 +67,8 @@ namespace MapCreator.Classes
         public bool DrawFixtures { get; set; } = true;
         public bool DrawFixturesBelowWater { get; set; } = true;
         public bool DrawKeeps { get; set; } = true;
+
+        public bool ObliqueKeeps { get; set; }
         public bool DrawTrees { get; set; } = true;
         public int TreeTransparency { get; set; } = 25;
 

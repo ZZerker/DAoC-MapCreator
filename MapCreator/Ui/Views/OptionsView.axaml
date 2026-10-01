@@ -183,6 +183,7 @@
                     <CheckBox Content="Buildings and objects" IsChecked="{Binding DrawFixtures}" />
                     <CheckBox Content="Objects below water" IsChecked="{Binding DrawFixturesBelowWater}" />
                     <CheckBox Content="Keeps" IsChecked="{Binding DrawKeeps}" />
+                    <CheckBox Content="3D keeps (seen from the south)" IsChecked="{Binding ObliqueKeeps}" IsEnabled="{Binding DrawKeeps}" Margin="16,2,0,2" />
                     <CheckBox Content="Trees" IsChecked="{Binding DrawTrees}" />
                     <Grid Classes="row" ColumnDefinitions="*,120" IsEnabled="{Binding DrawTrees}" Margin="16,2,0,2">
                         <TextBlock Text="Tree transparency (%)" />

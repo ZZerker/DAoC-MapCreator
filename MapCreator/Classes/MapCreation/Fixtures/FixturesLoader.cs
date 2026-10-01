@@ -97,6 +97,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                 // Clockwise on the map; model y points north
                 this.placementRotations[piece.Fixture.Id] = System.Numerics.Matrix4x4.CreateRotationZ(-(float)(piece.Heading * Math.PI / 180d));
+                this.keepFixtureIds.Add(piece.Fixture.Id);
                 this.fixtureRows.Add(piece.Fixture);
             }
         }
@@ -155,6 +156,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         // Empty border around the city, as a share of its size
         private const double CITY_MARGIN = 0.02;
+
+        private readonly HashSet<int> keepFixtureIds = new HashSet<int>();
 
         // Rotation of each dungeon placement by fixture row id
         private readonly Dictionary<int, System.Numerics.Matrix4x4> placementRotations = new Dictionary<int, System.Numerics.Matrix4x4>();
@@ -487,6 +490,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     var fixture = new DrawableFixture
                                   {
                                       PlacementRotation = this.placementRotations.TryGetValue(fixtureRow.Id, out var placementRotation) ? placementRotation : null,
+                                      IsKeepPiece = this.keepFixtureIds.Contains(fixtureRow.Id),
 		                                  // Set default values
 		                                  Name = fixtureRow.TextualName,
 		                                  NifName = nifRow.Filename,

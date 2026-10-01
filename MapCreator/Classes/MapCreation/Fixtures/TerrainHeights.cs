@@ -1,3 +1,5 @@
+using System;
+
 namespace MapCreator.Classes.MapCreation.Fixtures
 {
     /// <summary>
@@ -10,19 +12,21 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private readonly int size;
         private readonly float[] heights;
+        private readonly float tolerance;
 
         public TerrainHeights(ZoneConfiguration zoneConfiguration)
         {
             var heightmap = zoneConfiguration.Heightmap.HeightmapScaled;
             this.size = (int)heightmap.Width;
             this.heights = new float[this.size * this.size];
-            var tolerance = zoneConfiguration.ZoneCoordinateToMapCoordinate(TOLERANCE);
+            var toleranceMap = zoneConfiguration.ZoneCoordinateToMapCoordinate(TOLERANCE);
+            this.tolerance = (float)toleranceMap;
             using var pixels = heightmap.GetPixelsUnsafe();
             for (var y = 0; y < this.size; y++)
             {
                 for (var x = 0; x < this.size; x++)
                 {
-                    this.heights[y * this.size + x] = (float)(zoneConfiguration.ZoneCoordinateToMapCoordinate(pixels.GetPixel(x, y).GetChannel(0)) - tolerance);
+                    this.heights[y * this.size + x] = (float)(zoneConfiguration.ZoneCoordinateToMapCoordinate(pixels.GetPixel(x, y).GetChannel(0)) - toleranceMap);
                 }
             }
         }
@@ -32,14 +36,24 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// </summary>
         public void Raise(float[] surface, ZoneConfiguration zoneConfiguration)
         {
-            var tolerance = (float)zoneConfiguration.ZoneCoordinateToMapCoordinate(TOLERANCE);
+            var raise = (float)zoneConfiguration.ZoneCoordinateToMapCoordinate(TOLERANCE);
             for (var i = 0; i < this.heights.Length; i++)
             {
-                if (surface[i] - tolerance > this.heights[i])
+                if (surface[i] - raise > this.heights[i])
                 {
-                    this.heights[i] = surface[i] - tolerance;
+                    this.heights[i] = surface[i] - raise;
                 }
             }
+        }
+
+        /// <summary>
+        /// Ground height in map units at a map pixel, without the tolerance
+        /// </summary>
+        public float GroundAt(int x, int y)
+        {
+            x = Math.Clamp(x, 0, this.size - 1);
+            y = Math.Clamp(y, 0, this.size - 1);
+            return this.heights[y * this.size + x] + this.tolerance;
         }
 
         public bool IsBelow(double mapX, double mapY, double z)

@@ -87,6 +87,49 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         public FixtureRendererConfiguration2 RendererConf;
 
+        public bool IsKeepPiece;
+
+        // Map units the oblique view shifts a point up the map per map unit of height
+        internal const double OBLIQUE_FACTOR = 1.0;
+
+        private bool IsOblique => this.IsKeepPiece && this.ZoneConf.ObliqueKeeps;
+
+        /// <summary>
+        /// Position on the map in the oblique view from the south, same axes as the input (X east, Y north)
+        /// </summary>
+        internal static Vector2 ProjectOblique(Vector3 v)
+        {
+            return new Vector2(v.X, (float)(v.Y + OBLIQUE_FACTOR * v.Z));
+        }
+
+        // The viewer is above and south: the direction to the viewer is (0, -OBLIQUE_FACTOR, 1)
+        internal static bool FacesViewer(Vector3 normal)
+        {
+            return normal.Z - OBLIQUE_FACTOR * normal.Y > 0;
+        }
+
+        // Direction towards the sun: mostly from above, slightly from the south west
+        private static readonly Vector3 KeepSun = Vector3.Normalize(new Vector3(-0.3f, -0.45f, 1f));
+
+        internal const double KEEP_AMBIENT = 0.45;
+
+        // Keep lightmaps are authored near white, so they are not boosted like city dark maps
+        internal const double KEEP_DARK_MAP_SCALE = 1.0;
+
+        // Brightness relative to a flat top face, which is 1
+        internal static double ObliqueLight(Vector3 normal)
+        {
+            var top = KEEP_AMBIENT + (1 - KEEP_AMBIENT) * Math.Max(0, Vector3.Dot(Vector3.UnitZ, KeepSun));
+            var own = KEEP_AMBIENT + (1 - KEEP_AMBIENT) * Math.Max(0, Vector3.Dot(normal, KeepSun));
+            return Math.Clamp(own / top, 0, 1);
+        }
+
+        // Larger is nearer the viewer; a step towards the viewer along a view ray raises it
+        internal static double ObliqueDepth(Vector3 v)
+        {
+            return -v.Y + OBLIQUE_FACTOR * v.Z;
+        }
+
         public bool IsTree = false; // Trees need some extra love
         public TreeRow Tree;
         public bool IsTreeCluster = false; // TreeCluster at all
@@ -135,7 +178,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         {
             if (!this.ProcessedPolygons.Any()) return false;
 
+            var oblique = this.IsOblique;
             var vectors = this.ProcessedPolygons.SelectMany(p => p.Vectors);
+            if (oblique)
+            {
+                vectors = vectors.Select(v => new Vector3(v.X, ProjectOblique(v).Y, v.Z));
+            }
             double minX = vectors.Min(p => p.X);
             double maxX = vectors.Max(p => p.X);
             double minY = vectors.Min(p => p.Y);
@@ -171,22 +219,31 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var n = Normalize(this.GetNormal(poly.P1, poly.P2, poly.P3));
 
                 // backface cull
-                if (n.Z < 0) continue;
+                if (oblique ? !FacesViewer(n) : n.Z < 0) continue;
 
-                // shade
-                double ndotl = this.RendererConf.LightVector.X * n.X + this.RendererConf.LightVector.Y * n.Y + this.RendererConf.LightVector.Z * n.Z;
-                if (ndotl > 0) ndotl = 0;
+                double lighting;
+                if (oblique)
+                {
+                    lighting = ObliqueLight(n);
+                }
+                else
+                {
+                    // shade
+                    double ndotl = this.RendererConf.LightVector.X * n.X + this.RendererConf.LightVector.Y * n.Y + this.RendererConf.LightVector.Z * n.Z;
+                    if (ndotl > 0) ndotl = 0;
 
-                // Lightning must be between 0 and 1, its multiplied with RGB and that must return a ushort
-                var lighting = this.RendererConf.LightMin - (this.RendererConf.LightMax - this.RendererConf.LightMin) * ndotl;
-                if (lighting < 0) lighting = 0;
-                else if (lighting > 1) lighting = 1;
+                    // Lightning must be between 0 and 1, its multiplied with RGB and that must return a ushort
+                    lighting = this.RendererConf.LightMin - (this.RendererConf.LightMax - this.RendererConf.LightMin) * ndotl;
+                    if (lighting < 0) lighting = 0;
+                    else if (lighting > 1) lighting = 1;
+                }
 
                 var coordinates = new List<ImageMagick.PointD>();
-                var depths = poly.Vectors.Select(v => (double)v.Z).ToArray();
+                var depths = oblique ? poly.Vectors.Select(ObliqueDepth).ToArray() : poly.Vectors.Select(v => (double)v.Z).ToArray();
                 foreach (var vector in poly.Vectors)
                 {
-                    coordinates.Add(new ImageMagick.PointD(this.CanvasWidth / 2 + vector.X, this.CanvasHeight / 2 - vector.Y));
+                    var shownY = oblique ? ProjectOblique(vector).Y : vector.Y;
+                    coordinates.Add(new ImageMagick.PointD(this.CanvasWidth / 2 + vector.X, this.CanvasHeight / 2 - shownY));
                 }
 
                 // We want to draw the vectors in z-order
@@ -207,7 +264,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var texture2 = textureMode == TextureMode.Map && poly.Uvs2 != null ? TextureCache.Get(texture2Name, this.TextureDirectory) : null;
                 var darkName = poly.DarkTexture != null && this.TextureProxies != null && this.TextureProxies.TryGetValue(System.IO.Path.GetFileNameWithoutExtension(poly.DarkTexture), out var darkProxy) ? darkProxy : poly.DarkTexture;
                 var dark = textureMode == TextureMode.Map && poly.DarkUvs != null ? TextureCache.Get(darkName, this.TextureDirectory) : null;
-                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors, Dark = dark, DarkUvs = poly.DarkUvs, IsWater = poly.IsWater, IsAdditive = poly.IsAdditive, AdditiveColor = poly.MaterialColor });
+                drawlist.Add(new DrawableElement(maxZ, lighting, coordinates, textureColor, texture, poly.Uvs, texture2, poly.Uvs2, poly.TextureBlend) { Depths = depths, VertexColors = poly.VertexColors, Dark = dark, DarkUvs = poly.DarkUvs, IsWater = poly.IsWater, IsAdditive = poly.IsAdditive, AdditiveColor = poly.MaterialColor, Positions = oblique ? poly.Vectors : null });
             }
 
             this.DrawableElements = drawlist.OrderBy(o => o.Order);
@@ -276,11 +333,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
                 // Check visibility of polygons
                 var newPolygon = poly with { Vectors = new[] { p1, p2, p3 } };
-                if (this.PolygonArea(newPolygon.Vectors) > 0.01)
+                var seen = this.IsOblique
+                    ? this.PolygonArea(newPolygon.Vectors.Select(v => new Vector3(ProjectOblique(v), 0)).ToArray())
+                    : this.PolygonArea(newPolygon.Vectors);
+                if (seen > 0.01)
                 {
                     this.ProcessedPolygons.Add(newPolygon);
                 }
-                if (!this.IsTree && !this.IsTreeCluster && !poly.IsWater && !poly.IsAdditive)
+                if (!this.IsOblique && !this.IsTree && !this.IsTreeCluster && !poly.IsWater && !poly.IsAdditive)
                 {
                     this.wallTops.AddRange(this.GetWallTop(newPolygon));
                 }
@@ -422,6 +482,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Height of each corner in map units, for the depth test
         /// </summary>
         public double[] Depths;
+
+        /// <summary>
+        /// Corners relative to the placement (X east, Y north, Z up, map units) for the terrain test of the oblique view, null otherwise
+        /// </summary>
+        public Vector3[] Positions;
 
         /// <summary>
         /// Baked lighting of the corners as r, g, b each, multiplied into the color

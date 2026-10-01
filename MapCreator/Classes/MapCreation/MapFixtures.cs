@@ -1,4 +1,4 @@
-﻿//
+//
 // MapCreator
 // Copyright(C) 2017 Stefan Schäfer <merec@merec.org>
 //
@@ -36,6 +36,7 @@ namespace MapCreator.Classes.MapCreation
 
         private List<DrawableFixture> fixturesUnderWater = new List<DrawableFixture>();
         private List<DrawableFixture> fixturesAboveWater = new List<DrawableFixture>();
+        private readonly List<DrawableFixture> obliqueKeepPieces = new List<DrawableFixture>();
 
         private TerrainHeights terrain;
 
@@ -45,6 +46,14 @@ namespace MapCreator.Classes.MapCreation
 
         // Tree models whose cut out texture covers less than this share of their outline from above
         private const double CARD_TREE_COVERAGE = 0.3;
+
+        // Keep occlusion: blur radius and the height above the surroundings that gives full occlusion (zone units), and its strength
+        private const double KEEP_AO_RADIUS = 300;
+        private const double KEEP_AO_FULL_HEIGHT = 400;
+        private const double KEEP_AO_STRENGTH = 0.45;
+        // Ramps, wall bases and courtyards inside the keep are lit by their own textures and need more to read as shaded
+        private const double KEEP_AO_SURFACE_FULL_HEIGHT = 200;
+        private const double KEEP_AO_SURFACE_STRENGTH = 0.45;
 
         // Soft edge of models with their own terrain, in zone units
         private const double TERRAIN_FEATHER = 256;
@@ -102,6 +111,12 @@ namespace MapCreator.Classes.MapCreation
                     if (model.IsTree || model.IsTreeCluster)
                     {
                         model.RendererConf = FixtureRendererConfigurations.GetRendererById("TreeShaded");
+                    }
+
+                    if (this.zoneConfiguration.ObliqueKeeps && model.IsKeepPiece)
+                    {
+                        this.obliqueKeepPieces.Add(model);
+                        continue;
                     }
 
                     var modelCenterX = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(model.FixtureRow.X);
@@ -281,11 +296,119 @@ namespace MapCreator.Classes.MapCreation
             else
             {
                 this.zoneConfiguration.Reporter.Log(string.Format("There are {0} fixtures to draw.", this.fixturesAboveWater.Count), LogLevel.Notice);
-                this.Draw(map, this.fixturesAboveWater);
+                this.Draw(map, this.fixturesAboveWater, true);
             }
         }
 
-        private void Draw(MagickImage map, List<DrawableFixture> fixtures)
+        // All keep pieces share one canvas and depth buffer; depths are the map row of the ground point plus the height shifted up
+        private void DrawObliqueKeeps(MagickImage target)
+        {
+            if (this.obliqueKeepPieces.Count == 0)
+            {
+                return;
+            }
+
+            var size = this.zoneConfiguration.TargetMapSize;
+            var factors = this.DarkenAroundKeeps(target, size);
+            var canvas = new FixtureCanvas(size, size, this.GetTerrain());
+            foreach (var pass in new[] { 0, 1, 2 })
+            {
+                foreach (var fixture in this.obliqueKeepPieces)
+                {
+                    // Integer halves like the canvas coordinates of GenerateCanvas
+                    var centerX = fixture.ExactCanvasX + fixture.CanvasWidth / 2;
+                    var centerY = fixture.ExactCanvasY + fixture.CanvasHeight / 2;
+                    foreach (var element in fixture.DrawableElements.Where(e => GetDrawPass(e) == pass))
+                    {
+                        var positions = element.Positions.Select(p => new System.Numerics.Vector3((float)(centerX + p.X), (float)(centerY - p.Y), (float)(fixture.BaseCanvasZ + p.Z))).ToArray();
+                        canvas.FillTriangle(element.Coordinates, element.Uvs, element.Texture, GetFillColor(fixture, element), element.Lightning,
+                                            element.Uvs2, element.Texture2, element.TextureBlend, element.Depths, fixture.ExactCanvasX, fixture.ExactCanvasY, centerY + DrawableFixture.OBLIQUE_FACTOR * fixture.BaseCanvasZ,
+                                            element.VertexColors, element.Dark, element.DarkUvs, element.IsWater, element.IsAdditive ? element.AdditiveColor : -1, positions, DrawableFixture.KEEP_DARK_MAP_SCALE, factors);
+                    }
+                }
+            }
+
+            using var layer = canvas.ToImage();
+            var shadowConf = this.obliqueKeepPieces.Select(f => f.RendererConf).FirstOrDefault(c => c.HasShadow);
+            if (shadowConf.HasShadow)
+            {
+                this.CastShadow(layer, shadowConf.ShadowOffsetX, shadowConf.ShadowOffsetY, shadowConf.ShadowSize, new Percentage(100 - shadowConf.ShadowTransparency), shadowConf.ShadowColor, false);
+            }
+            target.Composite(layer, 0, 0, CompositeOperator.SrcOver);
+        }
+
+        // Darkens the map where the keeps stand higher than their surroundings; returns the factors for the keep floors, null without a terrain
+        private OcclusionMap DarkenAroundKeeps(MagickImage target, int size)
+        {
+            var ground = this.GetTerrain();
+            if (ground == null)
+            {
+                return null;
+            }
+
+            var radius = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(KEEP_AO_RADIUS);
+
+            // Everything runs on the bounding box of the keeps plus the blur reach
+            double minX = double.MaxValue, minY = double.MaxValue, maxX = double.MinValue, maxY = double.MinValue;
+            foreach (var fixture in this.obliqueKeepPieces)
+            {
+                var centerX = fixture.ExactCanvasX + fixture.CanvasWidth / 2;
+                var centerY = fixture.ExactCanvasY + fixture.CanvasHeight / 2;
+                foreach (var p in fixture.DrawableElements.SelectMany(e => e.Positions))
+                {
+                    minX = Math.Min(minX, centerX + p.X);
+                    maxX = Math.Max(maxX, centerX + p.X);
+                    minY = Math.Min(minY, centerY - p.Y);
+                    maxY = Math.Max(maxY, centerY - p.Y);
+                }
+            }
+
+            if (minX > maxX)
+            {
+                return null;
+            }
+
+            var margin = 3 * HeightOcclusion.BoxRadius(radius);
+            var x0 = Math.Max(0, (int)Math.Floor(minX) - margin);
+            var y0 = Math.Max(0, (int)Math.Floor(minY) - margin);
+            var width = Math.Min(size, (int)Math.Ceiling(maxX) + margin + 1) - x0;
+            var height = Math.Min(size, (int)Math.Ceiling(maxY) + margin + 1) - y0;
+            if (width <= 0 || height <= 0)
+            {
+                return null;
+            }
+
+            // Top-down surface of the keep pieces at their real positions, heights absolute
+            var heightCanvas = new FixtureCanvas(width, height);
+            foreach (var fixture in this.obliqueKeepPieces)
+            {
+                var centerX = fixture.ExactCanvasX + fixture.CanvasWidth / 2;
+                var centerY = fixture.ExactCanvasY + fixture.CanvasHeight / 2;
+                foreach (var element in fixture.DrawableElements.Where(e => GetDrawPass(e) == 0))
+                {
+                    var coordinates = element.Positions.Select(p => new PointD(centerX + p.X, centerY - p.Y)).ToArray();
+                    var depths = element.Positions.Select(p => fixture.BaseCanvasZ + p.Z).ToArray();
+                    heightCanvas.FillTriangle(coordinates, null, null, MagickColors.White, 1, depths: depths, offsetX: -x0, offsetY: -y0);
+                }
+            }
+
+            var heights = heightCanvas.ToHeights();
+            var groundHeights = new float[heights.Length];
+            for (var i = 0; i < heights.Length; i++)
+            {
+                groundHeights[i] = ground.GroundAt(x0 + i % width, y0 + i / width);
+                heights[i] = float.IsNaN(heights[i]) ? 0 : Math.Max(0, heights[i] - groundHeights[i]);
+            }
+
+            // Every point is compared by its own height, so wall bases and ramps darken, and the ground darkens as ground where overhangs uncover it
+            var occlusion = new OcclusionMap(HeightOcclusion.Blur(heights, width, height, radius), groundHeights, x0, y0, width, height,
+                                             this.zoneConfiguration.ZoneCoordinateToMapCoordinate(KEEP_AO_FULL_HEIGHT), KEEP_AO_STRENGTH,
+                                             this.zoneConfiguration.ZoneCoordinateToMapCoordinate(KEEP_AO_SURFACE_FULL_HEIGHT), KEEP_AO_SURFACE_STRENGTH);
+            HeightOcclusion.Apply(target, occlusion);
+            return occlusion;
+        }
+
+        private void Draw(MagickImage map, List<DrawableFixture> fixtures, bool withKeeps = false)
         {
             this.zoneConfiguration.Reporter.ProgressStart(string.Format("Drawing fixtures ({0}) ...", fixtures.Count));
             var timer = Stopwatch.StartNew();
@@ -350,6 +473,10 @@ namespace MapCreator.Classes.MapCreation
                     }
 
                     map.Composite(modelsOverlay, 0, 0, CompositeOperator.SrcOver);
+                    if (withKeeps)
+                    {
+                        this.DrawObliqueKeeps(map);
+                    }
                     map.Composite(treeOverlay, 0, 0, CompositeOperator.SrcOver);
                 }
             }

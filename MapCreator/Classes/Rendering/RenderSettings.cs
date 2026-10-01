@@ -41,6 +41,7 @@ namespace MapCreator.Classes.Rendering
                 DrawFixtures = settings.DrawFixtures,
                 DrawFixturesBelowWater = settings.DrawFixturesBelowWater,
                 DrawKeeps = settings.DrawKeeps,
+                ObliqueKeeps = settings.ObliqueKeeps,
                 DrawTrees = settings.DrawTrees,
                 TreeTransparency = settings.TreeTransparency,
                 LabelDirectory = string.IsNullOrEmpty(settings.LabelDirectory) ? null : settings.LabelDirectory,
@@ -94,6 +95,8 @@ namespace MapCreator.Classes.Rendering
         public bool DrawFixtures { get; init; }
         public bool DrawFixturesBelowWater { get; init; }
         public bool DrawKeeps { get; init; } = true;
+
+        public bool ObliqueKeeps { get; init; }
         public bool DrawTrees { get; init; }
         public int TreeTransparency { get; init; }
     }

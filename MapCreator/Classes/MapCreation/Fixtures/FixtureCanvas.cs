@@ -52,7 +52,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Depths are corner heights; the offsets place a model's canvas coordinates on a shared canvas.
         /// </summary>
         public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null,
-                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null, bool isWater = false, int additiveColor = -1)
+                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null, bool isWater = false, int additiveColor = -1, Vector3[] positions = null, double darkScale = DARK_MAP_SCALE, OcclusionMap occlusion = null)
         {
             var points = coordinates.Select(p => new PointD((p.X + offsetX) * SUPER_SAMPLING, (p.Y + offsetY) * SUPER_SAMPLING)).ToArray();
             if (points.Length != 3)
@@ -117,9 +117,16 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         continue;
                     }
 
-                    if (depths != null && this.terrain != null && this.terrain.IsBelow((x + 0.5) / SUPER_SAMPLING + this.terrainOriginX, (y + 0.5) / SUPER_SAMPLING + this.terrainOriginY, z))
+                    if (depths != null && this.terrain != null)
                     {
-                        continue;
+                        // Real absolute positions (map column, map row, height) when depth and pixel are not the ground position
+                        var hidden = positions != null
+                            ? this.terrain.IsBelow(w0 * positions[0].X + w1 * positions[1].X + w2 * positions[2].X, w0 * positions[0].Y + w1 * positions[1].Y + w2 * positions[2].Y, w0 * positions[0].Z + w1 * positions[1].Z + w2 * positions[2].Z)
+                            : this.terrain.IsBelow((x + 0.5) / SUPER_SAMPLING + this.terrainOriginX, (y + 0.5) / SUPER_SAMPLING + this.terrainOriginY, z);
+                        if (hidden)
+                        {
+                            continue;
+                        }
                     }
 
                     if (additiveColor >= 0)
@@ -163,9 +170,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                             var du = w0 * darkUvs[0].X + w1 * darkUvs[1].X + w2 * darkUvs[2].X;
                             var dv = w0 * darkUvs[0].Y + w1 * darkUvs[1].Y + w2 * darkUvs[2].Y;
                             dark.Sample(du, dv, darkTexelsPerPixel, out var dr, out var dg, out var db, out _);
-                            r *= dr * DARK_MAP_SCALE / 255d;
-                            g *= dg * DARK_MAP_SCALE / 255d;
-                            b *= db * DARK_MAP_SCALE / 255d;
+                            r *= dr * darkScale / 255d;
+                            g *= dg * darkScale / 255d;
+                            b *= db * darkScale / 255d;
                         }
 
                         r *= light;
@@ -178,6 +185,15 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         r *= w0 * vertexColors[0] + w1 * vertexColors[3] + w2 * vertexColors[6];
                         g *= w0 * vertexColors[1] + w1 * vertexColors[4] + w2 * vertexColors[7];
                         b *= w0 * vertexColors[2] + w1 * vertexColors[5] + w2 * vertexColors[8];
+                    }
+
+                    if (occlusion != null && positions != null)
+                    {
+                        var factor = occlusion.At((int)(w0 * positions[0].X + w1 * positions[1].X + w2 * positions[2].X), (int)(w0 * positions[0].Y + w1 * positions[1].Y + w2 * positions[2].Y),
+                                                  w0 * positions[0].Z + w1 * positions[1].Z + w2 * positions[2].Z);
+                        r *= factor;
+                        g *= factor;
+                        b *= factor;
                     }
 
                     if (depths != null)
