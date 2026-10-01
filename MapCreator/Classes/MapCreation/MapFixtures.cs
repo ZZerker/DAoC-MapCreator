@@ -47,6 +47,10 @@ namespace MapCreator.Classes.MapCreation
         // Tree models whose cut out texture covers less than this share of their outline from above
         private const double CARD_TREE_COVERAGE = 0.3;
 
+        // 3D trees: outline rounding radius as a fraction of the map size (3 px at 2048), and the light floor of filled crowns
+        private const int OBLIQUE_TREE_ROUNDING = 680;
+        private const double FILLED_TREE_LIGHT = 0.4;
+
         // Keep occlusion: blur radius and the height above the surroundings that gives full occlusion (zone units), and its strength
         private const double KEEP_AO_RADIUS = 300;
         private const double KEEP_AO_FULL_HEIGHT = 400;
@@ -329,24 +333,9 @@ namespace MapCreator.Classes.MapCreation
 
             var size = this.zoneConfiguration.TargetMapSize;
             var factors = this.DarkenAroundKeeps(target, size);
+            var trees = this.obliqueKeepPieces.Where(f => f.IsTree || f.IsTreeCluster).ToList();
             var canvas = new FixtureCanvas(size, size, this.GetTerrain());
-            foreach (var pass in new[] { 0, 1, 2 })
-            {
-                foreach (var fixture in this.obliqueKeepPieces)
-                {
-                    // Integer halves like the canvas coordinates of GenerateCanvas
-                    var centerX = fixture.ExactCanvasX + fixture.CanvasWidth / 2;
-                    var centerY = fixture.ExactCanvasY + fixture.CanvasHeight / 2;
-                    foreach (var element in fixture.DrawableElements.Where(e => GetDrawPass(e) == pass))
-                    {
-                        var positions = element.Positions.Select(p => new System.Numerics.Vector3((float)(centerX + p.X), (float)(centerY - p.Y), (float)(fixture.BaseCanvasZ + p.Z))).ToArray();
-                        canvas.FillTriangle(element.Coordinates, element.Uvs, element.Texture, GetFillColor(fixture, element), element.Lightning,
-                                            element.Uvs2, element.Texture2, element.TextureBlend, element.Depths, fixture.ExactCanvasX, fixture.ExactCanvasY, centerY + fixture.ObliqueFactor * fixture.BaseCanvasZ,
-                                            element.VertexColors, element.Dark, element.DarkUvs, element.IsWater, element.IsAdditive ? element.AdditiveColor : -1, positions, DrawableFixture.KEEP_DARK_MAP_SCALE, factors,
-                                            double.IsNaN(fixture.WaterLevel) ? double.MinValue : fixture.WaterLevel);
-                    }
-                }
-            }
+            FillOblique(canvas, this.obliqueKeepPieces.Except(trees), factors, new HashSet<DrawableFixture>());
 
             using var layer = canvas.ToImage();
             var shadowConf = this.obliqueKeepPieces.Select(f => f.RendererConf).FirstOrDefault(c => c.HasShadow);
@@ -355,6 +344,80 @@ namespace MapCreator.Classes.MapCreation
                 this.CastShadow(layer, shadowConf.ShadowOffsetX, shadowConf.ShadowOffsetY, shadowConf.ShadowSize, new Percentage(100 - shadowConf.ShadowTransparency), shadowConf.ShadowColor, false);
             }
             target.Composite(layer, 0, 0, CompositeOperator.SrcOver);
+
+            if (trees.Count > 0)
+            {
+                this.DrawObliqueTrees(target, trees, factors);
+            }
+        }
+
+        /// <summary>
+        /// Trees in 3D on their own layer over the models, with the shadow and transparency of the flat tree layer. Trees whose cut out
+        /// leaves keep too little of their outline are filled with their color like in the flat drawing; the layer's outline is closed
+        /// and softened, so crossed cards read as round crowns
+        /// </summary>
+        private void DrawObliqueTrees(MagickImage target, List<DrawableFixture> trees, OcclusionMap factors)
+        {
+            var size = this.zoneConfiguration.TargetMapSize;
+            var filled = trees.Where(f => this.FillCanvas(f, true, true).CoveredPixels() < this.FillCanvas(f, true, false).CoveredPixels() * CARD_TREE_COVERAGE).ToHashSet();
+            // Modelled trees stay crisp; only filled crowns (crossed cards) are rounded, on their own canvas
+            var canvas = new FixtureCanvas(size, size, this.GetTerrain());
+            FillOblique(canvas, trees.Except(filled), factors, filled);
+            var filledCanvas = new FixtureCanvas(size, size, this.GetTerrain());
+            FillOblique(filledCanvas, filled, factors, filled);
+
+            using var layer = canvas.ToImage();
+            using var filledLayer = filledCanvas.ToImage();
+            var radius = Math.Max(1, size / OBLIQUE_TREE_ROUNDING);
+            filledLayer.Morphology(new MorphologySettings { Method = MorphologyMethod.Close, Kernel = Kernel.Disk, KernelArguments = radius.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+            SoftenEdges(filledLayer, radius);
+            filledLayer.Composite(layer, CompositeOperator.SrcOver);
+            layer.Composite(filledLayer, CompositeOperator.Copy);
+
+            var treeRConf = FixtureRendererConfigurations.GetRendererById("TreeShaded");
+            if (treeRConf.HasShadow)
+            {
+                this.CastShadow(layer, treeRConf.ShadowOffsetX, treeRConf.ShadowOffsetY, treeRConf.ShadowSize, new Percentage(100 - treeRConf.ShadowTransparency), treeRConf.ShadowColor, false);
+            }
+            if (treeRConf.Transparency != 0)
+            {
+                layer.Alpha(AlphaOption.Set);
+                layer.Evaluate(Channels.Alpha, EvaluateOperator.Divide, 100.0 / (100.0 - this.TreeTransparency));
+            }
+            target.Composite(layer, 0, 0, CompositeOperator.SrcOver);
+        }
+
+        private static void SoftenEdges(MagickImage layer, double radius)
+        {
+            using var alpha = (MagickImage)layer.Clone();
+            alpha.Alpha(AlphaOption.Extract);
+            alpha.Blur(0, radius / 2);
+            layer.Composite(alpha, CompositeOperator.CopyAlpha);
+        }
+
+        // Depths are the map row of the ground point plus the height shifted up; filled fixtures are drawn in their color, brighter (flat trees get the layer's average)
+        private static void FillOblique(FixtureCanvas canvas, IEnumerable<DrawableFixture> pieces, OcclusionMap factors, HashSet<DrawableFixture> filled)
+        {
+            var list = pieces.ToList();
+            foreach (var pass in new[] { 0, 1, 2 })
+            {
+                foreach (var fixture in list)
+                {
+                    // Integer halves like the canvas coordinates of GenerateCanvas
+                    var centerX = fixture.ExactCanvasX + fixture.CanvasWidth / 2;
+                    var centerY = fixture.ExactCanvasY + fixture.CanvasHeight / 2;
+                    var isFilled = filled.Contains(fixture);
+                    foreach (var element in fixture.DrawableElements.Where(e => GetDrawPass(e) == pass))
+                    {
+                        var positions = element.Positions.Select(p => new System.Numerics.Vector3((float)(centerX + p.X), (float)(centerY - p.Y), (float)(fixture.BaseCanvasZ + p.Z))).ToArray();
+                        var lighting = isFilled ? FILLED_TREE_LIGHT + (1 - FILLED_TREE_LIGHT) * element.Lightning : element.Lightning;
+                        canvas.FillTriangle(element.Coordinates, element.Uvs, isFilled ? null : element.Texture, GetFillColor(fixture, element), lighting,
+                                            element.Uvs2, element.Texture2, element.TextureBlend, element.Depths, fixture.ExactCanvasX, fixture.ExactCanvasY, centerY + fixture.ObliqueFactor * fixture.BaseCanvasZ,
+                                            element.VertexColors, element.Dark, element.DarkUvs, element.IsWater, element.IsAdditive ? element.AdditiveColor : -1, positions, fixture.DarkMapScale, factors,
+                                            double.IsNaN(fixture.WaterLevel) ? double.MinValue : fixture.WaterLevel);
+                    }
+                }
+            }
         }
 
         // Darkens the map where the keeps stand higher than their surroundings; returns the factors for the keep floors, null without a terrain
@@ -400,7 +463,8 @@ namespace MapCreator.Classes.MapCreation
 
             // Top-down surface of the keep pieces at their real positions, heights absolute
             var heightCanvas = new FixtureCanvas(width, height);
-            foreach (var fixture in this.obliqueKeepPieces)
+            // Trees cast no contact shadow, like in the flat drawing; a forest would darken itself and its floor
+            foreach (var fixture in this.obliqueKeepPieces.Where(f => !f.IsTree && !f.IsTreeCluster))
             {
                 var centerX = fixture.ExactCanvasX + fixture.CanvasWidth / 2;
                 var centerY = fixture.ExactCanvasY + fixture.CanvasHeight / 2;

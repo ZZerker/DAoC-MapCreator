@@ -160,6 +160,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private readonly HashSet<int> keepFixtureIds = new HashSet<int>();
 
         // New Frontiers model files drawn in 3D with the keeps
+        // 3D buildings: models at least this long (world units); smaller props (fences, carts, lamps) stay flat
+        private const double OBLIQUE_BUILDING_SIZE = 600;
+
         private static readonly System.Text.RegularExpressions.Regex ObliqueStructures = new("relickeep|relictemple|relic_temple|milegate|bridge|ropebrdge", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
         // Rotation of each dungeon placement by fixture row id
@@ -595,6 +598,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     else
                     {
                         fixture.RawPolygons = nifRow.Polygons;
+                        if (this.zoneConf.ObliqueBuildings && this.Level == null && GetFootprint(nifRow, fixtureRow) >= OBLIQUE_BUILDING_SIZE)
+                        {
+                            fixture.IsObliqueModel = true;
+                        }
 
                         if (rConf == null)
                         {
@@ -607,6 +614,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     if (fixture.RawPolygons == null)
                     {
                         continue;
+                    }
+
+                    if (this.zoneConf.ObliqueTrees && this.Level == null && (fixture.IsTree || fixture.IsTreeCluster))
+                    {
+                        fixture.IsObliqueModel = true;
                     }
 
                     // Calculate the final look of the model

@@ -18,7 +18,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private const int ALPHA_THRESHOLD = 128;
 
         // Dark maps are authored far below white (medians 40 to 140); 1.5 keeps roofs from going black without bleaching cities
-        private const double DARK_MAP_SCALE = 1.5;
+        internal const double DARK_MAP_SCALE = 1.5;
 
         private readonly int width;
         private readonly int height;

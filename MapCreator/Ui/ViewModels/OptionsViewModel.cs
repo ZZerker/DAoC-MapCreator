@@ -287,6 +287,18 @@ namespace MapCreator.Ui.ViewModels
             set => this.Update(this.settings.ObliqueKeeps, value, v => this.settings.ObliqueKeeps = v);
         }
 
+        public bool ObliqueBuildings
+        {
+            get => this.settings.ObliqueBuildings;
+            set => this.Update(this.settings.ObliqueBuildings, value, v => this.settings.ObliqueBuildings = v);
+        }
+
+        public bool ObliqueTrees
+        {
+            get => this.settings.ObliqueTrees;
+            set => this.Update(this.settings.ObliqueTrees, value, v => this.settings.ObliqueTrees = v);
+        }
+
         public bool AmbientOcclusion
         {
             get => this.settings.AmbientOcclusion;

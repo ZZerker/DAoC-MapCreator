@@ -98,9 +98,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // Structures stand lower than the keeps in the oblique view; tall bridges and gates looked stretched at the keep factor
         internal const double STRUCTURE_OBLIQUE_FACTOR = 0.75;
 
-        internal bool IsOblique => (this.IsKeepPiece || this.IsStructure) && this.ZoneConf.ObliqueKeeps;
+        internal bool IsOblique => ((this.IsKeepPiece || this.IsStructure) && this.ZoneConf.ObliqueKeeps) || this.IsObliqueModel;
 
         internal double ObliqueFactor => this.IsKeepPiece ? OBLIQUE_FACTOR : STRUCTURE_OBLIQUE_FACTOR;
+
+        // Ordinary buildings and trees in 3D (options ObliqueBuildings, ObliqueTrees); their dark maps are authored like city ones
+        public bool IsObliqueModel;
+
+        internal double DarkMapScale => this.IsObliqueModel ? FixtureCanvas.DARK_MAP_SCALE : KEEP_DARK_MAP_SCALE;
 
         /// <summary>
         /// Water surface under the model in map units (NaN on land); parts below it are hidden in the oblique view
@@ -231,11 +236,19 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 var n = Normalize(this.GetNormal(poly.P1, poly.P2, poly.P3));
 
-                // backface cull
-                if (oblique ? !FacesViewer(n, this.ObliqueFactor) : n.Z < 0) continue;
+                // Leaves are thin cards seen from both sides; in 3D a culled card leaves a hole in the crown
+                var tree = this.IsTree || this.IsTreeCluster;
+                if (oblique && tree)
+                {
+                    if (!FacesViewer(n, this.ObliqueFactor))
+                    {
+                        n = -n;
+                    }
+                }
+                else if (oblique ? !FacesViewer(n, this.ObliqueFactor) : n.Z < 0) continue;
 
                 double lighting;
-                if (oblique)
+                if (oblique && !tree)
                 {
                     lighting = ObliqueLight(n);
                 }

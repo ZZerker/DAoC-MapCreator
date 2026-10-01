@@ -174,7 +174,7 @@ namespace MapCreator.Tests
             Assert.Equal(4096, loaded.MapSize);
             Assert.Equal("C:\\Game", loaded.GamePath);
             Assert.Equal("JPEG", loaded.MapType);
-            Assert.Equal(4, loaded.RenderParallel);
+            Assert.Equal(8, loaded.RenderParallel);
             Assert.Equal(new double[] { 1, 1, -1 }, loaded.LightmapZVector);
             Assert.Equal(Color.FromArgb(0, 64, 128).ToArgb(), loaded.RiversColor.ToArgb());
             Assert.Equal(new[] { "000" }, loaded.TickedZones);

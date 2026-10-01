@@ -84,6 +84,12 @@ namespace MapCreator.Classes
         public bool AmbientOcclusion { get; set; }
 
         /// <summary>
+        /// Outdoor buildings and trees drawn in 3D like the keeps
+        /// </summary>
+        public bool ObliqueBuildings { get; set; }
+        public bool ObliqueTrees { get; set; }
+
+        /// <summary>
         /// Levels of a multi level dungeon from areas.dat, empty for all other zones
         /// </summary>
         public IReadOnlyList<MapLevel> Levels { get; } = new List<MapLevel>();
