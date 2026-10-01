@@ -8,9 +8,9 @@ namespace MapCreator.Classes.Rendering
 {
     /// <summary>
     /// Renders without the window: MapCreatorNext.exe --render 163,164|nf+outdoor|all [--size 2048] [--dir name] [--log render.log] [--parallel 4]
-    /// [--labels dir] [--label-size 1024] [--labels-only] [--no-keeps] [--no-depth-water] [--no-console].
+    /// [--labels dir] [--label-size 1024] [--labels-only] [--no-keeps] [--no-depth-water] [--no-console] [--ui].
     /// Other options come from the settings the window saved; nothing is saved back.
-    /// A console window shows the progress unless --no-console is given.
+    /// A console window shows the progress unless --no-console is given; with --ui the window opens and renders instead.
     /// </summary>
     internal static class BatchMode
     {
@@ -22,10 +22,43 @@ namespace MapCreator.Classes.Rendering
         /// </summary>
         public static int? TryRun(string[] args)
         {
-            var zoneTerms = new List<string>();
+            var settings = ParseArgs(args, out var zoneTerms, out var logName);
+            if (zoneTerms.Count == 0 || IsUiRun(args))
+            {
+                return null;
+            }
+
+            using var log = new FileLog(Path.Combine(settings.TargetPath, logName));
+            using var dashboard = HasFlag(args, "--no-console") ? null : new BatchDashboard(log);
+            var reporter = (IRenderReporter)dashboard ?? log;
+            AppLog.Reporter = reporter;
+            try
+            {
+                return Run(settings, zoneTerms, reporter, dashboard);
+            }
+            finally
+            {
+                dashboard?.Finish(TimeSpan.FromSeconds(CLOSE_AFTER_SECONDS));
+            }
+        }
+
+        /// <summary>
+        /// --ui with --render: the window opens and renders with these arguments instead of the console
+        /// </summary>
+        public static bool IsUiRun(string[] args)
+        {
+            return HasFlag(args, "--ui");
+        }
+
+        /// <summary>
+        /// The saved settings with the command line overrides; zoneTerms is empty without --render
+        /// </summary>
+        public static RenderSettings ParseArgs(string[] args, out List<string> zoneTerms, out string logName)
+        {
+            zoneTerms = new List<string>();
             var size = 0;
             string directory = null;
-            var logName = "render.log";
+            logName = "render.log";
             var parallel = 0;
             string labelDirectory = null;
             var labelSize = 0;
@@ -57,13 +90,8 @@ namespace MapCreator.Classes.Rendering
                 }
             }
 
-            if (zoneTerms.Count == 0)
-            {
-                return null;
-            }
-
             var saved = RenderSettings.FromSettings(AppSettings.Current);
-            var settings = saved with
+            return saved with
             {
                 MapSize = size > 0 ? size : saved.MapSize,
                 Parallel = parallel > 0 ? parallel : saved.Parallel,
@@ -76,19 +104,6 @@ namespace MapCreator.Classes.Rendering
                 DrawKeeps = saved.DrawKeeps && !HasFlag(args, "--no-keeps"),
                 DepthShadedWater = saved.DepthShadedWater && !HasFlag(args, "--no-depth-water")
             };
-
-            using var log = new FileLog(Path.Combine(settings.TargetPath, logName));
-            using var dashboard = HasFlag(args, "--no-console") ? null : new BatchDashboard(log);
-            var reporter = (IRenderReporter)dashboard ?? log;
-            AppLog.Reporter = reporter;
-            try
-            {
-                return Run(settings, zoneTerms, reporter, dashboard);
-            }
-            finally
-            {
-                dashboard?.Finish(TimeSpan.FromSeconds(CLOSE_AFTER_SECONDS));
-            }
         }
 
         private static int Run(RenderSettings settings, List<string> zoneTerms, IRenderReporter reporter, BatchDashboard dashboard)

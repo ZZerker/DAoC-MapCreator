@@ -185,7 +185,15 @@ namespace MapCreator.Ui.ViewModels
             AppLog.Log("Cancel requested: the running zones finish, no new zone starts.", LogLevel.Warning);
         }
 
-        private void StartRender(IReadOnlyList<string> zoneIds)
+        /// <summary>
+        /// Renders the zones of a --ui command line with its settings, leaving the ticks and saved settings alone
+        /// </summary>
+        internal void RenderFromCommandLine(IReadOnlyList<string> zoneIds, RenderSettings commandLineSettings)
+        {
+            this.StartRender(zoneIds, commandLineSettings);
+        }
+
+        private void StartRender(IReadOnlyList<string> zoneIds, RenderSettings commandLineSettings = null)
         {
             this.IsActivityExpanded = true;
             if (!GameFolderLocator.CheckGamePath())
@@ -199,7 +207,7 @@ namespace MapCreator.Ui.ViewModels
             var zonesByMap = new Dictionary<string, ZoneSelection>(StringComparer.OrdinalIgnoreCase);
             try
             {
-                renderSettings = RenderSettings.FromSettings(AppSettings.Current);
+                renderSettings = commandLineSettings ?? RenderSettings.FromSettings(AppSettings.Current);
                 foreach (var zoneId in zoneIds.Distinct().OrderBy(id => id, StringComparer.Ordinal))
                 {
                     if (DataWrapper.IsKnownZone(zoneId))
