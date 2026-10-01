@@ -58,6 +58,10 @@ namespace MapCreator.Classes.MapCreation
         private const double MODEL_AO_RADIUS = 300;
         private const double MODEL_AO_FULL_HEIGHT = 200;
         private const double MODEL_AO_STRENGTH = 0.45;
+        // Outdoor zones (option AmbientOcclusion): the ground around buildings, like around the 3D keeps
+        private const double BUILDING_AO_RADIUS = 300;
+        private const double BUILDING_AO_FULL_HEIGHT = 400;
+        private const double BUILDING_AO_STRENGTH = 0.45;
 
         // Soft edge of models with their own terrain, in zone units
         private const double TERRAIN_FEATHER = 256;
@@ -419,6 +423,39 @@ namespace MapCreator.Classes.MapCreation
             return occlusion;
         }
 
+        // Darkens the ground around outdoor models by their height above the terrain; runs before the models are drawn, their canvas positions are still unshifted
+        private void DarkenAroundBuildings(MagickImage map, List<DrawableFixture> buildings)
+        {
+            var ground = this.GetTerrain();
+            if (ground == null || buildings.Count == 0)
+            {
+                return;
+            }
+
+            var size = this.zoneConfiguration.TargetMapSize;
+            var heightCanvas = new FixtureCanvas(size, size);
+            foreach (var fixture in buildings)
+            {
+                foreach (var element in fixture.DrawableElements.Where(e => GetDrawPass(e) == 0 && e.Depths != null))
+                {
+                    heightCanvas.FillTriangle(element.Coordinates, null, null, MagickColors.White, 1, depths: element.Depths, offsetX: fixture.CanvasX, offsetY: fixture.CanvasY, depthOffset: fixture.BaseCanvasZ);
+                }
+            }
+
+            var heights = heightCanvas.ToHeights();
+            var groundHeights = new float[heights.Length];
+            for (var i = 0; i < heights.Length; i++)
+            {
+                groundHeights[i] = ground.GroundAt(i % size, i / size);
+                heights[i] = float.IsNaN(heights[i]) ? 0 : Math.Max(0, heights[i] - groundHeights[i]);
+            }
+
+            var fullHeight = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(BUILDING_AO_FULL_HEIGHT);
+            var occlusion = new OcclusionMap(HeightOcclusion.Blur(heights, size, size, this.zoneConfiguration.ZoneCoordinateToMapCoordinate(BUILDING_AO_RADIUS)), groundHeights, 0, 0, size, size,
+                                             fullHeight, BUILDING_AO_STRENGTH, fullHeight, BUILDING_AO_STRENGTH);
+            HeightOcclusion.Apply(map, occlusion);
+        }
+
         private void Draw(MagickImage map, List<DrawableFixture> fixtures, bool withKeeps = false)
         {
             this.zoneConfiguration.Reporter.ProgressStart(string.Format("Drawing fixtures ({0}) ...", fixtures.Count));
@@ -431,6 +468,11 @@ namespace MapCreator.Classes.MapCreation
                 {
                     this.DrawGround(modelsOverlay, ground);
                     fixtures = fixtures.Except(ground).ToList();
+                }
+
+                if (withKeeps && this.zoneConfiguration.AmbientOcclusion)
+                {
+                    this.DarkenAroundBuildings(map, fixtures.Where(f => !f.IsTree && !f.IsTreeCluster).ToList());
                 }
 
                 using (var treeOverlay = MagickWrapper.NewImage(MagickColors.Transparent, this.zoneConfiguration.TargetMapSize, this.zoneConfiguration.TargetMapSize))
