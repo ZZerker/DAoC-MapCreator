@@ -12,6 +12,8 @@ namespace MapCreator.Classes
     /// </summary>
     internal static class RegionMaps
     {
+        private const int NEW_FRONTIERS = 163;
+
         private static readonly MagickColor Background = MagickColor.FromRgb(30, 30, 30);
 
         /// <summary>
@@ -33,10 +35,12 @@ namespace MapCreator.Classes
         public static int Write(string renderDirectory, string targetDirectory, int size, string gamePath, IRenderReporter reporter)
         {
             Directory.CreateDirectory(targetDirectory);
-            var regions = MapLabels.LoadZones(gamePath)
-                                   .Where(z => z.Type == MapLabels.OUTDOOR && !MapLabels.IsPlaceholder(z.Name ?? ""))
-                                   .GroupBy(z => z.Region)
-                                   .OrderBy(g => g.Key);
+            var outdoor = MapLabels.LoadZones(gamePath).Where(z => z.Type == MapLabels.OUTDOOR && !MapLabels.IsPlaceholder(z.Name ?? "")).ToList();
+            // zones.dat keeps the old frontier zones in the realm regions; the client's realm maps leave them out
+            var frontierNames = outdoor.Where(z => z.Region == NEW_FRONTIERS).Select(z => z.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var regions = outdoor.Where(z => z.Region == NEW_FRONTIERS || !frontierNames.Contains(z.Name ?? ""))
+                                 .GroupBy(z => z.Region)
+                                 .OrderBy(g => g.Key);
             var written = 0;
             foreach (var region in regions)
             {
