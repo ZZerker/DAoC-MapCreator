@@ -136,6 +136,7 @@
                             <NumericUpDown Grid.Column="4" Value="{Binding LightmapZVectorZ}" Minimum="-100" Maximum="100" Increment="0.1" FormatString="0.00" ShowButtonSpinner="False" />
                         </Grid>
                     </StackPanel>
+                    <CheckBox Content="Ambient occlusion (cities and dungeons)" IsChecked="{Binding AmbientOcclusion}" />
                 </StackPanel>
             </Expander>
 

@@ -54,6 +54,10 @@ namespace MapCreator.Classes.MapCreation
         // Ramps, wall bases and courtyards inside the keep are lit by their own textures and need more to read as shaded
         private const double KEEP_AO_SURFACE_FULL_HEIGHT = 200;
         private const double KEEP_AO_SURFACE_STRENGTH = 0.45;
+        // Cities and dungeons (option AmbientOcclusion): empty pixels do not count, so floors next to the void stay as they are
+        private const double MODEL_AO_RADIUS = 300;
+        private const double MODEL_AO_FULL_HEIGHT = 200;
+        private const double MODEL_AO_STRENGTH = 0.45;
 
         // Soft edge of models with their own terrain, in zone units
         private const double TERRAIN_FEATHER = 256;
@@ -271,6 +275,13 @@ namespace MapCreator.Classes.MapCreation
                                             drawableElement.IsWater, drawableElement.IsAdditive ? drawableElement.AdditiveColor : -1);
                     }
                 }
+            }
+
+            if (this.zoneConfiguration.AmbientOcclusion)
+            {
+                var size = this.zoneConfiguration.TargetMapSize;
+                var blurred = HeightOcclusion.BlurDrawn(canvas.ToHeights(), size, size, this.zoneConfiguration.ZoneCoordinateToMapCoordinate(MODEL_AO_RADIUS));
+                canvas.Darken(blurred, this.zoneConfiguration.ZoneCoordinateToMapCoordinate(MODEL_AO_FULL_HEIGHT), MODEL_AO_STRENGTH);
             }
 
             using (var layer = canvas.ToImage())

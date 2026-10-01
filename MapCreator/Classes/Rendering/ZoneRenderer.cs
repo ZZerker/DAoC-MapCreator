@@ -42,6 +42,7 @@ namespace MapCreator.Classes.Rendering
             {
                 conf.DrawKeeps = settings.DrawKeeps;
                 conf.ObliqueKeeps = settings.ObliqueKeeps;
+                conf.AmbientOcclusion = settings.AmbientOcclusion;
                 if (conf.IsCity || conf.IsDungeon)
                 {
                     new ModelZoneRenderer(settings, reporter).Render(conf, mapFile);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using ImageMagick;
 using System.Numerics;
 
@@ -246,6 +247,32 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         }
 
         /// <summary>
+        /// Ambient occlusion per sample: each drawn sample is compared by its own depth with the blurred heights of its map pixel (NaN = unchanged).
+        /// Per sample, because walls seen edge-on cover single sample columns and would lend their height to the floor beside them.
+        /// </summary>
+        public void Darken(float[] blurred, double fullHeight, double strength)
+        {
+            Parallel.For(0, this.bufferHeight, y =>
+            {
+                for (var x = 0; x < this.bufferWidth; x++)
+                {
+                    var sample = y * this.bufferWidth + x;
+                    var around = blurred[y / SUPER_SAMPLING * this.width + x / SUPER_SAMPLING];
+                    if (this.pixels[sample * 4 + 3] == 0 || this.depth[sample] == float.MinValue || float.IsNaN(around))
+                    {
+                        continue;
+                    }
+
+                    var factor = HeightOcclusion.Factor(around, this.depth[sample], fullHeight, strength);
+                    for (var c = 0; c < 3; c++)
+                    {
+                        this.pixels[sample * 4 + c] = (byte)(this.pixels[sample * 4 + c] * factor + 0.5);
+                    }
+                }
+            });
+        }
+
+        /// <summary>
         /// Highest surface per map pixel in map units, NaN where nothing was drawn
         /// </summary>
         public float[] ToHeights()
@@ -261,7 +288,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         for (var sx = 0; sx < SUPER_SAMPLING; sx++)
                         {
                             var sample = (y * SUPER_SAMPLING + sy) * this.bufferWidth + x * SUPER_SAMPLING + sx;
-                            if (this.pixels[sample * 4 + 3] != 0 && !(top >= this.depth[sample]))
+                            // Glows over nothing have no depth
+                            if (this.pixels[sample * 4 + 3] != 0 && this.depth[sample] != float.MinValue && !(top >= this.depth[sample]))
                             {
                                 top = this.depth[sample];
                             }

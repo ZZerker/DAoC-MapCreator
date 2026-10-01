@@ -40,6 +40,7 @@ namespace MapCreator.Classes
         public bool DrawKeeps { get; set; }
 
         public bool ObliqueKeeps { get; set; }
+        public bool AmbientOcclusion { get; set; }
         public bool DrawTrees { get; set; }
         public int TreeTransparency { get; set; }
 
@@ -78,6 +79,7 @@ namespace MapCreator.Classes
             this.DrawFixturesBelowWater = settings.DrawFixturesBelowWater;
             this.DrawKeeps = settings.DrawKeeps;
             this.ObliqueKeeps = settings.ObliqueKeeps;
+            this.AmbientOcclusion = settings.AmbientOcclusion;
             this.DrawTrees = settings.DrawTrees;
             this.TreeTransparency = settings.TreeTransparency;
             this.LabelDirectory = settings.LabelDirectory;
@@ -111,6 +113,7 @@ namespace MapCreator.Classes
             settings.DrawFixturesBelowWater = this.DrawFixturesBelowWater;
             settings.DrawKeeps = this.DrawKeeps;
             settings.ObliqueKeeps = this.ObliqueKeeps;
+            settings.AmbientOcclusion = this.AmbientOcclusion;
             settings.DrawTrees = this.DrawTrees;
             settings.TreeTransparency = this.TreeTransparency;
             settings.LabelDirectory = this.LabelDirectory;

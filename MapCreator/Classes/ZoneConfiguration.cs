@@ -81,6 +81,7 @@ namespace MapCreator.Classes
         /// </summary>
         public bool DrawKeeps { get; set; } = true;
         public bool ObliqueKeeps { get; set; }
+        public bool AmbientOcclusion { get; set; }
 
         /// <summary>
         /// Levels of a multi level dungeon from areas.dat, empty for all other zones

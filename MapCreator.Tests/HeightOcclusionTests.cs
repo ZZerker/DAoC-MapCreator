@@ -90,6 +90,21 @@ namespace MapCreator.Tests
         }
 
         [Fact]
+        public void EmptyPixelsDoNotPullTheBlurDown()
+        {
+            var heights = Enumerable.Repeat(float.NaN, SIZE * SIZE).ToArray();
+            for (var x = 20; x < 44; x++)
+            {
+                heights[32 * SIZE + x] = 500;
+            }
+            var blurred = HeightOcclusion.BlurDrawn(heights, SIZE, SIZE, 4);
+
+            Assert.True(float.IsNaN(blurred[0]));
+            Assert.Equal(500f, blurred[32 * SIZE + 20], 2);
+            Assert.Equal(1f, HeightOcclusion.Factor(blurred[32 * SIZE + 20], 500, 50, STRENGTH), 4);
+        }
+
+        [Fact]
         public void FarGroundStaysAndNothingGetsDarkerThanTheStrength()
         {
             var factors = Factors();

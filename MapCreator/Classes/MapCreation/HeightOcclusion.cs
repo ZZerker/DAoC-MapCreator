@@ -65,6 +65,28 @@ namespace MapCreator.Classes.MapCreation
         }
 
         /// <summary>
+        /// Blur over the drawn pixels only: NaN marks empty pixels, which neither count nor get a value (NaN stays)
+        /// </summary>
+        public static float[] BlurDrawn(float[] heights, int width, int height, double radius)
+        {
+            var values = new float[heights.Length];
+            var weights = new float[heights.Length];
+            for (var i = 0; i < heights.Length; i++)
+            {
+                if (!float.IsNaN(heights[i]))
+                {
+                    values[i] = heights[i];
+                    weights[i] = 1;
+                }
+            }
+
+            values = Blur(values, width, height, radius);
+            weights = Blur(weights, width, height, radius);
+            Parallel.For(0, values.Length, i => values[i] = float.IsNaN(heights[i]) || weights[i] <= 0 ? float.NaN : values[i] / weights[i]);
+            return values;
+        }
+
+        /// <summary>
         /// Factor per pixel for the surface of the height map itself, 1 = unchanged
         /// </summary>
         public static float[] Compute(float[] heights, int width, int height, double radius, double fullHeight, double strength)
