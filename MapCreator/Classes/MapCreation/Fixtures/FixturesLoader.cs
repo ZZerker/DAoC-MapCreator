@@ -159,6 +159,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private readonly HashSet<int> keepFixtureIds = new HashSet<int>();
 
+        // New Frontiers model files drawn in 3D with the keeps
+        private static readonly System.Text.RegularExpressions.Regex ObliqueStructures = new("relickeep|relictemple|relic_temple|milegate|bridge|ropebrdge", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
         // Rotation of each dungeon placement by fixture row id
         private readonly Dictionary<int, System.Numerics.Matrix4x4> placementRotations = new Dictionary<int, System.Numerics.Matrix4x4>();
 
@@ -480,6 +483,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var treeClusters = FixtureCache.TreeClusters;
 
             var progressCounter = 0;
+            var isFrontier = DataWrapper.GetExpansionByZone(this.zoneConf.ZoneId) == GameExpansion.NewFrontiers;
             foreach (var fixtureRow in this.fixtureRows)
             {
                 try
@@ -491,6 +495,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                                   {
                                       PlacementRotation = this.placementRotations.TryGetValue(fixtureRow.Id, out var placementRotation) ? placementRotation : null,
                                       IsKeepPiece = this.keepFixtureIds.Contains(fixtureRow.Id),
+                                      IsStructure = isFrontier && ObliqueStructures.IsMatch(nifRow.Filename),
 		                                  // Set default values
 		                                  Name = fixtureRow.TextualName,
 		                                  NifName = nifRow.Filename,

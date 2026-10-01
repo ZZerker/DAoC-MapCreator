@@ -121,12 +121,6 @@ namespace MapCreator.Classes.MapCreation
                         model.RendererConf = FixtureRendererConfigurations.GetRendererById("TreeShaded");
                     }
 
-                    if (this.zoneConfiguration.ObliqueKeeps && model.IsKeepPiece)
-                    {
-                        this.obliqueKeepPieces.Add(model);
-                        continue;
-                    }
-
                     var modelCenterX = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(model.FixtureRow.X);
                     var modelCenterY = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(model.FixtureRow.Y);
 
@@ -139,6 +133,16 @@ namespace MapCreator.Classes.MapCreation
                             riverHeight = river.Key.Height;
                             break;
                         }
+                    }
+
+                    if (model.IsOblique)
+                    {
+                        if (riverHeight != 0)
+                        {
+                            model.WaterLevel = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(riverHeight);
+                        }
+                        this.obliqueKeepPieces.Add(model);
+                        continue;
                     }
 
                     if (riverHeight == 0 || (riverHeight != 0 && model.TopZ > riverHeight))
@@ -337,8 +341,9 @@ namespace MapCreator.Classes.MapCreation
                     {
                         var positions = element.Positions.Select(p => new System.Numerics.Vector3((float)(centerX + p.X), (float)(centerY - p.Y), (float)(fixture.BaseCanvasZ + p.Z))).ToArray();
                         canvas.FillTriangle(element.Coordinates, element.Uvs, element.Texture, GetFillColor(fixture, element), element.Lightning,
-                                            element.Uvs2, element.Texture2, element.TextureBlend, element.Depths, fixture.ExactCanvasX, fixture.ExactCanvasY, centerY + DrawableFixture.OBLIQUE_FACTOR * fixture.BaseCanvasZ,
-                                            element.VertexColors, element.Dark, element.DarkUvs, element.IsWater, element.IsAdditive ? element.AdditiveColor : -1, positions, DrawableFixture.KEEP_DARK_MAP_SCALE, factors);
+                                            element.Uvs2, element.Texture2, element.TextureBlend, element.Depths, fixture.ExactCanvasX, fixture.ExactCanvasY, centerY + fixture.ObliqueFactor * fixture.BaseCanvasZ,
+                                            element.VertexColors, element.Dark, element.DarkUvs, element.IsWater, element.IsAdditive ? element.AdditiveColor : -1, positions, DrawableFixture.KEEP_DARK_MAP_SCALE, factors,
+                                            double.IsNaN(fixture.WaterLevel) ? double.MinValue : fixture.WaterLevel);
                     }
                 }
             }

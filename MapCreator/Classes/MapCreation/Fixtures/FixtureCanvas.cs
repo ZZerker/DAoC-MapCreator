@@ -53,7 +53,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         /// Depths are corner heights; the offsets place a model's canvas coordinates on a shared canvas.
         /// </summary>
         public void FillTriangle(IEnumerable<PointD> coordinates, Vector2[] uvs, TextureImage texture, MagickColor color, double light, Vector2[] uvs2 = null, TextureImage texture2 = null, float[] textureBlend = null,
-                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null, bool isWater = false, int additiveColor = -1, Vector3[] positions = null, double darkScale = DARK_MAP_SCALE, OcclusionMap occlusion = null)
+                                 double[] depths = null, double offsetX = 0, double offsetY = 0, double depthOffset = 0, float[] vertexColors = null, TextureImage dark = null, Vector2[] darkUvs = null, bool isWater = false, int additiveColor = -1, Vector3[] positions = null, double darkScale = DARK_MAP_SCALE, OcclusionMap occlusion = null, double floorZ = double.MinValue)
         {
             var points = coordinates.Select(p => new PointD((p.X + offsetX) * SUPER_SAMPLING, (p.Y + offsetY) * SUPER_SAMPLING)).ToArray();
             if (points.Length != 3)
@@ -128,6 +128,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         {
                             continue;
                         }
+                    }
+
+                    // Below the water surface (bridge pillars in a river)
+                    if (positions != null && w0 * positions[0].Z + w1 * positions[1].Z + w2 * positions[2].Z < floorZ)
+                    {
+                        continue;
                     }
 
                     if (additiveColor >= 0)

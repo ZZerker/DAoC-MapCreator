@@ -89,23 +89,36 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         public bool IsKeepPiece;
 
+        // Other New Frontiers buildings drawn in 3D with the keeps (relic keeps and temples, mile gates, bridges)
+        public bool IsStructure;
+
         // Map units the oblique view shifts a point up the map per map unit of height
         internal const double OBLIQUE_FACTOR = 1.0;
 
-        private bool IsOblique => this.IsKeepPiece && this.ZoneConf.ObliqueKeeps;
+        // Structures stand lower than the keeps in the oblique view; tall bridges and gates looked stretched at the keep factor
+        internal const double STRUCTURE_OBLIQUE_FACTOR = 0.75;
+
+        internal bool IsOblique => (this.IsKeepPiece || this.IsStructure) && this.ZoneConf.ObliqueKeeps;
+
+        internal double ObliqueFactor => this.IsKeepPiece ? OBLIQUE_FACTOR : STRUCTURE_OBLIQUE_FACTOR;
+
+        /// <summary>
+        /// Water surface under the model in map units (NaN on land); parts below it are hidden in the oblique view
+        /// </summary>
+        public double WaterLevel = double.NaN;
 
         /// <summary>
         /// Position on the map in the oblique view from the south, same axes as the input (X east, Y north)
         /// </summary>
-        internal static Vector2 ProjectOblique(Vector3 v)
+        internal static Vector2 ProjectOblique(Vector3 v, double factor = OBLIQUE_FACTOR)
         {
-            return new Vector2(v.X, (float)(v.Y + OBLIQUE_FACTOR * v.Z));
+            return new Vector2(v.X, (float)(v.Y + factor * v.Z));
         }
 
-        // The viewer is above and south: the direction to the viewer is (0, -OBLIQUE_FACTOR, 1)
-        internal static bool FacesViewer(Vector3 normal)
+        // The viewer is above and south: the direction to the viewer is (0, -factor, 1)
+        internal static bool FacesViewer(Vector3 normal, double factor = OBLIQUE_FACTOR)
         {
-            return normal.Z - OBLIQUE_FACTOR * normal.Y > 0;
+            return normal.Z - factor * normal.Y > 0;
         }
 
         // Direction towards the sun: mostly from above, slightly from the south west
@@ -125,9 +138,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         }
 
         // Larger is nearer the viewer; a step towards the viewer along a view ray raises it
-        internal static double ObliqueDepth(Vector3 v)
+        internal static double ObliqueDepth(Vector3 v, double factor = OBLIQUE_FACTOR)
         {
-            return -v.Y + OBLIQUE_FACTOR * v.Z;
+            return -v.Y + factor * v.Z;
         }
 
         public bool IsTree = false; // Trees need some extra love
@@ -182,7 +195,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             var vectors = this.ProcessedPolygons.SelectMany(p => p.Vectors);
             if (oblique)
             {
-                vectors = vectors.Select(v => new Vector3(v.X, ProjectOblique(v).Y, v.Z));
+                vectors = vectors.Select(v => new Vector3(v.X, ProjectOblique(v, this.ObliqueFactor).Y, v.Z));
             }
             double minX = vectors.Min(p => p.X);
             double maxX = vectors.Max(p => p.X);
@@ -219,7 +232,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var n = Normalize(this.GetNormal(poly.P1, poly.P2, poly.P3));
 
                 // backface cull
-                if (oblique ? !FacesViewer(n) : n.Z < 0) continue;
+                if (oblique ? !FacesViewer(n, this.ObliqueFactor) : n.Z < 0) continue;
 
                 double lighting;
                 if (oblique)
@@ -239,10 +252,10 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 }
 
                 var coordinates = new List<ImageMagick.PointD>();
-                var depths = oblique ? poly.Vectors.Select(ObliqueDepth).ToArray() : poly.Vectors.Select(v => (double)v.Z).ToArray();
+                var depths = oblique ? poly.Vectors.Select(v => ObliqueDepth(v, this.ObliqueFactor)).ToArray() : poly.Vectors.Select(v => (double)v.Z).ToArray();
                 foreach (var vector in poly.Vectors)
                 {
-                    var shownY = oblique ? ProjectOblique(vector).Y : vector.Y;
+                    var shownY = oblique ? ProjectOblique(vector, this.ObliqueFactor).Y : vector.Y;
                     coordinates.Add(new ImageMagick.PointD(this.CanvasWidth / 2 + vector.X, this.CanvasHeight / 2 - shownY));
                 }
 
@@ -334,7 +347,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 // Check visibility of polygons
                 var newPolygon = poly with { Vectors = new[] { p1, p2, p3 } };
                 var seen = this.IsOblique
-                    ? this.PolygonArea(newPolygon.Vectors.Select(v => new Vector3(ProjectOblique(v), 0)).ToArray())
+                    ? this.PolygonArea(newPolygon.Vectors.Select(v => new Vector3(ProjectOblique(v, this.ObliqueFactor), 0)).ToArray())
                     : this.PolygonArea(newPolygon.Vectors);
                 if (seen > 0.01)
                 {
