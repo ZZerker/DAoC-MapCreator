@@ -28,7 +28,7 @@ namespace MapCreator.Classes
         }
 
         /// <summary>
-        /// Writes one map per region with at least one rendered zone and returns how many were written
+        /// Writes one map per region the client has a map for, with at least one rendered zone, and returns how many were written
         /// </summary>
         public static int Write(string renderDirectory, string targetDirectory, int size, string gamePath, IRenderReporter reporter)
         {
@@ -40,9 +40,9 @@ namespace MapCreator.Classes
             var written = 0;
             foreach (var region in regions)
             {
-                // Single-zone regions (battlegrounds, instances) have no region map in the client
+                // Only regions the client has a map for; others group copies and test zones
                 var zones = region.ToList();
-                if (zones.Count < 2)
+                if (zones.Count < 2 || !File.Exists(Path.Combine(gamePath, "ui", "maps", "r" + region.Key.ToString("000") + ".dds")))
                 {
                     continue;
                 }
