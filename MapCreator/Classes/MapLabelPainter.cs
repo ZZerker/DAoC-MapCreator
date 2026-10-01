@@ -70,7 +70,8 @@ namespace MapCreator.Classes
             { "artifact", (true, 10) },
             { "dock", (true, 9) },
             { "stable", (true, 9) },
-            { "trainer", (false, 9) }
+            { "trainer", (false, 9) },
+            { "zone", (true, 10) }
         };
 
         // Drawing order: what matters most claims its place first
@@ -170,7 +171,7 @@ namespace MapCreator.Classes
 
                 // Keeps are labeled clear of their walls, other points right next to their mark
                 var gap = scale * (label.Kind == "keep" ? 14 : label.Kind == "tower" ? 8 : label.Kind == "trainer" ? 0 : 6);
-                var candidates = label.Kind == "trainer"
+                var candidates = label.Kind is "trainer" or "zone"
                                      ? new[] { (x - width / 2, y - height / 2) }
                                      : new[] { (x - width / 2, y + gap), (x - width / 2, y - gap - height), (x + gap, y - height / 2), (x - gap - width, y - height / 2) };
                 foreach (var (left, top) in candidates)

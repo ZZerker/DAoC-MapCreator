@@ -11,6 +11,7 @@ namespace MapCreator.Classes.Rendering
     /// [--labels dir] [--label-size 1024] [--labels-only] [--no-keeps] [--no-depth-water] [--no-console] [--ui].
     /// Other options come from the settings the window saved; nothing is saved back.
     /// A console window shows the progress unless --no-console is given; with --ui the window opens and renders instead.
+    /// --regions <render dir> stitches its zone maps into region maps instead of rendering (RegionMaps).
     /// </summary>
     internal static class BatchMode
     {
@@ -22,6 +23,12 @@ namespace MapCreator.Classes.Rendering
         /// </summary>
         public static int? TryRun(string[] args)
         {
+            var regionSource = GetValue(args, "--regions");
+            if (regionSource != null)
+            {
+                return RunRegions(args, regionSource);
+            }
+
             var settings = ParseArgs(args, out var zoneTerms, out var logName);
             if (zoneTerms.Count == 0 || IsUiRun(args))
             {
@@ -136,6 +143,31 @@ namespace MapCreator.Classes.Rendering
             batch.Run(zones);
             batch.LogSummary(zones.Count, timer.Elapsed);
             return batch.Failed == 0 ? 0 : 1;
+        }
+
+        // --regions <render dir> [--dir <target dir>] [--region-size 512] [--game <game folder for zones.dat>], log in regions.log
+        private static int RunRegions(string[] args, string source)
+        {
+            var targetPath = RenderSettings.FromSettings(AppSettings.Current).TargetPath;
+            var size = int.TryParse(GetValue(args, "--region-size"), out var regionSize) ? regionSize : 512;
+            using var log = new FileLog(Path.Combine(targetPath, "regions.log"));
+            AppLog.Reporter = log;
+            var written = RegionMaps.Write(Path.Combine(targetPath, source), Path.Combine(targetPath, GetValue(args, "--dir") ?? source + "_regions"), size,
+                                           GetValue(args, "--game") ?? AppSettings.Current.GamePath, log);
+            log.Log(string.Format("{0} region maps written", written), written > 0 ? LogLevel.Success : LogLevel.Warning);
+            return written > 0 ? 0 : 1;
+        }
+
+        private static string GetValue(string[] args, string name)
+        {
+            for (var i = 0; i < args.Length - 1; i++)
+            {
+                if (string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return args[i + 1];
+                }
+            }
+            return null;
         }
 
         private static bool HasFlag(string[] args, string flag)

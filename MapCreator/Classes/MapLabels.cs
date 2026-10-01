@@ -16,7 +16,7 @@ namespace MapCreator.Classes
     {
         private const double BLOCK = 8192;
 
-        private const int OUTDOOR = 0;
+        internal const int OUTDOOR = 0;
 
         private static readonly string[] TowerWords = { "tower", "outpost", "spire" };
 
@@ -25,13 +25,16 @@ namespace MapCreator.Classes
         // Old frontier zones only get their neighbors: their client points (keep teleports named DFEntrance) are unreliable
         private static readonly HashSet<string> OldFrontiers = new() { "011", "012", "014", "015", "111", "112", "113", "115", "210", "211", "212", "214" };
 
+        // Blackthorn adds one zone per classic region named after the realm, far outside the region
+        private static readonly HashSet<string> RealmPlaceholders = new(StringComparer.OrdinalIgnoreCase) { "Albion", "Midgard", "Hibernia" };
+
         private static readonly string[] PointFiles = { "Landmarks.csv", "Bosses.csv", "CityNpcs.csv", "Entrances.csv", "Towns.csv", "Artifacts.csv" };
 
         public sealed record Label(string Kind, string Text, double X, double Y, int Priority, int Realm, string Edge);
 
         private sealed record LabelFile(string Zone, List<Label> Labels);
 
-        private sealed record ZoneArea(string Id, string Name, int Region, int Type, double Left, double Top, double Width, double Height);
+        internal sealed record ZoneArea(string Id, string Name, int Region, int Type, double Left, double Top, double Width, double Height);
 
         /// <summary>
         /// Writes zNNN.labels.json next to the map and returns the labels. Cities and dungeons need their frame: the one given,
@@ -127,9 +130,9 @@ namespace MapCreator.Classes
         }
 
         // zones.dat keeps enabled placeholders such as Dummy Zone (157) and TestBG (242); no player gets there
-        private static bool IsPlaceholder(string name)
+        internal static bool IsPlaceholder(string name)
         {
-            return name.Contains("dummy", StringComparison.OrdinalIgnoreCase) || name.Contains("test", StringComparison.OrdinalIgnoreCase);
+            return name.Contains("dummy", StringComparison.OrdinalIgnoreCase) || name.Contains("test", StringComparison.OrdinalIgnoreCase) || RealmPlaceholders.Contains(name);
         }
 
         private static IEnumerable<Label> GetKeeps(ZoneArea zone)
@@ -209,10 +212,10 @@ namespace MapCreator.Classes
             }
         }
 
-        private static List<ZoneArea> LoadZones()
+        internal static List<ZoneArea> LoadZones(string gamePath = null)
         {
             var zones = new List<ZoneArea>();
-            var zonesDat = DatFile.FromMpk(Path.Combine(AppSettings.Current.GamePath, "zones", "zones.mpk"), "zones.dat");
+            var zonesDat = DatFile.FromMpk(Path.Combine(gamePath ?? AppSettings.Current.GamePath, "zones", "zones.mpk"), "zones.dat");
             if (zonesDat == null)
             {
                 return zones;
