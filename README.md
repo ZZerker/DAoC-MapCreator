@@ -98,11 +98,11 @@ dotnet build MapCreator.sln -c Release
 The program is written to `Releases\MapCreatorNext.exe`. Pushing a tag `v*` builds and publishes a GitHub release.
 
 ## Usage
-Start `MapCreatorNext.exe`. Tick zones in the list on the left (search by name or id, or tick whole groups such as a realm, an expansion or a zone type), set the options on the right or pick a preset, and click Render. The activity panel shows every running zone and the log; the map in the middle shows the selected zone's current render with its labels, zoomable. Game folder, output folder, cache cleanup and licenses are under Settings. Settings are saved in `%LOCALAPPDATA%\MapCreator\settings.json`, presets in `presets.json` next to it.
+Start `MapCreatorNext.exe`. Tick zones in the list on the left (search by name or id, or tick whole groups such as a realm, an expansion or a zone type), set the options on the right or pick a preset, and click Render. "Showing maps from" in the top bar picks the render folder the window looks at (every folder in the output folder that holds zone maps, with its date and zone count); a render switches it to the folder it writes into. Each zone in the list shows its state in that folder in color: rendered with the date, queued, rendering, failed, not rendered, or archive newer (the game files changed after the render). The Map tab shows the selected zone's map with its labels, zoomable, and the file it comes from; the Activity tab shows every running zone, the finished ones and the log. Each render folder gets its own `render.log`. Game folder, output folder, cache cleanup and licenses are under Settings. Settings are saved in `%LOCALAPPDATA%\MapCreator\settings.json`, presets in `presets.json` next to it.
 
 Batch mode renders without user input and without the main window:
 ```
-MapCreatorNext.exe --render <zones> [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 8] [--no-keeps] [--no-depth-water] [--labels-only] [--no-console]
+MapCreatorNext.exe --render <zones> [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 12] [--no-keeps] [--no-depth-water] [--labels-only] [--no-console]
 ```
 A console window shows the run live: zones done, failed and left, the estimated time left, memory, one row per zone being rendered with its current step and progress, and the latest log lines. It stays open 30 seconds after the batch (or until a key is pressed), so unattended runs still end. `--no-console` runs without it. Closing the console window stops the render.
 
@@ -162,7 +162,9 @@ It writes the labeled zone, level and region maps, `areas.dat`, `regions.dat` an
 - `--ui-maps` builds the whole TokaZerk UI map set (zone, level, region and war maps, `areas.dat`, `regions.dat`) from one render; `tools\deploy_ui_maps.ps1` puts it into the UI
 - Region maps stitched from the zone renders, without the old frontier zones on the realm maps
 - The darkened area outside the zone bounds no longer covers 3D buildings (Aegirhamn)
-- 8 zones in parallel by default
+- 3D buildings: cities and dungeons stay flat, models under water stay flat, single sheet walls are seen from both sides
+- Window: render folder picker, colored zone state (queued, rendering, rendered, failed), map and activity as tabs; the zone list and the map always show the same folder, also during a render started from the command line with `--ui`
+- 12 zones in parallel by default
 
 **2.2.0** (2026-09-29)
 - Map labels drawn by MapCreator in the TokaZerk UI font (`--labels <dir> [--label-size N]`, `--labels-only` relabels existing renders): keeps, towers (GT, WT, OP, SP), neighbor zones, towns, channelers, dungeon entrances, bosses, ToA artifact encounters, and trainers and services in the capitals. Cities and dungeons are labeled in their frame. The point data files are not part of the release yet
