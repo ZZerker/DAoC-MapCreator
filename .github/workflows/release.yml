@@ -23,6 +23,10 @@ jobs:
       - name: Build
         run: dotnet build MapCreator.sln -c Release -warnaserror
 
+      # Tests that need game files skip without them; a failing test stops the release
+      - name: Test
+        run: dotnet test --solution MapCreator.sln -c Release --no-build
+
       - name: Package
         shell: pwsh
         run: |
