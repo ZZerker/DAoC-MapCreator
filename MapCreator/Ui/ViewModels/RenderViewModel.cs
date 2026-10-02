@@ -59,8 +59,12 @@ namespace MapCreator.Ui.ViewModels
         [ObservableProperty]
         private bool isClosePending;
 
+        // Center tab: 0 map, 1 activity
         [ObservableProperty]
-        private bool isActivityExpanded;
+        private int centerTab;
+
+        [ObservableProperty]
+        private string activityHeader = "Activity";
 
         [ObservableProperty]
         private double progress;
@@ -195,7 +199,6 @@ namespace MapCreator.Ui.ViewModels
 
         private void StartRender(IReadOnlyList<string> zoneIds, RenderSettings commandLineSettings = null)
         {
-            this.IsActivityExpanded = true;
             if (!GameFolderLocator.CheckGamePath())
             {
                 return;
@@ -204,7 +207,6 @@ namespace MapCreator.Ui.ViewModels
             // Everything that can fail comes before the window is locked
             RenderSettings renderSettings;
             var zones = new List<ZoneSelection>();
-            var zonesByMap = new Dictionary<string, ZoneSelection>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 renderSettings = commandLineSettings ?? RenderSettings.FromSettings(AppSettings.Current);
@@ -218,12 +220,6 @@ namespace MapCreator.Ui.ViewModels
                     {
                         AppLog.Log(string.Format("Skipped: zone {0} is not in the zone list.", zoneId), LogLevel.Warning);
                     }
-                }
-
-                // Written maps are matched to their zone by file name to refresh the status row
-                foreach (var zone in zones)
-                {
-                    zonesByMap.TryAdd(ZoneRenderer.GetTargetFile(renderSettings, zone).FullName, zone);
                 }
             }
             catch (Exception ex)
@@ -262,20 +258,29 @@ namespace MapCreator.Ui.ViewModels
             this.renderTimer.Restart();
             this.UpdateCounts();
 
+            // The zone list and the map show the folder this render writes into
+            this.zoneBrowser.ShowRenderFolder(renderSettings);
+            foreach (var zone in zones)
+            {
+                this.zoneBrowser.SetStatus(zone.Id, new ZoneStatus(ZoneMapState.Queued));
+            }
+
             this.cancellation = new CancellationTokenSource();
             var token = this.cancellation.Token;
-            var gamePath = AppSettings.Current.GamePath;
-            Task.Run(() => this.RunRender(renderSettings, zones, zonesByMap, gamePath, token));
+            Task.Run(() => this.RunRender(renderSettings, zones, token));
         }
 
         // Runs on a pool thread
-        private void RunRender(RenderSettings renderSettings, List<ZoneSelection> zones, Dictionary<string, ZoneSelection> zonesByMap, string gamePath, CancellationToken token)
+        private void RunRender(RenderSettings renderSettings, List<ZoneSelection> zones, CancellationToken token)
         {
             var started = 0;
             var watch = Stopwatch.StartNew();
             try
             {
-                using (var log = new FileLog(Path.Combine(renderSettings.TargetPath, "render.log")))
+                // One log per render folder, so renders into different folders do not share a file
+                var logFolder = RenderFolders.TargetFolder(renderSettings) ?? renderSettings.TargetPath;
+                Directory.CreateDirectory(logFolder);
+                using (var log = new FileLog(Path.Combine(logFolder, "render.log")))
                 {
                     this.reporter.AttachFile(log);
                     try
@@ -292,8 +297,7 @@ namespace MapCreator.Ui.ViewModels
                                             Interlocked.Increment(ref started);
                                             this.reporter.ZoneStarted(zone);
                                         },
-                                        ZoneFinished = (zone, outcome) => this.reporter.ZoneFinished(zone, outcome),
-                                        MapWritten = file => this.OnMapWritten(file, zonesByMap, renderSettings, gamePath)
+                                        ZoneFinished = (zone, outcome) => this.reporter.ZoneFinished(zone, outcome)
                                     };
                         batch.Run(zones, token);
                         if (token.IsCancellationRequested && started < zones.Count)
@@ -320,18 +324,6 @@ namespace MapCreator.Ui.ViewModels
             }
         }
 
-        // Runs on a render thread
-        private void OnMapWritten(FileInfo file, Dictionary<string, ZoneSelection> zonesByMap, RenderSettings renderSettings, string gamePath)
-        {
-            if (!zonesByMap.TryGetValue(file.FullName, out var zone))
-            {
-                return;
-            }
-
-            var status = ZoneBrowserViewModel.ScanStatus(renderSettings, gamePath, zone);
-            Dispatcher.UIThread.Post(() => this.zoneBrowser.SetStatus(zone.Id, status));
-        }
-
         private void OnRenderEnded()
         {
             this.OnTick(this, EventArgs.Empty);
@@ -343,7 +335,7 @@ namespace MapCreator.Ui.ViewModels
             this.IsCancelling = false;
             this.zoneBrowser.IsRendering = false;
             this.options.IsRendering = false;
-            this.zoneBrowser.RefreshStatuses(RenderSettings.FromSettings(AppSettings.Current));
+            this.zoneBrowser.EndRenderStates(this.zoneBrowser.FileSettings);
 
             var close = this.closeAfterRender;
             this.closeAfterRender = null;
@@ -367,6 +359,7 @@ namespace MapCreator.Ui.ViewModels
                 var active = new ActiveZoneViewModel(zone);
                 this.activeById[zone.Id] = active;
                 this.ActiveZones.Add(active);
+                this.zoneBrowser.SetStatus(zone.Id, new ZoneStatus(ZoneMapState.Rendering));
             }
 
             foreach (var (zoneId, step) in pending.Steps)
@@ -388,6 +381,14 @@ namespace MapCreator.Ui.ViewModels
 
                 this.FinishedZones.Add(new FinishedZoneViewModel(zone, outcome, elapsed));
                 this.Count(outcome);
+                if (outcome == ZoneOutcome.Failed)
+                {
+                    this.zoneBrowser.SetStatus(zone.Id, new ZoneStatus(ZoneMapState.Failed));
+                }
+                else
+                {
+                    this.zoneBrowser.ScanZone(zone.Id);
+                }
             }
 
             this.AddLines(pending.Lines);
@@ -427,6 +428,7 @@ namespace MapCreator.Ui.ViewModels
             var finished = this.done + this.withErrors + this.skipped + this.failed;
             this.Progress = this.totalZones == 0 ? 0 : 100.0 * finished / this.totalZones;
             this.ProgressText = string.Format("{0} of {1} zones", finished, this.totalZones);
+            this.ActivityHeader = this.ActiveZones.Count == 0 ? "Activity" : string.Format("Activity ({0} running)", this.ActiveZones.Count);
             this.CountsText = string.Format("done {0}, with errors {1}, skipped {2}, failed {3}", this.done, this.withErrors, this.skipped, this.failed);
             this.ElapsedText = ActiveZoneViewModel.FormatElapsed(this.renderTimer.Elapsed);
         }

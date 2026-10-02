@@ -15,10 +15,12 @@
             <Button Grid.Column="6" Content="Render this zone" Command="{Binding RenderThisZoneCommand}" Margin="8,0,0,0" />
         </Grid>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,4,8,8">
-            <TextBlock Classes="muted" Text="{Binding InfoText}" ToolTip.Tip="{Binding FilePath}" />
-            <TextBlock Classes="muted" Text="{Binding FrameText}" Margin="16,0,0,0" />
-        </StackPanel>
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" Margin="8,4,8,8">
+            <TextBlock Grid.Column="0" Classes="muted" Text="{Binding InfoText}" />
+            <TextBlock Grid.Column="1" Classes="muted" Text="{Binding FrameText}" Margin="16,0,0,0" />
+            <TextBlock Grid.Column="2" Classes="muted" Text="{Binding FilePath}" ToolTip.Tip="{Binding FilePath}"
+                       TextTrimming="LeadingCharacterEllipsis" HorizontalAlignment="Right" Margin="16,0,0,0" />
+        </Grid>
 
         <Border Grid.Row="2" Background="{DynamicResource AppPanelBackground}"
                 BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="0,1,0,0">

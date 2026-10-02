@@ -84,6 +84,9 @@ namespace MapCreator.Classes
         // Name of the preset last loaded or saved, "" for none (batch mode ignores it)
         public string ActivePreset { get; set; } = "";
 
+        // Render folder the window shows maps and zone status from, "" for the folder window renders write into
+        public string ViewedFolder { get; set; } = "";
+
         public static AppSettings Load(string path)
         {
             return Load(path, FindOldUserConfig());
@@ -269,6 +272,7 @@ namespace MapCreator.Classes
             this.LabelDirectory ??= defaults.LabelDirectory;
             this.TickedZones ??= defaults.TickedZones;
             this.ActivePreset ??= defaults.ActivePreset;
+            this.ViewedFolder ??= defaults.ViewedFolder;
             if (this.LightmapZVector == null || this.LightmapZVector.Length != 3)
             {
                 this.LightmapZVector = defaults.LightmapZVector;

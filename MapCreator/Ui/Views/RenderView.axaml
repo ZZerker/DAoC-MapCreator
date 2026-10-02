@@ -11,72 +11,80 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="420" MinWidth="200" />
-            <ColumnDefinition Width="4" />
-            <ColumnDefinition Width="*" MinWidth="200" />
-        </Grid.ColumnDefinitions>
-
-        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*" Margin="0,0,8,0">
-            <StackPanel Grid.Row="0" x:Name="RunningPanel">
-                <TextBlock Classes="heading" Text="Rendering" />
-                <ItemsControl ItemsSource="{Binding ActiveZones}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ActiveZoneViewModel">
-                            <Grid ColumnDefinitions="40,*,100,50" Margin="0,2">
-                                <TextBlock Grid.Column="0" Text="{Binding Id}" VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
-                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Classes="muted" FontSize="11" Text="{Binding Step}" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                                <ProgressBar Grid.Column="2" Value="{Binding Percent}" Minimum="0" Maximum="100"
-                                             IsIndeterminate="{Binding IsIndeterminate}" MinWidth="0" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="3" Text="{Binding ElapsedText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
-            <TextBlock Grid.Row="1" x:Name="FinishedHeading" Classes="heading" Text="Finished" />
-            <ScrollViewer Grid.Row="2">
-                <ItemsControl ItemsSource="{Binding FinishedZones}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:FinishedZoneViewModel">
-                            <Grid ColumnDefinitions="40,*,90,50" Margin="0,1">
-                                <TextBlock Grid.Column="0" Text="{Binding Id}" />
-                                <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
-                                <TextBlock Grid.Column="2" Text="{Binding Outcome}" Foreground="{Binding Foreground}" />
-                                <TextBlock Grid.Column="3" Classes="muted" Text="{Binding ElapsedText}" HorizontalAlignment="Right" />
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Grid>
-
-        <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
-
-        <Grid Grid.Column="2" RowDefinitions="Auto,*" Margin="8,0,0,0">
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
-                <ComboBox SelectedIndex="{Binding LevelFilterIndex}" MinWidth="170">
-                    <ComboBoxItem Content="All lines" />
-                    <ComboBoxItem Content="Notices and above" />
-                    <ComboBoxItem Content="Warnings and above" />
-                    <ComboBoxItem Content="Errors" />
-                </ComboBox>
-                <ComboBox ItemsSource="{Binding ZoneFilterChoices}" SelectedItem="{Binding ZoneFilter}" MinWidth="110" />
-            </StackPanel>
-            <ListBox Grid.Row="1" x:Name="LogList" Classes="log" ItemsSource="{Binding ShownLines}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:LogEntry">
-                        <Grid ColumnDefinitions="64,*">
-                            <TextBlock Grid.Column="0" Classes="muted" Text="{Binding TimeText}" FontFamily="Consolas,monospace" FontSize="12" />
-                            <TextBlock Grid.Column="1" Text="{Binding Text}" Foreground="{Binding Foreground}" FontFamily="Consolas,monospace" FontSize="12" TextWrapping="NoWrap" />
+    <Grid RowDefinitions="Auto,*">
+        <StackPanel Grid.Row="0" x:Name="RunningPanel" Margin="0,0,0,8">
+            <TextBlock Classes="heading" Text="Rendering" />
+            <ItemsControl ItemsSource="{Binding ActiveZones}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ActiveZoneViewModel">
+                        <Grid ColumnDefinitions="36,*,70,46" Width="320" Margin="0,2,16,2">
+                            <TextBlock Grid.Column="0" Text="{Binding Id}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Classes="muted" FontSize="11" Text="{Binding Step}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <ProgressBar Grid.Column="2" Value="{Binding Percent}" Minimum="0" Maximum="100"
+                                         IsIndeterminate="{Binding IsIndeterminate}" MinWidth="0" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="{Binding ElapsedText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                         </Grid>
                     </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" MinWidth="160" />
+                <ColumnDefinition Width="4" />
+                <ColumnDefinition Width="*" MinWidth="200" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0" RowDefinitions="Auto,*" Margin="0,0,8,0">
+                <TextBlock Grid.Row="0" x:Name="FinishedHeading" Classes="heading" Text="Finished" />
+                <ScrollViewer Grid.Row="1">
+                    <ItemsControl ItemsSource="{Binding FinishedZones}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FinishedZoneViewModel">
+                                <Grid ColumnDefinitions="36,*,80,46" Margin="0,1">
+                                    <TextBlock Grid.Column="0" Text="{Binding Id}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Outcome}" Foreground="{Binding Foreground}" />
+                                    <TextBlock Grid.Column="3" Classes="muted" Text="{Binding ElapsedText}" HorizontalAlignment="Right" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource AppBorderBrush}" />
+
+            <Grid Grid.Column="2" RowDefinitions="Auto,*" Margin="8,0,0,0">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,6">
+                    <ComboBox SelectedIndex="{Binding LevelFilterIndex}" MinWidth="170">
+                        <ComboBoxItem Content="All lines" />
+                        <ComboBoxItem Content="Notices and above" />
+                        <ComboBoxItem Content="Warnings and above" />
+                        <ComboBoxItem Content="Errors" />
+                    </ComboBox>
+                    <ComboBox ItemsSource="{Binding ZoneFilterChoices}" SelectedItem="{Binding ZoneFilter}" MinWidth="110" />
+                </StackPanel>
+                <ListBox Grid.Row="1" x:Name="LogList" Classes="log" ItemsSource="{Binding ShownLines}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LogEntry">
+                            <Grid ColumnDefinitions="64,*">
+                                <TextBlock Grid.Column="0" Classes="muted" Text="{Binding TimeText}" FontFamily="Consolas,monospace" FontSize="12" />
+                                <TextBlock Grid.Column="1" Text="{Binding Text}" Foreground="{Binding Foreground}" FontFamily="Consolas,monospace" FontSize="12" TextWrapping="NoWrap" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

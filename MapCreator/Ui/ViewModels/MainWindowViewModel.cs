@@ -49,6 +49,7 @@ namespace MapCreator.Ui.ViewModels
         {
             var renderSettings = RenderSettings.FromSettings(AppSettings.Current);
             this.OutputFolder = renderSettings.TargetPath;
+            this.ZoneBrowser.ReloadFolders(renderSettings);
             this.ZoneBrowser.RefreshStatuses(renderSettings);
         }
     }

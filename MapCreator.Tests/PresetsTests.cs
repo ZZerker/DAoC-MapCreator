@@ -194,7 +194,7 @@ namespace MapCreator.Tests
         [Fact]
         public void PresetHasEveryOptionOfTheSettings()
         {
-            var machineState = new[] { "GamePath", "TargetPath", "RenderParallel", "TickedZones", "ActivePreset" };
+            var machineState = new[] { "GamePath", "TargetPath", "RenderParallel", "TickedZones", "ActivePreset", "ViewedFolder" };
             var settingsNames = typeof(AppSettings).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Select(p => p.Name).Where(n => !machineState.Contains(n)).OrderBy(n => n).ToArray();
             var presetNames = typeof(Preset).GetProperties(BindingFlags.Public | BindingFlags.Instance)

@@ -82,9 +82,9 @@ namespace MapCreator.Ui.ViewModels
         {
             try
             {
-                var renderSettings = RenderSettings.FromSettings(AppSettings.Current);
-                var file = this.row == null ? null : ZoneRenderer.GetTargetFile(renderSettings, this.row.Zone);
-                var arguments = file != null && file.Exists ? "/select,\"" + file.FullName + "\"" : "\"" + renderSettings.TargetPath + "\"";
+                var file = string.IsNullOrEmpty(this.FilePath) ? null : new FileInfo(this.FilePath);
+                var folder = this.zoneBrowser.ViewedFolder ?? this.zoneBrowser.FileSettings.TargetPath;
+                var arguments = file != null && file.Exists ? "/select,\"" + file.FullName + "\"" : "\"" + folder + "\"";
                 Process.Start(new ProcessStartInfo("explorer.exe", arguments));
             }
             catch (Exception ex)
@@ -95,6 +95,12 @@ namespace MapCreator.Ui.ViewModels
 
         private void OnZoneBrowserChanged(object sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(ZoneBrowserViewModel.ViewedFolder))
+            {
+                this.Reload();
+                return;
+            }
+
             var selected = this.zoneBrowser.SelectedRow;
             if (e.PropertyName != nameof(ZoneBrowserViewModel.SelectedRow) || selected == null || selected == this.row)
             {
@@ -115,7 +121,8 @@ namespace MapCreator.Ui.ViewModels
 
         private void OnRowChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ZoneRowViewModel.Status))
+            // Queued and rendering leave the file as it was
+            if (e.PropertyName == nameof(ZoneRowViewModel.Status) && this.row.Status.State is not (ZoneMapState.Queued or ZoneMapState.Rendering))
             {
                 this.Reload();
             }
@@ -139,9 +146,11 @@ namespace MapCreator.Ui.ViewModels
             }
 
             var withLabels = this.ShowLabels;
+            var folder = this.zoneBrowser.ViewedFolder;
+            var fileSettings = this.zoneBrowser.FileSettings;
             Task.Run(() =>
             {
-                var result = Load(zoneRow.Zone, withLabels);
+                var result = Load(folder, fileSettings, zoneRow.Zone, withLabels);
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (this.loadGeneration != generation)
@@ -163,15 +172,15 @@ namespace MapCreator.Ui.ViewModels
         }
 
         // Runs on a pool thread
-        private static LoadResult Load(ZoneSelection zone, bool withLabels)
+        private static LoadResult Load(string folder, RenderSettings fileSettings, ZoneSelection zone, bool withLabels)
         {
             try
             {
-                var file = ZoneRenderer.GetTargetFile(RenderSettings.FromSettings(AppSettings.Current), zone);
+                var file = ZoneBrowserViewModel.FindMap(folder, fileSettings, zone);
                 var frameText = GetFrameText(zone, file);
                 if (!file.Exists)
                 {
-                    return new LoadResult(null, "Not rendered yet", "", frameText, file.FullName);
+                    return new LoadResult(null, "Not rendered in " + file.Directory?.Name, "", frameText, "");
                 }
 
                 var bitmap = withLabels ? LoadWithLabels(file) : LoadPlain(file);

@@ -6,8 +6,6 @@ namespace MapCreator.Ui.Views
 {
     public partial class RenderView : UserControl
     {
-        private const double FINISHED_MIN_HEIGHT = 80;
-
         private RenderViewModel viewModel;
 
         public RenderView()
@@ -15,11 +13,6 @@ namespace MapCreator.Ui.Views
             this.InitializeComponent();
             this.DataContextChanged += this.OnDataContextChanged;
         }
-
-        /// <summary>
-        /// Height that shows every running zone and a few finished ones without scrolling
-        /// </summary>
-        public double RequiredHeight => this.RunningPanel.DesiredSize.Height + this.FinishedHeading.DesiredSize.Height + FINISHED_MIN_HEIGHT;
 
         private void OnDataContextChanged(object sender, EventArgs e)
         {
