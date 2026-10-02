@@ -50,6 +50,9 @@ namespace MapCreator.Classes.MapCreation
         // Tree models whose cut out texture covers less than this share of their outline from above
         private const double CARD_TREE_COVERAGE = 0.3;
 
+        // Leafless trees (Bbare1, Beech_gnarl_dead, B_HTOAKB burnt oak): their sparse branches are real, filling them gave dark blobs
+        private static readonly System.Text.RegularExpressions.Regex LeaflessTree = new("bare|dead|burnt|htoakb", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
         // 3D trees: outline rounding radius as a fraction of the map size (3 px at 2048), and the light floor of filled crowns
         private const int OBLIQUE_TREE_ROUNDING = 680;
         private const double FILLED_TREE_LIGHT = 0.4;
@@ -388,7 +391,7 @@ namespace MapCreator.Classes.MapCreation
         private void DrawObliqueTrees(MagickImage target, List<DrawableFixture> trees, OcclusionMap factors)
         {
             var size = this.zoneConfiguration.TargetMapSize;
-            var filled = trees.Where(f => this.FillCanvas(f, true, true).CoveredPixels() < this.FillCanvas(f, true, false).CoveredPixels() * CARD_TREE_COVERAGE).ToHashSet();
+            var filled = trees.Where(f => !LeaflessTree.IsMatch(f.NifName) && this.FillCanvas(f, true, true).CoveredPixels() < this.FillCanvas(f, true, false).CoveredPixels() * CARD_TREE_COVERAGE).ToHashSet();
             // Modelled trees stay crisp; only filled crowns (crossed cards) are rounded, on their own canvas
             var canvas = new FixtureCanvas(size, size, this.GetTerrain());
             FillOblique(canvas, trees.Except(filled), factors, filled);
@@ -745,7 +748,7 @@ namespace MapCreator.Classes.MapCreation
         {
             if (fixture.RendererConf.Texture == TextureMode.Map)
             {
-                if (!fixture.IsTree && !fixture.IsTreeCluster)
+                if ((!fixture.IsTree && !fixture.IsTreeCluster) || LeaflessTree.IsMatch(fixture.NifName))
                 {
                     return this.FillCanvas(fixture, lit, true).ToImage();
                 }
