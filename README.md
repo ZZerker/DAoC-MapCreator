@@ -153,7 +153,7 @@ It writes the labeled zone, level and region maps, `areas.dat`, `regions.dat` an
 - The first render converts the models and fills the cache (`data\polys8`, one file per model); later renders are faster. "Clear model cache" under Settings deletes it.
 
 ## Changelog
-**Unreleased**
+**3.0.0** (2026-10-02)
 - New window built with Avalonia (dark): zone list with search and group ticks, render options with presets, render bar with cancel and an activity panel (running zones, filtered log), map viewer with zoom and label overlay, settings flyout. The old WinForms windows are gone; the program is now `MapCreatorNext.exe` and keeps its settings in `%LOCALAPPDATA%\MapCreator\settings.json` (imported once from the old settings)
 - Own reader for the game archives instead of MPKLib
 - Grass in cities and on the New Frontiers relic grounds no longer shows the tile pattern
@@ -164,7 +164,9 @@ It writes the labeled zone, level and region maps, `areas.dat`, `regions.dat` an
 - The darkened area outside the zone bounds no longer covers 3D buildings (Aegirhamn)
 - 3D buildings: cities and dungeons stay flat, models under water stay flat, single sheet walls are seen from both sides
 - Window: render folder picker, colored zone state (queued, rendering, rendered, failed), map and activity as tabs; the zone list and the map always show the same folder, also during a render started from the command line with `--ui`
+- Model parts below the water surface are hidden and trees standing under water are left out (dead oaks in Lough Gur); leafless dead trees keep their branches instead of turning into dark blobs (Folley Lake, Cursed Forest)
 - 12 zones in parallel by default
+- Releases run the tests before they are published
 
 **2.2.0** (2026-09-29)
 - Map labels drawn by MapCreator in the TokaZerk UI font (`--labels <dir> [--label-size N]`, `--labels-only` relabels existing renders): keeps, towers (GT, WT, OP, SP), neighbor zones, towns, channelers, dungeon entrances, bosses, ToA artifact encounters, and trainers and services in the capitals. Cities and dungeons are labeled in their frame. The point data files are not part of the release yet
