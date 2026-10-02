@@ -160,8 +160,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         private readonly HashSet<int> keepFixtureIds = new HashSet<int>();
 
         // New Frontiers model files drawn in 3D with the keeps
-        // 3D buildings: models at least this long (world units); smaller props (fences, carts, lamps) stay flat
-        private const double OBLIQUE_BUILDING_SIZE = 600;
+        // Renderer categories of models with their own ground (MapFixtures draws them before the rest)
+        private const string GROUND_CATEGORY = "Ground";
+        private const string TERRAIN_CATEGORY = "Terrain";
 
         private static readonly System.Text.RegularExpressions.Regex ObliqueStructures = new("relickeep|relictemple|relic_temple|milegate|bridge|ropebrdge", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
 
@@ -598,16 +599,18 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     else
                     {
                         fixture.RawPolygons = nifRow.Polygons;
-                        if (this.zoneConf.ObliqueBuildings && this.Level == null && GetFootprint(nifRow, fixtureRow) >= OBLIQUE_BUILDING_SIZE)
-                        {
-                            fixture.IsObliqueModel = true;
-                        }
 
                         if (rConf == null)
                         {
                             fixture.RendererConf = FixtureRendererConfigurations.GetRendererBySize(GetFootprint(nifRow, fixtureRow));
                         }
                         else fixture.RendererConf = rConf.GetValueOrDefault();
+
+                        // Models with their own ground lie on the terrain and stay flat
+                        if (this.zoneConf.ObliqueBuildings && this.Level == null && fixture.RendererConf.Name != GROUND_CATEGORY && fixture.RendererConf.Name != TERRAIN_CATEGORY)
+                        {
+                            fixture.IsObliqueModel = true;
+                        }
                     }
 
                     // Model missing in the client (Green Glades trees), already warned once when loading
