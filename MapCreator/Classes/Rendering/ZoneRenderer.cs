@@ -43,8 +43,9 @@ namespace MapCreator.Classes.Rendering
                 conf.DrawKeeps = settings.DrawKeeps;
                 conf.ObliqueKeeps = settings.ObliqueKeeps;
                 conf.AmbientOcclusion = settings.AmbientOcclusion;
-                conf.ObliqueBuildings = settings.ObliqueBuildings && settings.DrawFixtures;
-                conf.ObliqueTrees = settings.ObliqueTrees;
+                // Cities and dungeons have no 3D layer
+                conf.ObliqueBuildings = settings.ObliqueBuildings && settings.DrawFixtures && !conf.IsCity && !conf.IsDungeon;
+                conf.ObliqueTrees = settings.ObliqueTrees && !conf.IsCity && !conf.IsDungeon;
                 if (conf.IsCity || conf.IsDungeon)
                 {
                     new ModelZoneRenderer(settings, reporter).Render(conf, mapFile);

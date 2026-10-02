@@ -192,6 +192,17 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             return this.GenerateCanvas();
         }
 
+        /// <summary>
+        /// Draws a 3D model top-down again
+        /// </summary>
+        public bool Flatten()
+        {
+            this.IsObliqueModel = false;
+            this.ProcessedPolygons.Clear();
+            this.wallTops.Clear();
+            return this.Calc();
+        }
+
         private bool GenerateCanvas()
         {
             if (!this.ProcessedPolygons.Any()) return false;
@@ -236,9 +247,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 var n = Normalize(this.GetNormal(poly.P1, poly.P2, poly.P3));
 
-                // Leaves are thin cards seen from both sides; in 3D a culled card leaves a hole in the crown
+                // Leaves and some walls (Avalon Isle's ring) are single sheets; seen from behind in 3D a culled sheet leaves a hole
                 var tree = this.IsTree || this.IsTreeCluster;
-                if (oblique && tree)
+                if (oblique && (tree || this.IsObliqueModel))
                 {
                     if (!FacesViewer(n, this.ObliqueFactor))
                     {

@@ -142,6 +142,12 @@ namespace MapCreator.Classes.MapCreation
                         }
                     }
 
+                    // Under the surface the model is only seen through the water, standing up it covered the water
+                    if (model.IsObliqueModel && riverHeight != 0 && model.TopZ <= riverHeight && !model.Flatten())
+                    {
+                        continue;
+                    }
+
                     if (model.IsOblique)
                     {
                         if (riverHeight != 0)
