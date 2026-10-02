@@ -38,7 +38,7 @@ namespace MapCreator.Classes
         public string MapType { get; set; } = "JPEG";
         public int MapQuality { get; set; } = 90;
         public int MapSize { get; set; } = 2048;
-        public int RenderParallel { get; set; } = 8;
+        public int RenderParallel { get; set; } = 12;
         public bool SkipIfFileExists { get; set; }
 
         public bool DrawBackground { get; set; } = true;
