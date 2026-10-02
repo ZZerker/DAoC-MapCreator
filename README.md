@@ -4,7 +4,7 @@ Renders Dark Age of Camelot (DAoC) maps from the game client files: outdoor zone
 This is a fork of [Merec/DAoC-MapCreator](https://github.com/Merec/DAoC-MapCreator), which is no longer maintained. All credit for the original tool goes to Merec. This fork brings it up to date and renders the maps for the [TokaZerk UI](https://github.com/tokajer/TokaZerkUI) on the Eden freeshard. The UI can only show images, so everything a map needs has to be baked into it.
 
 ## Download
-Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/releases). Unzip it anywhere and start `MapCreator.exe`. It needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64) and a DAoC client; the game folder is found on first start.
+Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/releases). Unzip it anywhere and start `MapCreatorNext.exe`. It needs the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64) and a DAoC client; the game folder is found on first start.
 
 ## What it renders
 **Outdoor zones**
@@ -12,11 +12,15 @@ Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/
 - Rivers, lakes and lava; shallow water lets the ground show through, so shores fade into the water
 - Trees drawn from their models with their own textures, leaves cut out by the texture's alpha
 - Buildings and objects with their real textures, their baked lighting (dark maps) and a soft drop shadow; parts below the ground stay hidden like in the game
-- Zone bounds
+- Buildings seen from the south in 3D: walls drawn upward, the footprint stays in place (option, on by default); models that bring their own ground stay flat
+- Contact shadows (ambient occlusion) around and between buildings and keeps (option, on by default)
+- Trees in 3D as an option (off by default)
+- Zone bounds; the area outside is darkened, 3D buildings reaching into it stay clear
 
 **New Frontiers keeps and towers**
 - All 21 keeps and 54 towers as they stand on Eden, fully upgraded and undamaged, in their realm's textures
 - Built piece by piece from the client's keep models and texture tables (`frontiers.mpk`)
+- Drawn in 3D seen from the south, like the launcher's keep images, with relic temples, relic keeps, mile gates and bridges
 - Optional, e.g. for maps that draw their own keep icons
 
 **Capital cities** (Camelot, Jordheim, Tir na Nog)
@@ -29,9 +33,15 @@ Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/
 
 City and dungeon maps use the same frame as the client and bestiary maps, so a position lines up at `(zone coordinate - offset) / width`. Each of them gets a `zNNN.frame.json` with its offset and width.
 
-**Labels** (New Frontiers)
-- Keep and tower names, bosses, places and docks, neighbor zone names along the map border
-- Written as `zNNN.labels.json` next to each map and drawn at the final size by the DDS script, so the text stays sharp
+**Labels**
+- Keep and tower names, bosses, places and docks, towns, dungeon entrances, ToA artifact encounters, trainers and services in the capitals, neighbor zone names along the map border
+- Written as `zNNN.labels.json` next to each map and drawn at the final size in the TokaZerk UI font, so the text stays sharp
+
+**UI map set** (TokaZerk UI)
+- Every zone, dungeon level and region map from one full render, at 512 and 256 px (other sizes on request)
+- Region maps stitched from the zone renders, laid out by the client's `zones.dat` and `regions.dat`
+- War maps for New Frontiers and the old frontiers
+- The UI's `areas.dat` and `regions.dat` written with the same frames, so the position marker lines up
 
 ## Changes in this fork
 - Runs on .NET 10 (was .NET Framework 4.0) with Magick.NET 14 and `System.Numerics`
@@ -53,6 +63,8 @@ Everything comes from the game client, except:
 - `data\MapFrames.csv`: city and dungeon map frames from the Eden bestiary
 - `data\Keeps.csv`: New Frontiers keep and tower positions from the Eden war map, piece layouts from [Dawn-of-Light db-public](https://github.com/Dawn-of-Light/db-public)
 - `data\Landmarks.csv`: places, docks and bosses for the labels, bosses from the Eden bestiary
+- `data\WarMaps.csv`: which zones the UI's war map textures show and where
+- `data\ZoomAreas.csv`: room maps cut from a zone map where the client has no level data
 
 ## Roadmap
 - [x] Zone list from the client's `zones.dat`, including Eden's own zones
@@ -65,7 +77,11 @@ Everything comes from the game client, except:
 - [x] Names and points of interest on the New Frontiers maps
 - [x] Maps for all playable dungeons, also the 16 that have no map in the game
 - [x] Niflib on .NET 10, built from source
-- [ ] Later: Old Frontiers keeps, re-render zones Eden has patched, replace the remaining .NET Framework libraries (MPKLib, tree view control)
+- [x] New window (Avalonia): zone browser with group ticks, presets, live render progress, map viewer
+- [x] Own reader for the game archives (MPK)
+- [x] Buildings, keeps and trees in 3D, contact shadows
+- [x] Complete UI map set from our renders: zone, level, region and war maps
+- [ ] Later: Old Frontiers keeps, re-render zones Eden has patched
 
 ## Requirements
 - Windows x64
@@ -79,14 +95,14 @@ Niflib is a git submodule, so clone with `--recursive` (or run `git submodule up
 git clone --recursive https://github.com/ZZerker/DAoC-MapCreator.git
 dotnet build MapCreator.sln -c Release
 ```
-The program is written to `Releases\MapCreator.exe`. Pushing a tag `v*` builds and publishes a GitHub release.
+The program is written to `Releases\MapCreatorNext.exe`. Pushing a tag `v*` builds and publishes a GitHub release.
 
 ## Usage
-Start `MapCreator.exe`, select the zones and click create. Settings (map size, water, trees, keeps, bounds, output folder) are in the main window and the preferences.
+Start `MapCreatorNext.exe`. Tick zones in the list on the left (search by name or id, or tick whole groups such as a realm, an expansion or a zone type), set the options on the right or pick a preset, and click Render. The activity panel shows every running zone and the log; the map in the middle shows the selected zone's current render with its labels, zoomable. Game folder, output folder, cache cleanup and licenses are under Settings. Settings are saved in `%LOCALAPPDATA%\MapCreator\settings.json`, presets in `presets.json` next to it.
 
 Batch mode renders without user input and without the main window:
 ```
-MapCreator.exe --render <zones> [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 4] [--no-keeps] [--no-depth-water] [--labels-only] [--no-console]
+MapCreatorNext.exe --render <zones> [--size 2048] [--dir nf_2048] [--log render.log] [--parallel 8] [--no-keeps] [--no-depth-water] [--labels-only] [--no-console]
 ```
 A console window shows the run live: zones done, failed and left, the estimated time left, memory, one row per zone being rendered with its current step and progress, and the latest log lines. It stays open 30 seconds after the batch (or until a key is pressed), so unattended runs still end. `--no-console` runs without it. Closing the console window stops the render.
 
@@ -123,14 +139,31 @@ Unknown names are logged as a warning and skipped.
 
 `tools\render_all_shutdown.ps1` builds, renders every zone (or `-Zones`), converts New Frontiers to DDS and shuts the computer down (`-NoShutdown` to keep it running).
 
+`--ui-maps` builds the complete TokaZerk UI map set from a full render, without rendering again (about 2 minutes):
+```
+MapCreatorNext.exe --ui-maps <render folder> --dir <set> [--game <client folder>] [--ui-sizes 512,256]
+```
+It writes the labeled zone, level and region maps, `areas.dat`, `regions.dat` and the war map textures into `<set>\512` and `<set>\256`. `tools\deploy_ui_maps.ps1 -Source <set> [-Repo <UI repo>]` converts them to DXT1 DDS and puts them into `Maps`, `Maps_large` (512), `Maps_small` (256) and `warmap`; old maps the set does not contain are removed. `-Folder <name> -Size <px>` writes a single test folder instead.
+
 `tools\deploy_launcher_maps.ps1 -Source <render folder>` (run as administrator) copies the maps into the Eden launcher as `zoneNNN.jpg` and writes the city and dungeon frames into its `zones.json`, so the position marker lines up. The launcher's own files are saved once to `Output\launcher_backup_all`; `-Restore` puts them back.
 
 ### Please note
 - Rendering is CPU and memory heavy, depending on the map size and the number of parallel zones.
 - Use map sizes that are a power of 2: 512, 1024, 2048, 4096. The terrain textures have a native resolution of 4096 pixels.
-- The first render converts the models and fills the cache (`data\polys8`, one file per model); later renders are faster. "Clear fixture polygon cache" in the Tools menu deletes it.
+- The first render converts the models and fills the cache (`data\polys8`, one file per model); later renders are faster. "Clear model cache" under Settings deletes it.
 
 ## Changelog
+**Unreleased**
+- New window built with Avalonia (dark): zone list with search and group ticks, render options with presets, render bar with cancel and an activity panel (running zones, filtered log), map viewer with zoom and label overlay, settings flyout. The old WinForms windows are gone; the program is now `MapCreatorNext.exe` and keeps its settings in `%LOCALAPPDATA%\MapCreator\settings.json` (imported once from the old settings)
+- Own reader for the game archives instead of MPKLib
+- Grass in cities and on the New Frontiers relic grounds no longer shows the tile pattern
+- 3D view from the south for New Frontiers keeps, relic temples, mile gates and bridges, and for all outdoor buildings; 3D trees as an option. Keeps, buildings and contact shadows are on by default
+- Contact shadows (ambient occlusion) for keeps, outdoor buildings, cities and dungeons
+- `--ui-maps` builds the whole TokaZerk UI map set (zone, level, region and war maps, `areas.dat`, `regions.dat`) from one render; `tools\deploy_ui_maps.ps1` puts it into the UI
+- Region maps stitched from the zone renders, without the old frontier zones on the realm maps
+- The darkened area outside the zone bounds no longer covers 3D buildings (Aegirhamn)
+- 8 zones in parallel by default
+
 **2.2.0** (2026-09-29)
 - Map labels drawn by MapCreator in the TokaZerk UI font (`--labels <dir> [--label-size N]`, `--labels-only` relabels existing renders): keeps, towers (GT, WT, OP, SP), neighbor zones, towns, channelers, dungeon entrances, bosses, ToA artifact encounters, and trainers and services in the capitals. Cities and dungeons are labeled in their frame. The point data files are not part of the release yet
 - Battleground keeps and towers
