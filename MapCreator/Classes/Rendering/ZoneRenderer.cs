@@ -120,11 +120,13 @@ namespace MapCreator.Classes.Rendering
                     if (settings.Bounds)
                     {
                         reporter.Log("Adding zone bounds ...", LogLevel.Notice);
+                        using var obliqueMask = fixturesGenerator?.TakeObliqueMask();
                         var mapBounds = new MapBounds(conf)
                                         {
                                             BoundsColor = settings.BoundsColor,
                                             Transparency = settings.BoundsOpacity,
-                                            ExcludeFromMap = settings.ExcludeBoundsFromMap
+                                            ExcludeFromMap = settings.ExcludeBoundsFromMap,
+                                            KeepClear = obliqueMask
                                         };
                         mapBounds.Draw(map);
                         reporter.Log("Finished zone bunds!", LogLevel.Success);

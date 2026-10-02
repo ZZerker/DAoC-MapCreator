@@ -34,6 +34,9 @@ namespace MapCreator.Classes.MapCreation
 
         private readonly List<DrawableFixture> fixtures;
 
+        // The 3D building layer, for the zone bounds to leave alone: buildings reach up the map past the bound they stand inside
+        private MagickImage obliqueMask;
+
         private List<DrawableFixture> fixturesUnderWater = new List<DrawableFixture>();
         private List<DrawableFixture> fixturesAboveWater = new List<DrawableFixture>();
         private readonly List<DrawableFixture> obliqueKeepPieces = new List<DrawableFixture>();
@@ -323,6 +326,16 @@ namespace MapCreator.Classes.MapCreation
             }
         }
 
+        /// <summary>
+        /// The 3D building layer of the last drawing, null without one; the caller disposes it
+        /// </summary>
+        public MagickImage TakeObliqueMask()
+        {
+            var mask = this.obliqueMask;
+            this.obliqueMask = null;
+            return mask;
+        }
+
         // All keep pieces share one canvas and depth buffer; depths are the map row of the ground point plus the height shifted up
         private void DrawObliqueKeeps(MagickImage target)
         {
@@ -338,6 +351,8 @@ namespace MapCreator.Classes.MapCreation
             FillOblique(canvas, this.obliqueKeepPieces.Except(trees), factors, new HashSet<DrawableFixture>());
 
             using var layer = canvas.ToImage();
+            this.obliqueMask?.Dispose();
+            this.obliqueMask = (MagickImage)layer.Clone();
             var shadowConf = this.obliqueKeepPieces.Select(f => f.RendererConf).FirstOrDefault(c => c.HasShadow);
             if (shadowConf.HasShadow)
             {

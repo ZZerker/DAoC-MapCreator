@@ -68,6 +68,11 @@ namespace MapCreator.Classes.MapCreation
         #region Settings
 
         /// <summary>
+        /// Pixels covered by this image are left out of the bounds (the 3D building layer)
+        /// </summary>
+        public MagickImage KeepClear { get; set; }
+
+        /// <summary>
         /// Exlude bound from final image
         /// </summary>
         public bool ExcludeFromMap
@@ -478,6 +483,11 @@ namespace MapCreator.Classes.MapCreation
                         }
                         boundMap.Composite(negatedBoundMap, 0, 0, CompositeOperator.DstOut);
                     }
+                }
+
+                if (this.KeepClear != null)
+                {
+                    boundMap.Composite(this.KeepClear, 0, 0, CompositeOperator.DstOut);
                 }
 
                 this.zoneConfiguration.Reporter.ProgressStartMarquee("Merging ...");
