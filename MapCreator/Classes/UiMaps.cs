@@ -21,7 +21,7 @@ namespace MapCreator.Classes
         private const long EMPTY_RENDER_BYTES = 65536;
 
         // Maps and Maps_large take 512, Maps_small 256
-        internal static readonly int[] Sizes = { 512, 256 };
+        internal static readonly int[] DefaultSizes = { 512, 256 };
 
         private static readonly Regex LevelFile = new(@"^z(\d{3})_(\d{2})\.png$", RegexOptions.IgnoreCase);
 
@@ -33,7 +33,7 @@ namespace MapCreator.Classes
         /// </summary>
         private sealed record Level(string ZoneId, int Index, string MapFile, MagickGeometry Crop);
 
-        public static int Write(string renderDirectory, string targetDirectory, string gamePath, IRenderReporter reporter)
+        public static int Write(string renderDirectory, string targetDirectory, string gamePath, IReadOnlyList<int> sizes, IRenderReporter reporter)
         {
             var clientMaps = Path.Combine(gamePath, "ui", "maps");
             var zonesDat = DatFile.FromMpk(Path.Combine(gamePath, "zones", "zones.mpk"), "zones.dat");
@@ -53,7 +53,7 @@ namespace MapCreator.Classes
             var regionsText = File.ReadAllText(Path.Combine(clientMaps, "regions.dat"), DatEncoding);
             var regions = new DatFile(new StringReader(regionsText));
             var written = 0;
-            foreach (var size in Sizes)
+            foreach (var size in sizes)
             {
                 var directory = Path.Combine(targetDirectory, size.ToString());
                 Directory.CreateDirectory(directory);

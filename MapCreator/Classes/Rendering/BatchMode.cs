@@ -145,16 +145,17 @@ namespace MapCreator.Classes.Rendering
             return batch.Failed == 0 ? 0 : 1;
         }
 
-        // --ui-maps <render dir> [--dir <target dir>] [--game <game folder>], log in ui_maps.log
+        // --ui-maps <render dir> [--dir <target dir>] [--game <game folder>] [--ui-sizes 512,256], log in ui_maps.log
         private static int RunUiMaps(string[] args, string source)
         {
             var targetPath = RenderSettings.FromSettings(AppSettings.Current).TargetPath;
+            var sizes = GetValue(args, "--ui-sizes")?.Split(',').Select(s => Convert.ToInt32(s.Trim())).ToList() ?? UiMaps.DefaultSizes.ToList();
             using var log = new FileLog(Path.Combine(targetPath, "ui_maps.log"));
             AppLog.Reporter = log;
             try
             {
                 var written = UiMaps.Write(Path.Combine(targetPath, source), Path.Combine(targetPath, GetValue(args, "--dir") ?? source + "_ui"),
-                                           GetValue(args, "--game") ?? AppSettings.Current.GamePath, log);
+                                           GetValue(args, "--game") ?? AppSettings.Current.GamePath, sizes, log);
                 log.Log(string.Format("{0} zone maps written", written), written > 0 ? LogLevel.Success : LogLevel.Warning);
                 return written > 0 ? 0 : 1;
             }

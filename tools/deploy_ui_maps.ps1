@@ -2,10 +2,13 @@
 # <set>\512 goes to Maps and Maps_large, <set>\256 to Maps_small, as DXT1 DDS without mipmaps (texconv). Every zNNN*.dds and rNNN.dds
 # in those folders is replaced, so only our maps remain; areas.dat and regions.dat come from the set. UI assets (map_gitter.dds,
 # no_map.dds) stay. The war map textures in warmap\ are replaced the same way. Nothing is committed.
-# Usage: .\deploy_ui_maps.ps1 -Source D:\PrivatProjects\DAoC-MapCreator\Output\ui_maps8 [-Repo D:\PrivatProjects\tokajerui.git]
+# -Folder Maps_768 -Size 768 writes only that one folder (a test size; UI assets copied from Maps_large) and leaves the rest alone.
+# Usage: .\deploy_ui_maps.ps1 -Source D:\PrivatProjects\DAoC-MapCreator\Output\ui_maps8 [-Repo D:\PrivatProjects\tokajerui.git] [-Folder <name> -Size <px>]
 param(
     [Parameter(Mandatory)][string]$Source,
-    [string]$Repo = 'D:\PrivatProjects\tokajerui.git'
+    [string]$Repo = 'D:\PrivatProjects\tokajerui.git',
+    [string]$Folder,
+    [int]$Size
 )
 
 $ErrorActionPreference = 'Stop'
@@ -15,6 +18,14 @@ if (-not (Test-Path $texconv)) {
 }
 
 $folders = [ordered]@{ 'Maps' = 512; 'Maps_large' = 512; 'Maps_small' = 256 }
+if ($Folder) {
+    $folders = [ordered]@{ $Folder = $Size }
+    $assets = Join-Path $Repo $Folder
+    New-Item -ItemType Directory -Force $assets | Out-Null
+    foreach ($asset in 'map_gitter.dds', 'no_map.dds', 'DirPlaceHolder.txt') {
+        Copy-Item (Join-Path $Repo "Maps_large\$asset") $assets -Force
+    }
+}
 $converted = @{}
 foreach ($size in ($folders.Values | Sort-Object -Unique)) {
     $pngDir = Join-Path $Source $size
@@ -52,7 +63,7 @@ foreach ($folder in $folders.Keys) {
 # War maps: .tga as written, .png converted to DDS; every texture in warmap\ is replaced, files we do not write are removed
 $warSource = Join-Path $Source 'warmap'
 $warTarget = Join-Path $Repo 'warmap'
-if (Test-Path $warSource) {
+if ((Test-Path $warSource) -and -not $Folder) {
     $pngs = Get-ChildItem $warSource -Recurse -Filter *.png
     foreach ($png in $pngs) {
         & $texconv -nologo -y -f BC1_UNORM -m 1 -bc xu -o $png.DirectoryName $png.FullName | Out-Null
