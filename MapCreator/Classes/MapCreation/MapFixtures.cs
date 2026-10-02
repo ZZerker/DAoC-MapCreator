@@ -148,12 +148,13 @@ namespace MapCreator.Classes.MapCreation
                         continue;
                     }
 
+                    if (riverHeight != 0)
+                    {
+                        model.WaterLevel = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(riverHeight);
+                    }
+
                     if (model.IsOblique)
                     {
-                        if (riverHeight != 0)
-                        {
-                            model.WaterLevel = this.zoneConfiguration.ZoneCoordinateToMapCoordinate(riverHeight);
-                        }
                         this.obliqueKeepPieces.Add(model);
                         continue;
                     }
@@ -162,8 +163,15 @@ namespace MapCreator.Classes.MapCreation
                     {
                         this.fixturesAboveWater.Add(model);
                     }
+                    else if (model.IsTree || model.IsTreeCluster)
+                    {
+                        // Sunken dead trees (Lough Gur, Folley Lake) showed as dark stars through the water
+                        continue;
+                    }
                     else
                     {
+                        // Drawn before the water and seen through it, nothing is cut off
+                        model.WaterLevel = double.NaN;
                         this.fixturesUnderWater.Add(model);
                     }
                 }
@@ -718,11 +726,14 @@ namespace MapCreator.Classes.MapCreation
         private FixtureCanvas FillCanvas(DrawableFixture fixture, bool lit, bool textured)
         {
             var canvas = new FixtureCanvas(fixture.CanvasWidth, fixture.CanvasHeight, this.GetTerrain(), fixture.CanvasX, fixture.CanvasY);
+
+            // Models above the water show only what reaches out of it
+            var floorZ = double.IsNaN(fixture.WaterLevel) ? double.MinValue : fixture.WaterLevel;
             foreach (var drawableElement in fixture.DrawableElements.OrderBy(GetDrawPass))
             {
                 canvas.FillTriangle(drawableElement.Coordinates, drawableElement.Uvs, textured ? drawableElement.Texture : null, GetFillColor(fixture, drawableElement), lit ? drawableElement.Lightning : 1, drawableElement.Uvs2, drawableElement.Texture2, drawableElement.TextureBlend, drawableElement.Depths,
                                     depthOffset: fixture.BaseCanvasZ, vertexColors: drawableElement.VertexColors, dark: drawableElement.Dark, darkUvs: drawableElement.DarkUvs, isWater: drawableElement.IsWater,
-                                    additiveColor: drawableElement.IsAdditive ? drawableElement.AdditiveColor : -1);
+                                    additiveColor: drawableElement.IsAdditive ? drawableElement.AdditiveColor : -1, floorZ: floorZ);
             }
             return canvas;
         }

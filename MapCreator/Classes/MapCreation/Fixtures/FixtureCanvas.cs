@@ -130,8 +130,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                         }
                     }
 
-                    // Below the water surface (bridge pillars in a river)
-                    if (positions != null && w0 * positions[0].Z + w1 * positions[1].Z + w2 * positions[2].Z < floorZ)
+                    // Below the water surface (bridge pillars in a river, dead trees standing in a lake)
+                    var surfaceZ = positions != null ? w0 * positions[0].Z + w1 * positions[1].Z + w2 * positions[2].Z : z;
+                    if ((positions != null || depths != null) && surfaceZ < floorZ)
                     {
                         continue;
                     }
