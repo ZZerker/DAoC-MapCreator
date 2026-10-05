@@ -153,7 +153,7 @@ It writes the labeled zone, level and region maps, `areas.dat`, `regions.dat` an
 - The first render converts the models and fills the cache (`data\polys8`, one file per model); later renders are faster. "Clear model cache" under Settings deletes it.
 
 ## Changelog
-**3.0.0** (2026-10-02)
+**2.3.0** (2026-10-05)
 - New window built with Avalonia (dark): zone list with search and group ticks, render options with presets, render bar with cancel and an activity panel (running zones, filtered log), map viewer with zoom and label overlay, settings flyout. The old WinForms windows are gone; the program is now `MapCreatorNext.exe` and keeps its settings in `%LOCALAPPDATA%\MapCreator\settings.json` (imported once from the old settings)
 - Own reader for the game archives instead of MPKLib
 - Grass in cities and on the New Frontiers relic grounds no longer shows the tile pattern
