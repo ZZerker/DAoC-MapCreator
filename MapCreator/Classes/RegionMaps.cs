@@ -39,7 +39,7 @@ namespace MapCreator.Classes
         /// <summary>
         /// The region map at the given size and where each tile went, in the order of the tiles
         /// </summary>
-        public static MagickImage Stitch(IReadOnlyList<Tile> tiles, int size, out List<Placement> placements)
+        public static MagickImage Stitch(IReadOnlyList<Tile> tiles, int size, bool withLabels, out List<Placement> placements)
         {
             var (left, top, side) = GetFrame(tiles.Select(t => t.Area).ToList());
             var scale = size / side;
@@ -60,7 +60,10 @@ namespace MapCreator.Classes
                 labels.Add(new MapLabels.Label("zone", tile.Name, (area.Left + area.Width / 2 - left) / side, (area.Top + area.Height / 2 - top) / side, 1, 0, null));
             }
 
-            MapLabelPainter.Draw(map, labels);
+            if (withLabels)
+            {
+                MapLabelPainter.Draw(map, labels);
+            }
             map.Depth = 8;
             return map;
         }

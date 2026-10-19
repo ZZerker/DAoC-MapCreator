@@ -33,7 +33,7 @@ namespace MapCreator.Classes
         /// </summary>
         private sealed record Level(string ZoneId, int Index, string MapFile, MagickGeometry Crop);
 
-        public static int Write(string renderDirectory, string targetDirectory, string gamePath, IReadOnlyList<int> sizes, IRenderReporter reporter)
+        public static int Write(string renderDirectory, string targetDirectory, string gamePath, IReadOnlyList<int> sizes, bool withLabels, IRenderReporter reporter)
         {
             var clientMaps = Path.Combine(gamePath, "ui", "maps");
             var zonesDat = DatFile.FromMpk(Path.Combine(gamePath, "zones", "zones.mpk"), "zones.dat");
@@ -58,13 +58,13 @@ namespace MapCreator.Classes
                 var directory = Path.Combine(targetDirectory, size.ToString());
                 Directory.CreateDirectory(directory);
                 Parallel.ForEach(sources, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount / 2) },
-                                 s => WriteZoneMap(s.Key, s.Value, renderDirectory, directory, size));
+                                 s => WriteZoneMap(s.Key, s.Value, renderDirectory, directory, size, withLabels));
                 foreach (var level in levels)
                 {
                     WriteLevel(level, directory, size);
                 }
 
-                var rewritten = WriteRegionMaps(regions, sources, areas, zonesDat, renderDirectory, clientMaps, directory, size, reporter);
+                var rewritten = WriteRegionMaps(regions, sources, areas, zonesDat, renderDirectory, clientMaps, directory, size, withLabels, reporter);
                 File.WriteAllText(Path.Combine(directory, "regions.dat"), RewriteSections(regionsText, rewritten), DatEncoding);
                 File.WriteAllText(Path.Combine(directory, "areas.dat"), AreasText(areaSections), DatEncoding);
                 written += sources.Count;
@@ -236,13 +236,15 @@ namespace MapCreator.Classes
                        .ToList();
         }
 
-        private static void WriteZoneMap(string id, string source, string renderDirectory, string directory, int size)
+        private static void WriteZoneMap(string id, string source, string renderDirectory, string directory, int size, bool withLabels)
         {
             var mapFile = new FileInfo(MainMap(renderDirectory, source));
-            var labels = MapLabels.Read(mapFile) ?? MapLabels.Write(source, mapFile);
             using var map = new MagickImage(mapFile.FullName);
             map.Resize((uint)size, (uint)size);
-            MapLabelPainter.Draw(map, labels);
+            if (withLabels)
+            {
+                MapLabelPainter.Draw(map, MapLabels.Read(mapFile) ?? MapLabels.Write(source, mapFile));
+            }
             map.Depth = 8;
             map.Write(Path.Combine(directory, "z" + id + ".png"));
         }
@@ -265,7 +267,7 @@ namespace MapCreator.Classes
         /// and every single-zone region of a city or dungeon we have a frame for (the marker on its zone map)
         /// </summary>
         private static Dictionary<string, List<string>> WriteRegionMaps(DatFile regions, SortedDictionary<string, string> sources, Dictionary<string, MapLabels.ZoneArea> areas,
-                                                                     DatFile zonesDat, string renderDirectory, string clientMaps, string directory, int size, IRenderReporter reporter)
+                                                                     DatFile zonesDat, string renderDirectory, string clientMaps, string directory, int size, bool withLabels, IRenderReporter reporter)
         {
             var rewritten = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
             foreach (var section in regions.Sections.Where(s => s.StartsWith("region", StringComparison.OrdinalIgnoreCase) && int.TryParse(s[6..], out _)))
@@ -329,7 +331,7 @@ namespace MapCreator.Classes
                     continue;
                 }
 
-                using var map = RegionMaps.Stitch(tiles, size, out var placements);
+                using var map = RegionMaps.Stitch(tiles, size, withLabels, out var placements);
                 map.Write(Path.Combine(directory, "r" + regionId + ".png"));
                 var lines = new List<string> { "zone_count=" + tiles.Count, "zone_width=" + placements[0].Width, "zone_height=" + placements[0].Height };
                 for (var t = 0; t < tiles.Count; t++)
