@@ -12,6 +12,7 @@ namespace MapCreator.Classes.Rendering
     /// Other options come from the settings the window saved; nothing is saved back.
     /// A console window shows the progress unless --no-console is given; with --ui the window opens and renders instead.
     /// --ui-maps <render dir> builds the TokaZerk UI map set from its renders instead of rendering (UiMaps).
+    /// --site with a render folder (and optional --dir, --client, --game) writes the static website data (WebP images, labels, zones.json) from its renders (SiteExport).
     /// </summary>
     internal static class BatchMode
     {
@@ -27,6 +28,12 @@ namespace MapCreator.Classes.Rendering
             if (uiSource != null)
             {
                 return RunUiMaps(args, uiSource);
+            }
+
+            var siteSource = GetValue(args, "--site");
+            if (siteSource != null)
+            {
+                return RunSite(args, siteSource);
             }
 
             var settings = ParseArgs(args, out var zoneTerms, out var logName);
@@ -157,6 +164,32 @@ namespace MapCreator.Classes.Rendering
                 var written = UiMaps.Write(Path.Combine(targetPath, source), Path.Combine(targetPath, GetValue(args, "--dir") ?? source + "_ui"),
                                            GetValue(args, "--game") ?? AppSettings.Current.GamePath, sizes, !HasFlag(args, "--no-labels"), log);
                 log.Log(string.Format("{0} zone maps written", written), written > 0 ? LogLevel.Success : LogLevel.Warning);
+                return written > 0 ? 0 : 1;
+            }
+            catch (Exception ex)
+            {
+                log.Log(ex.ToString(), LogLevel.Error);
+                return 1;
+            }
+        }
+
+        // --site <render dir> [--dir <target dir>] [--client <name>] [--game <game folder>], log in site.log
+        private static int RunSite(string[] args, string source)
+        {
+            var targetPath = RenderSettings.FromSettings(AppSettings.Current).TargetPath;
+            using var log = new FileLog(Path.Combine(targetPath, "site.log"));
+            AppLog.Reporter = log;
+            try
+            {
+                var client = (GetValue(args, "--client") ?? "eden").ToLowerInvariant();
+                if (!SiteExport.IsValidClient(client))
+                {
+                    log.Log("Invalid --client, use letters, digits and hyphens: " + client, LogLevel.Error);
+                    return 1;
+                }
+
+                var written = SiteExport.Write(Path.Combine(targetPath, source), Path.Combine(targetPath, GetValue(args, "--dir") ?? source + "_site"),
+                                               GetValue(args, "--game") ?? AppSettings.Current.GamePath, client, log);
                 return written > 0 ? 0 : 1;
             }
             catch (Exception ex)
