@@ -23,6 +23,9 @@ namespace MapCreator.Classes.Rendering
 
         private const double MAX_GAIN = 4.0;
 
+        // A high gain multiplies the color too: dark olive moss turned lime in Fomor. Saturation keeps 1 / (1 + this * (gain - 1))
+        private const double GAIN_DESATURATION = 0.25;
+
         // Tiled floor textures repeat visibly (Jordheim grass); a soft brightness variation over several tiles breaks the pattern
         private const double VARIATION = 0.15;
 
@@ -290,6 +293,7 @@ namespace MapCreator.Classes.Rendering
                 return;
             }
 
+            var saturation = 1 / (1 + GAIN_DESATURATION * (gain - 1));
             for (var i = 0; i + 2 < values.Length; i += channels)
             {
                 var brightest = Math.Max(values[i], Math.Max(values[i + 1], values[i + 2])) / (double)ushort.MaxValue;
@@ -299,9 +303,10 @@ namespace MapCreator.Classes.Rendering
                 }
 
                 var factor = gain / (1 + (gain - 1) * brightest);
+                var luma = (0.299 * values[i] + 0.587 * values[i + 1] + 0.114 * values[i + 2]) * factor;
                 for (var c = 0; c < 3; c++)
                 {
-                    values[i + c] = (ushort)Math.Clamp(values[i + c] * factor, 0, ushort.MaxValue);
+                    values[i + c] = (ushort)Math.Clamp(luma + (values[i + c] * factor - luma) * saturation, 0, ushort.MaxValue);
                 }
             }
             pixels.SetPixels(values);

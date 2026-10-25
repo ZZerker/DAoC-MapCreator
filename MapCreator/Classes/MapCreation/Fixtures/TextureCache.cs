@@ -50,7 +50,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             {
                 using var image = new MagickImage(file);
                 image.Alpha(AlphaOption.Set);
-                var isGrass = Path.GetFileNameWithoutExtension(file).Contains("grass", StringComparison.OrdinalIgnoreCase);
+                // Moss floors tile as visibly as grass (Fomor fomor_rockmoss, Underground Forest moss)
+                var name = Path.GetFileNameWithoutExtension(file);
+                var isGrass = name.Contains("grass", StringComparison.OrdinalIgnoreCase) || name.Contains("moss", StringComparison.OrdinalIgnoreCase);
                 var maxSize = isGrass ? GRASS_MAX_TEXTURE_SIZE : MAX_TEXTURE_SIZE;
                 if (image.Width > maxSize || image.Height > maxSize)
                 {
