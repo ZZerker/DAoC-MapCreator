@@ -14,7 +14,7 @@ Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/
 - Buildings and objects with their real textures, their baked lighting (dark maps) and a soft drop shadow; parts below the ground stay hidden like in the game
 - Buildings seen from the south in 3D: walls drawn upward, the footprint stays in place (option, on by default); models that bring their own ground stay flat
 - Contact shadows (ambient occlusion) around and between buildings and keeps (option, on by default)
-- Trees in 3D as an option (off by default)
+- Trees in 3D (option, on by default); empty tree placeholders the client replaces with a SpeedTree (Mountain top Tree) get the model of a tree with the same SpeedTree
 - Zone bounds; the area outside is darkened, 3D buildings reaching into it stay clear
 
 **New Frontiers keeps and towers**
@@ -28,6 +28,8 @@ Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/
 
 **Dungeons**
 - Built from the placed rooms with their baked lighting, brightened so dark dungeons stay readable
+- Lit like the client: the lights of `lights.csv` with the colors and radii of `zones\textures\lightdef.csv`, as soft pools on a darker base
+- Placeholder vertex colors (one dark value on most of a mesh) are ignored, so caverns and halls that carry no baked lighting no longer come out black
 - One extra map per level for the dungeons the client has level maps for (`zNNN_LL`, e.g. the six levels of Darkness Falls), the other levels shown faded underneath
 - Instanced zones (`skycity` data, e.g. Underground Forest, Dream) included
 
@@ -38,7 +40,7 @@ City and dungeon maps use the same frame as the client and bestiary maps, so a p
 - Written as `zNNN.labels.json` next to each map and drawn at the final size in the TokaZerk UI font, so the text stays sharp
 
 **UI map set** (TokaZerk UI)
-- Every zone, dungeon level and region map from one full render, at 512 and 256 px (other sizes on request)
+- Every zone, dungeon level and region map from one full render, at 512 and 256 px or any other size (`--ui-sizes`), with or without labels (`--no-labels`)
 - Region maps stitched from the zone renders, laid out by the client's `zones.dat` and `regions.dat`
 - War maps for New Frontiers and the old frontiers
 - The UI's `areas.dat` and `regions.dat` written with the same frames, so the position marker lines up
@@ -141,9 +143,11 @@ Unknown names are logged as a warning and skipped.
 
 `--ui-maps` builds the complete TokaZerk UI map set from a full render, without rendering again (about 2 minutes):
 ```
-MapCreatorNext.exe --ui-maps <render folder> --dir <set> [--game <client folder>] [--ui-sizes 512,256]
+MapCreatorNext.exe --ui-maps <render folder> --dir <set> [--game <client folder>] [--ui-sizes 512,256] [--no-labels]
 ```
 It writes the labeled zone, level and region maps, `areas.dat`, `regions.dat` and the war map textures into `<set>\512` and `<set>\256`. `tools\deploy_ui_maps.ps1 -Source <set> [-Repo <UI repo>]` converts them to DXT1 DDS and puts them into `Maps`, `Maps_large` (512), `Maps_small` (256) and `warmap`; old maps the set does not contain are removed. `-Folder <name> -Size <px>` writes a single test folder instead.
+
+`tools\build_map_packs.ps1 -Labeled <set> -Unlabeled <set> -Target <folder> [-Sizes 256,512,1024] [-Zip]` builds the downloadable map packs: one DXT1 `Maps` folder per size and label variant, each with the `regions.dat` of its size (its pixel values depend on the size), optionally zipped.
 
 `tools\deploy_launcher_maps.ps1 -Source <render folder>` (run as administrator) copies the maps into the Eden launcher as `zoneNNN.jpg` and writes the city and dungeon frames into its `zones.json`, so the position marker lines up. The launcher's own files are saved once to `Output\launcher_backup_all`; `-Restore` puts them back.
 
@@ -153,6 +157,15 @@ It writes the labeled zone, level and region maps, `areas.dat`, `regions.dat` an
 - The first render converts the models and fills the cache (`data\polys8`, one file per model); later renders are faster. "Clear model cache" under Settings deletes it.
 
 ## Changelog
+**Unreleased**
+- Dungeon lights: `lights.csv` with the light types of `lightdef.csv` (color, radius), soft colored pools on a darker base
+- Vertex colors that carry no baked lighting (one dark placeholder value on most of a mesh) are ignored: Kobold Undercity, Underground Forest, the cavern of zone 093 and the side rooms of the Inconnu halls are no longer black. Clear the model cache once after updating
+- Trees in 3D by default; the small card evergreens that vanished when drawn flat are back
+- Empty tree placeholders (Mountain top Tree) take the model of a tree with the same SpeedTree
+- Dark maps at 1.4 instead of 1.5
+- The log names why a model is not drawn instead of "too small to get drawn"
+- `--ui-maps --no-labels` for unlabeled UI map sets, `tools\build_map_packs.ps1` for the download packs
+
 **2.3.0** (2026-10-05)
 - New window built with Avalonia (dark): zone list with search and group ticks, render options with presets, render bar with cancel and an activity panel (running zones, filtered log), map viewer with zoom and label overlay, settings flyout. The old WinForms windows are gone; the program is now `MapCreatorNext.exe` and keeps its settings in `%LOCALAPPDATA%\MapCreator\settings.json` (imported once from the old settings)
 - Own reader for the game archives instead of MPKLib
