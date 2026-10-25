@@ -297,6 +297,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 var treeRow = new TreeRow
                               {
                                   Name = fields[0],
+                                  SpeedTree = fields[1],
                                   ZOffset = (string.IsNullOrEmpty(fields[4])) ? 0 : Convert.ToInt32(fields[4]),
                                   BarkTexture = fields[2],
                                   LeafTexture = fields[3]

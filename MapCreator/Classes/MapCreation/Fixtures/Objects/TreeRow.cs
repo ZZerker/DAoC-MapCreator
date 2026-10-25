@@ -25,6 +25,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures.Objects
 
         public string Name { get; set; }
 
+        public string SpeedTree { get; set; }
+
         public int ZOffset { get; set; }
 
         public string BarkTexture { get; set; }

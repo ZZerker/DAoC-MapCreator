@@ -455,6 +455,54 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
 
             FixtureCache.LoadPolygons(models, this.zoneConf.ZoneDirectory, this.zoneConf.Reporter);
+            this.LoadTreeStandIns();
+        }
+
+        /// <summary>
+        /// Empty tree placeholders (Mountain top Tree Bmtntre1) are drawn by the client as their SpeedTree; the model of another tree
+        /// with the same SpeedTree stands in
+        /// </summary>
+        private void LoadTreeStandIns()
+        {
+            var placeholders = new List<(NifRow Placeholder, NifRow StandIn)>();
+            foreach (var nifRow in this.NifRows.Where(n => n.Polygons != null && n.Polygons.Length == 0))
+            {
+                var tree = FixtureCache.Trees.FirstOrDefault(t => string.Equals(t.Name, nifRow.Filename, StringComparison.OrdinalIgnoreCase));
+                if (tree == null || string.IsNullOrEmpty(tree.SpeedTree))
+                {
+                    continue;
+                }
+
+                var standIn = FixtureCache.Trees
+                    .Where(t => !string.Equals(t.Name, tree.Name, StringComparison.OrdinalIgnoreCase) && string.Equals(t.SpeedTree, tree.SpeedTree, StringComparison.OrdinalIgnoreCase))
+                    .Select(t => t.Name)
+                    .FirstOrDefault(name => this.nifSearchPaths.Any(dir => File.Exists(string.Format("{0}\\{1}.npk", dir, Path.GetFileNameWithoutExtension(name)))));
+                if (standIn != null)
+                {
+                    placeholders.Add((nifRow, new NifRow { Filename = standIn, TextualName = standIn }));
+                }
+            }
+
+            if (placeholders.Count == 0)
+            {
+                return;
+            }
+
+            var models = new List<(NifRow, string)>();
+            foreach (var (_, standIn) in placeholders)
+            {
+                var archivePath = this.FindNifArchive(standIn);
+                standIn.ArchiveDirectory = Path.GetDirectoryName(archivePath);
+                models.Add((standIn, archivePath));
+            }
+            FixtureCache.LoadPolygons(models, this.zoneConf.ZoneDirectory, this.zoneConf.Reporter);
+
+            foreach (var (placeholder, standIn) in placeholders.Where(p => p.StandIn.Polygons != null && p.StandIn.Polygons.Length > 0))
+            {
+                placeholder.Polygons = standIn.Polygons;
+                placeholder.ArchiveDirectory = standIn.ArchiveDirectory;
+                this.zoneConf.WarnOnce(string.Format("Tree {0} has no geometry, {1} stands in for it", placeholder.Filename, standIn.Filename));
+            }
         }
 
         private static System.Numerics.Vector3 TurnAround(System.Numerics.Vector3 vector, System.Numerics.Vector3 center)
