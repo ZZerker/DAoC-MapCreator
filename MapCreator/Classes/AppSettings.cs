@@ -70,7 +70,7 @@ namespace MapCreator.Classes
 
         public bool ObliqueKeeps { get; set; } = true;
         public bool ObliqueBuildings { get; set; } = true;
-        public bool ObliqueTrees { get; set; }
+        public bool ObliqueTrees { get; set; } = true;
         public bool AmbientOcclusion { get; set; } = true;
         public bool DrawTrees { get; set; } = true;
         public int TreeTransparency { get; set; } = 25;
