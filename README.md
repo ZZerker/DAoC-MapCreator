@@ -27,7 +27,7 @@ Get the latest build from [Releases](https://github.com/ZZerker/DAoC-MapCreator/
 - Built from the city models; ground layers (grass, soil, cobble, rock) blended per vertex as in the game
 
 **Dungeons**
-- Built from the placed rooms with their baked lighting, brightened so dark dungeons stay readable
+- Built from the placed rooms with their baked lighting, brightened so dark dungeons stay readable; the stronger the brightening, the less it boosts the colors, so dark tinted textures do not turn garish
 - Lit like the client: the lights of `lights.csv` with the colors and radii of `zones\textures\lightdef.csv`, as soft pools on a darker base
 - Placeholder vertex colors (one dark value on most of a mesh) are ignored, so caverns and halls that carry no baked lighting no longer come out black
 - One extra map per level for the dungeons the client has level maps for (`zNNN_LL`, e.g. the six levels of Darkness Falls), the other levels shown faded underneath
@@ -160,6 +160,8 @@ It writes the labeled zone, level and region maps, `areas.dat`, `regions.dat` an
 **Unreleased**
 - Dungeon lights: `lights.csv` with the light types of `lightdef.csv` (color, radius), soft colored pools on a darker base
 - Vertex colors that carry no baked lighting (one dark placeholder value on most of a mesh) are ignored: Kobold Undercity, Underground Forest, the cavern of zone 093 and the side rooms of the Inconnu halls are no longer black. Clear the model cache once after updating
+- Brightened dungeons keep calmer colors: the dark olive moss of Fomor no longer turns lime, the many colored lights of Darkness Falls mix less garishly
+- Moss floors get the same anti-tiling as grass (Fomor, Underground Forest)
 - Trees in 3D by default; the small card evergreens that vanished when drawn flat are back
 - Empty tree placeholders (Mountain top Tree) take the model of a tree with the same SpeedTree
 - Dark maps at 1.4 instead of 1.5
