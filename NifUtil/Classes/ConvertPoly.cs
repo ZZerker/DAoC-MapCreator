@@ -31,6 +31,14 @@ namespace NifUtil.Classes
     {
 	    internal List<Polygon> Polys { get; set; } = new List<Polygon>();
 
+        // A mesh counts as unlit when this share of its vertices has one color
+        private const double FLAT_SHARE = 0.9;
+
+        // A dark value on this share of the vertices is the mesh's base level, not a shadow
+        private const double BASE_SHARE = 0.3;
+
+        private const float MAX_BASE = 0.3f;
+
 	    // Water proxies (placeholders the engine replaces with its water) as ranges of Polys
 	    private readonly List<(int First, int End)> waterProxies = new List<(int First, int End)>();
 
@@ -401,11 +409,33 @@ namespace NifUtil.Classes
                 {
                     if (property.IsValid() && property.Object is NiVertexColorProperty vertexColor)
                     {
-                        return vertexColor.VertexMode == 2 ? geometry.VertexColors : null;
+                        return vertexColor.VertexMode == 2 ? GetLighting(geometry.VertexColors) : null;
                     }
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Many dungeon meshes are exported around a dark base value (0.24, often mixed with 0) instead of baked lighting: the Kobold
+        /// Undercity cavern (KoboldRoom01) is 0.24 throughout, the Inconnu halls (374, 495) 0.24 and 0. Such colors, and one color on
+        /// nearly every vertex, carry no lighting and are dropped.
+        /// </summary>
+        private static Color4[] GetLighting(Color4[] colors)
+        {
+            if (colors.Length == 0)
+            {
+                return colors;
+            }
+
+            var dominant = colors.GroupBy(c => (MathF.Round(c.Red, 2), MathF.Round(c.Green, 2), MathF.Round(c.Blue, 2))).OrderByDescending(g => g.Count()).First();
+            var share = dominant.Count() / (double)colors.Length;
+            var baseValue = Math.Max(dominant.Key.Item1, Math.Max(dominant.Key.Item2, dominant.Key.Item3));
+            if (share >= FLAT_SHARE || (share >= BASE_SHARE && baseValue <= MAX_BASE))
+            {
+                return null;
+            }
+            return colors;
         }
 
         /// <summary>
