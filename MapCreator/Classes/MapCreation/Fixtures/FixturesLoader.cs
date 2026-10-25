@@ -172,6 +172,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         // Zone heights are dungeon.place heights plus this (every zone jump of Darkness Falls sits 16000 above its hall)
         private const double DUNGEON_Z_OFFSET = 16000;
 
+        // Dungeon frame in model coordinates, set by PlaceDungeonPieces
+        private double dungeonLeft;
+        private double dungeonBottom;
+        private double dungeonSide;
+
         /// <summary>
         /// Level to draw, null for the whole zone
         /// </summary>
@@ -191,6 +196,40 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             side = frame.Width;
             left = MapFrame.ORIGIN - frame.OffsetX - side;
             bottom = frame.OffsetY - MapFrame.ORIGIN;
+        }
+
+        /// <summary>
+        /// The dungeon's lights in map pixels (radius too), only those inside the current level's heights
+        /// </summary>
+        public List<DungeonLight> GetMapLights()
+        {
+            var lights = new List<DungeonLight>();
+            if (this.dungeonSide <= 0)
+            {
+                return lights;
+            }
+
+            var band = this.Level != null ? this.GetHeightBand(this.Level) : (double.MinValue, double.MaxValue);
+            foreach (var light in DungeonLights.Read(this.zoneConf.DatMpk))
+            {
+                // lights.csv uses zone coordinates, the placements model coordinates
+                var modelX = MapFrame.ORIGIN - light.X;
+                var modelY = light.Y - MapFrame.ORIGIN;
+                var modelZ = light.Z - DUNGEON_Z_OFFSET;
+                if (modelZ <= band.Item1 || modelZ > band.Item2)
+                {
+                    continue;
+                }
+
+                lights.Add(light with
+                {
+                    X = this.zoneConf.ZoneCoordinateToMapCoordinate(this.dungeonLeft + this.dungeonSide - modelX),
+                    Y = this.zoneConf.ZoneCoordinateToMapCoordinate(modelY - this.dungeonBottom),
+                    Z = modelZ,
+                    Radius = this.zoneConf.ZoneCoordinateToMapCoordinate(light.Radius)
+                });
+            }
+            return lights;
         }
 
         /// <summary>
@@ -281,6 +320,9 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             this.zoneConf.SetZoneSize(side);
             this.zoneConf.Frame = MapFrame.FromModelBounds(left, bottom, side);
             this.zoneConf.Reporter.Log(string.Format("Dungeon frame: x {0:F0} to {1:F0}, y {2:F0} to {3:F0}", left, left + side, bottom, bottom + side), LogLevel.Notice);
+            this.dungeonLeft = left;
+            this.dungeonBottom = bottom;
+            this.dungeonSide = side;
 
             foreach (var fixtureRow in this.fixtureRows)
             {

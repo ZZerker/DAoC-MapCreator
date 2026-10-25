@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using ImageMagick;
@@ -26,6 +26,19 @@ namespace MapCreator.Classes.Rendering
         // Tiled floor textures repeat visibly (Jordheim grass); a soft brightness variation over several tiles breaks the pattern
         private const double VARIATION = 0.15;
 
+        // Dungeons with lights.csv: unlit parts keep this share of their brightness, a light adds up to LIGHT_STRENGTH in its color
+        private const double AMBIENT = 0.8;
+
+        // lightdef.csv radii (256 to 1536) light far less than the client shows; the reach is this multiple
+        private const double LIGHT_REACH = 4;
+
+        private const double LIGHT_STRENGTH = 0.8;
+
+        // Share of a light's own color, the rest is white: the full colors made the map look like a fairground
+        private const double LIGHT_SATURATION = 0.35;
+
+        private const double MAX_LIGHT = 1.6;
+
         public void Render(ZoneConfiguration conf, FileInfo mapFile)
         {
             reporter.Log("Loading models ...", LogLevel.Notice);
@@ -34,6 +47,7 @@ namespace MapCreator.Classes.Rendering
             using (var map = MagickWrapper.NewImage(BackgroundColor, settings.MapSize, settings.MapSize))
             {
                 var gain = 1.0;
+                var lit = false;
                 using (var models = this.DrawModels(conf, loader))
                 {
                     if (conf.IsDungeon)
@@ -41,6 +55,15 @@ namespace MapCreator.Classes.Rendering
                         gain = GetGain(models);
                         reporter.Log(string.Format("Dungeon brightness gain {0:F2}", gain), LogLevel.Notice);
                         Brighten(models, gain);
+
+                        // Lit after the gain: dark textured dungeons (Darkness Falls, Darkspire) otherwise stay near black
+                        var lights = loader.GetMapLights();
+                        lit = lights.Count > 0;
+                        if (lit)
+                        {
+                            reporter.Log(string.Format("Dungeon lights: {0}", lights.Count), LogLevel.Notice);
+                            Light(models, lights);
+                        }
                     }
                     map.Composite(models, 0, 0, CompositeOperator.SrcOver);
                 }
@@ -61,6 +84,10 @@ namespace MapCreator.Classes.Rendering
                         using (var models = this.DrawModels(conf, loader))
                         {
                             Brighten(models, gain);
+                            if (lit)
+                            {
+                                Light(models, loader.GetMapLights());
+                            }
                             levelMap.Composite(models, 0, 0, CompositeOperator.SrcOver);
                         }
                         var levelName = string.Format("{0}_{1:00}{2}", Path.GetFileNameWithoutExtension(mapFile.Name), level.Index, mapFile.Extension);
@@ -182,6 +209,66 @@ namespace MapCreator.Classes.Rendering
                 return MAX_GAIN;
             }
             return Math.Clamp(TARGET_MEDIAN * (1 - median) / (median * (1 - TARGET_MEDIAN)), 1, MAX_GAIN);
+        }
+
+        /// <summary>
+        /// Lights the drawn pixels like the client: AMBIENT everywhere plus each light's color, falling off smoothly to its radius
+        /// </summary>
+        private static void Light(MagickImage layer, IReadOnlyList<DungeonLight> lights)
+        {
+            var size = (int)layer.Width;
+            var channels = (int)layer.ChannelCount;
+            var light = new float[size * size * 3];
+            Array.Fill(light, (float)AMBIENT);
+            foreach (var source in lights)
+            {
+                var radius = source.Radius * LIGHT_REACH;
+                var left = Math.Max(0, (int)(source.X - radius));
+                var right = Math.Min(size - 1, (int)(source.X + radius));
+                var top = Math.Max(0, (int)(source.Y - radius));
+                var bottom = Math.Min(size - 1, (int)(source.Y + radius));
+                for (var y = top; y <= bottom; y++)
+                {
+                    for (var x = left; x <= right; x++)
+                    {
+                        var dx = x - source.X;
+                        var dy = y - source.Y;
+                        var falloff = 1 - (dx * dx + dy * dy) / (radius * radius);
+                        if (falloff <= 0)
+                        {
+                            continue;
+                        }
+
+                        var strength = (float)(LIGHT_STRENGTH * falloff * falloff);
+                        var i = (y * size + x) * 3;
+                        light[i] += strength * Tint(source.Red);
+                        light[i + 1] += strength * Tint(source.Green);
+                        light[i + 2] += strength * Tint(source.Blue);
+                    }
+                }
+            }
+
+            using var pixels = layer.GetPixels();
+            var values = pixels.ToArray();
+            if (values == null || channels < 3)
+            {
+                return;
+            }
+
+            for (var p = 0; p < size * size; p++)
+            {
+                for (var c = 0; c < 3; c++)
+                {
+                    var factor = Math.Min(light[p * 3 + c], MAX_LIGHT);
+                    values[p * channels + c] = (ushort)Math.Clamp(values[p * channels + c] * factor, 0, ushort.MaxValue);
+                }
+            }
+            pixels.SetPixels(values);
+        }
+
+        private static float Tint(double channel)
+        {
+            return (float)(1 - LIGHT_SATURATION + LIGHT_SATURATION * channel);
         }
 
         /// <summary>
