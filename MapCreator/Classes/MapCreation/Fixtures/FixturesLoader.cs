@@ -632,7 +632,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                     }
                     else if (this.Level == null)
                     {
-                        this.zoneConf.Reporter.Log(string.Format("Fixture {0} (x: {1}, y: {2}, z: {3}) is too small to get drawn.", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z));
+                        this.zoneConf.Reporter.Log(string.Format("Fixture {0} (x: {1}, y: {2}, z: {3}) not drawn: {4}.", fixtureRow.TextualName, fixtureRow.X, fixtureRow.Y, fixtureRow.Z, fixture.SkipReason));
                     }
 
                     progressCounter++;

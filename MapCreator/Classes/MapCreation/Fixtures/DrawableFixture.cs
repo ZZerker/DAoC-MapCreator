@@ -156,6 +156,8 @@ namespace MapCreator.Classes.MapCreation.Fixtures
         #region Getter/Setter
 
         public ZoneConfiguration ZoneConf { get; set; }
+
+        public string SkipReason { get; private set; }
         #endregion
 
         public bool Calc()
@@ -163,12 +165,14 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             // Do nothig if we don't want to draw the nif
             if (this.RendererConf.Renderer == FixtureRendererType.None)
             {
+                this.SkipReason = "its category is not drawn";
                 return false;
             }
 
             // Do nothing is there are no polgons
             if (!this.RawPolygons.Any())
             {
+                this.SkipReason = "the model has no triangles";
                 return false;
             }
 
@@ -205,7 +209,11 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
         private bool GenerateCanvas()
         {
-            if (!this.ProcessedPolygons.Any()) return false;
+            if (!this.ProcessedPolygons.Any())
+            {
+                this.SkipReason = this.HeightBand != null ? "no triangle in this level" : "no triangle faces up";
+                return false;
+            }
 
             var oblique = this.IsOblique;
             var vectors = this.ProcessedPolygons.SelectMany(p => p.Vectors);
@@ -228,6 +236,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
 
             if(this.CanvasWidth <= 0 || this.CanvasHeight <= 0)
             {
+                this.SkipReason = "smaller than a pixel";
                 return false;
             }
 
