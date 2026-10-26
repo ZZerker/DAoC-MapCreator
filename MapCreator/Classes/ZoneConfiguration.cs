@@ -153,11 +153,11 @@ namespace MapCreator.Classes
                 this.Levels = MapLevel.Load(AppSettings.Current.GamePath, zoneId);
             }
 
-            // Check if file exists, else map to datXXX.mpk
-            if (!File.Exists(this.CvsMpk)) this.CvsMpk = this.DatMpk;
-            if (!File.Exists(this.LodMpk)) this.LodMpk = this.DatMpk;
-            if (!File.Exists(this.TerMpk)) this.TerMpk = this.DatMpk;
-            if (!File.Exists(this.TexMpk)) this.TexMpk = this.DatMpk;
+            // Missing or empty archives map to datXXX.mpk (Blackthorn ships an empty csv009.mpk and keeps the CSVs in dat009.mpk)
+            this.CvsMpk = OrDat(this.CvsMpk);
+            this.LodMpk = OrDat(this.LodMpk);
+            this.TerMpk = OrDat(this.TerMpk);
+            this.TexMpk = OrDat(this.TexMpk);
 
             // Useful for everything, so open it
             this.SectorDat = DatFile.FromMpk(this.DatMpk, "sector.dat");
@@ -244,6 +244,11 @@ namespace MapCreator.Classes
         {
             var offsetmap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.DatMpk, "offset.pcx"));
             return offsetmap;
+        }
+
+        private string OrDat(string archive)
+        {
+            return File.Exists(archive) && new FileInfo(archive).Length > 0 ? archive : this.DatMpk;
         }
 
         public void Dispose()
