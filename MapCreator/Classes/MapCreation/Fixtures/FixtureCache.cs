@@ -17,7 +17,7 @@ namespace MapCreator.Classes.MapCreation.Fixtures
     {
         private static readonly System.Drawing.Color DefaultTreeColor = System.Drawing.ColorTranslator.FromHtml("#5e683a");
 
-        // One .poly file per model and source archive, with blended texture layers, vertex colors, dark maps (also "_dm_" detail maps), water and additive flags
+        // One .poly file per game folder, model and source archive, with blended texture layers, vertex colors, dark maps (also "_dm_" detail maps), water and additive flags
         private const string POLYS_CACHE_DIRECTORY = "polys8";
 
         private static readonly Lazy<(List<TreeRow> Trees, List<TreeClusterRow> Clusters)> TreeData = new(LoadTreeData);
@@ -114,6 +114,12 @@ namespace MapCreator.Classes.MapCreation.Fixtures
                 DeleteOldCache("polys7.mpk");
                 DeleteOldCache("polys8.mpk");
                 Directory.CreateDirectory(PolysCacheDirectory);
+
+                // Shared by all clients before the per client folders, so it may hold another client's models
+                foreach (var file in Directory.EnumerateFiles(PolysCacheDirectory, "*.poly"))
+                {
+                    File.Delete(file);
+                }
                 housekeepingDone = true;
             }
         }
@@ -264,11 +270,19 @@ namespace MapCreator.Classes.MapCreation.Fixtures
             }
         }
 
-        // Zones ship their own variants of shared models, so the cache name contains the archive folder
+        // Zones ship their own variants of shared models, so the cache name contains the archive folder;
+        // clients ship different models under the same names, so each game folder gets its own subfolder
         private static string GetCacheName(string archivePath, string variant)
         {
-            var name = Path.GetRelativePath(AppSettings.Current.GamePath, Path.ChangeExtension(archivePath, null)).Replace('\\', '_').ToLowerInvariant();
-            return name + (variant == null ? "" : "_" + variant) + ".poly";
+            var gamePath = AppSettings.Current.GamePath;
+            var name = Path.GetRelativePath(gamePath, Path.ChangeExtension(archivePath, null)).Replace('\\', '_').ToLowerInvariant();
+            return Path.Combine(GetClientFolder(gamePath), name + (variant == null ? "" : "_" + variant) + ".poly");
+        }
+
+        internal static string GetClientFolder(string gamePath)
+        {
+            var folder = new string(Path.GetFullPath(gamePath).TrimEnd('\\').ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray());
+            return string.Join("-", folder.Split('-', StringSplitOptions.RemoveEmptyEntries));
         }
 
         private static bool IsNodeDrawable(NifRow nifRow, Niflib.NiAVObject node)
