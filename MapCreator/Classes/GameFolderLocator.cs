@@ -30,7 +30,8 @@ namespace MapCreator.Classes
 
         public static string Find()
         {
-            return Candidates().FirstOrDefault(IsGameFolder);
+            // Launchers may mix separators (C:/Games/Blackthorn DAoC)
+            return Candidates().Where(path => !string.IsNullOrEmpty(path)).Select(path => Path.GetFullPath(path).TrimEnd('\\')).FirstOrDefault(IsGameFolder);
         }
 
         private static IEnumerable<string> Candidates()

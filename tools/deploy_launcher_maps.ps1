@@ -2,7 +2,7 @@
 # zNNN.png becomes zoneNNN.jpg; each zNNN.frame.json (cities, dungeons) sets the zone's crop in zones.json,
 # without one the launcher places the marker as if the map showed the whole zone, so those are skipped.
 # The originals are saved once to Output\launcher_backup_all. Restore: .\deploy_launcher_maps.ps1 -Restore
-# Usage: .\deploy_launcher_maps.ps1 -Source D:\PrivatProjects\DAoC-MapCreator\Output\all_maps5 [-Zones <launcher zones folder>]
+# Usage: .\deploy_launcher_maps.ps1 -Source Output\all_maps5 [-Zones <launcher zones folder>]
 param(
     [string]$Source,
     [string]$Zones = 'C:\Program Files\Eden Launcher\resources\app.asar.unpacked\out\renderer\zones',

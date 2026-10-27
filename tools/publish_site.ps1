@@ -3,11 +3,11 @@
 # copied to Output\site_publish, which becomes a throwaway repo with ONE parentless commit that is force-pushed, so the
 # images never pile up in git history. With -Assets and -Tag the release packs are uploaded first (created or updated).
 # -NoPush builds the commit locally and stops. The working tree and branches of -Repo are never touched (only its origin URL is read).
-# Usage: .\publish_site.ps1 -Eden D:\PrivatProjects\DAoC-MapCreator\Output\site_eden -Blackthorn D:\PrivatProjects\DAoC-MapCreator\Output\site_blackthorn [-Assets D:\PrivatProjects\DAoC-MapCreator\Output\packs -Tag v1.0.0] [-NoPush]
+# Usage: .\publish_site.ps1 -Eden Output\site_eden -Blackthorn Output\site_blackthorn [-Assets Output\packs -Tag v1.0.0] [-NoPush]
 param(
     [Parameter(Mandatory)][string]$Eden,
     [Parameter(Mandatory)][string]$Blackthorn,
-    [string]$Repo = 'D:\PrivatProjects\daoc-ui-maps',
+    [string]$Repo = (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'daoc-ui-maps'),
     [string]$Site,
     [string]$Assets,
     [string]$Tag,
@@ -66,7 +66,7 @@ $owner = $Matches[1]
 $name = $Matches[2]
 $slug = "$owner/$name"
 
-$staging = 'D:\PrivatProjects\DAoC-MapCreator\Output\site_publish'
+$staging = Join-Path (Split-Path $PSScriptRoot -Parent) 'Output\site_publish'
 if (Test-Path $staging) {
     if ((Get-Item $staging -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) {
         throw "Refusing to delete $staging, it is a link"

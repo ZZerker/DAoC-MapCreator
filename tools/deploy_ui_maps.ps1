@@ -3,10 +3,10 @@
 # in those folders is replaced, so only our maps remain; areas.dat and regions.dat come from the set. UI assets (map_gitter.dds,
 # no_map.dds) stay. The war map textures in warmap\ are replaced the same way. Nothing is committed.
 # -Folder Maps_768 -Size 768 writes only that one folder (a test size; UI assets copied from Maps_large) and leaves the rest alone.
-# Usage: .\deploy_ui_maps.ps1 -Source D:\PrivatProjects\DAoC-MapCreator\Output\ui_maps8 [-Repo D:\PrivatProjects\tokajerui.git] [-Folder <name> -Size <px>]
+# Usage: .\deploy_ui_maps.ps1 -Source Output\ui_maps8 [-Repo <UI repo>] [-Folder <name> -Size <px>]
 param(
     [Parameter(Mandatory)][string]$Source,
-    [string]$Repo = 'D:\PrivatProjects\tokajerui.git',
+    [string]$Repo = (Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'tokajerui.git'),
     [string]$Folder,
     [int]$Size
 )

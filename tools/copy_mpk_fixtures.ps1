@@ -1,6 +1,11 @@
-param([string]$GamePath = 'C:\Spiele\Eden DAoC')
+param([string]$GamePath)
 
 $ErrorActionPreference = 'Stop'
+
+. (Join-Path $PSScriptRoot 'GameFolder.ps1')
+if (-not $GamePath) {
+    $GamePath = Resolve-GameFolder -Server Eden
+}
 
 Add-Type -Path (Join-Path $PSScriptRoot '..\libs\MPKLib.dll')
 

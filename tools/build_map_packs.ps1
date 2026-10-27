@@ -10,8 +10,8 @@
 #   <prefix>-png-<2048|1024>-<labels|nolabels>.zip   flat z<id>.png (with -Zip and -Render / -LabeledPng)
 #   <prefix>-z<id>.png                          single-zone 2048 PNGs (from -Render)
 # prefix is daoc-ui-maps for eden (the config tool depends on these names) and blackthorn-ui-maps for blackthorn.
-# Usage Eden: .\build_map_packs.ps1 -Client eden -Labeled D:\PrivatProjects\DAoC-MapCreator\Output\ui_maps16 -Unlabeled D:\PrivatProjects\DAoC-MapCreator\Output\ui_maps16_nolabels -Render D:\PrivatProjects\DAoC-MapCreator\Output\all_maps16 -LabeledPng D:\PrivatProjects\DAoC-MapCreator\Output\all_maps16_labeled -Site D:\PrivatProjects\DAoC-MapCreator\Output\all_maps16_site -Target D:\PrivatProjects\DAoC-MapCreator\Output\release_eden -Tag v1.2.0 -Zip
-# Usage Blackthorn: .\build_map_packs.ps1 -Client blackthorn -Unlabeled D:\PrivatProjects\DAoC-MapCreator\Output\ui_maps_bt_nolabels -Render D:\PrivatProjects\DAoC-MapCreator\Output\blackthorn_all -Site D:\PrivatProjects\DAoC-MapCreator\Output\blackthorn_all_site -Target D:\PrivatProjects\DAoC-MapCreator\Output\release_blackthorn -Tag v1.2.0-blackthorn -Zip
+# Usage Eden: .\build_map_packs.ps1 -Client eden -Labeled Output\ui_maps16 -Unlabeled Output\ui_maps16_nolabels -Render Output\all_maps16 -LabeledPng Output\all_maps16_labeled -Site Output\all_maps16_site -Target Output\release_eden -Tag v1.2.0 -Zip
+# Usage Blackthorn: .\build_map_packs.ps1 -Client blackthorn -Unlabeled Output\ui_maps_bt_nolabels -Render Output\blackthorn_all -Site Output\blackthorn_all_site -Target Output\release_blackthorn -Tag v1.2.0-blackthorn -Zip
 param(
     [Parameter(Mandatory)][string]$Target,
     [string]$Labeled,
