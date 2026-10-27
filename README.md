@@ -180,9 +180,6 @@ The program is written to `Releases\MapCreatorNext.exe`. Pushing a tag `v*` runs
 
 ## Data sources
 Everything comes from the game client, except:
-- `data\MapFrames.csv`: city and dungeon map frames from the Eden bestiary
-- `data\Keeps.csv`: New Frontiers keep and tower positions from the Eden war map, piece layouts from [Dawn-of-Light db-public](https://github.com/Dawn-of-Light/db-public)
-- `data\Landmarks.csv`: places, docks and bosses for the labels
 - `data\WarMaps.csv`: which zones the UI's war map textures show and where
 - `data\ZoomAreas.csv`: room maps cut from a zone map where the client has no level data
 
