@@ -165,7 +165,8 @@ Log: `site.log`.
 | `build_map_packs.ps1 -Target <folder> -Labeled <set> -Unlabeled <set> [-Sizes 256,512,1024] [-Zip] [-Client eden] [-Render <folder>] [-LabeledPng <folder>] [-Site <folder>] [-Tag <tag>] [-Repo <owner/name>]` | Builds the release files of the map site for one client: DDS packs per size and label variant, PNG packs and single zone PNGs, `downloads.json` |
 | `publish_site.ps1 -Eden <site export> -Blackthorn <site export> [-Repo <folder>] [-Site <folder>] [-Assets <folder> -Tag <tag>] [-NoPush]` | Publishes the map site to GitHub Pages (`gh-pages`); `-NoPush` only builds the commit |
 | `deploy_launcher_maps.ps1 -Source <render folder> [-Zones <launcher zones folder>] [-Restore]` | (admin) Puts the maps and the city and dungeon frames into the Eden launcher; originals are backed up once, `-Restore` puts them back |
-| `copy_mpk_fixtures.ps1 [-GamePath <client folder>]` | Copies the game archives the tests use into `Mpk.Tests\TestData` |
+| `copy_mpk_fixtures.ps1 [-GamePath <client folder>]` | Copies the game archives the tests use into `Mpk.Tests\TestData`; finds the Eden client itself without `-GamePath` |
+| `GameFolder.ps1` | Dot-sourced by the scripts: finds the Eden and Blackthorn clients from their launchers and the default install folders |
 
 The DDS conversion needs Python with Pillow; `texconv.exe` from [DirectXTex](https://github.com/microsoft/DirectXTex/releases) in `tools\bin` gives better DXT1 quality.
 
@@ -213,9 +214,12 @@ Everything comes from the game client, except:
 - [ ] Re-render only the patched zones in one step
 
 ## Changelog
-**Unreleased**
+**2.4.0** (2026-10-27)
+- Blackthorn: height and water maps that end without their palette are read (Jamtland Mountains and two more zones failed before)
+- The model cache is kept per game client: Blackthorn ships different models under Eden's names, and Blackthorn renders drew Eden's Camelot and dungeon models. The first render after updating converts the models once again
+- The Blackthorn launcher's game path is found even when it mixes `/` and `\`
 - Dungeon lights: `lights.csv` with the light types of `lightdef.csv` (color, radius), soft colored pools on a darker base
-- Vertex colors that carry no baked lighting (one dark placeholder value on most of a mesh) are ignored: Kobold Undercity, Underground Forest, the cavern of zone 093 and the side rooms of the Inconnu halls are no longer black. Clear the model cache once after updating
+- Vertex colors that carry no baked lighting (one dark placeholder value on most of a mesh) are ignored: Kobold Undercity, Underground Forest, the cavern of zone 093 and the side rooms of the Inconnu halls are no longer black
 - Brightened dungeons keep calmer colors: the dark olive moss of Fomor no longer turns lime, the many colored lights of Darkness Falls mix less garishly
 - Moss floors get the same anti-tiling as grass (Fomor, Underground Forest)
 - Trees in 3D by default; the small card evergreens that vanished when drawn flat are back
