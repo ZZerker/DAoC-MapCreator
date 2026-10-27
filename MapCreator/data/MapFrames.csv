@@ -1,0 +1,52 @@
+# Map frames of city and dungeon zones: the zone coordinates of the map's top left corner and its side.
+# Taken from the Eden bestiary (eden-daoc.net/itm/maps.js), which places mob spawns on these maps.
+# zone;offsetx;offsety;width;name
+019;16622;13583;12694;Stonehenge Barrow
+021;12412;17710;13766;Tomb of Mithra
+022;21729;19734;7808;Druid Barrow
+023;15007;20143;17233;Roman Catacomb
+024;20390;16323;10969;Goblin Cave
+026;21900;13350;11200;Camelot
+050;10130;11915;28840;Avalon City
+060;13277;15772;20195;Sidi
+061;1929;9579;53365;Krodon
+062;19334;21177;7410;Xanxicar
+078;17718;21741;11101;Cetus
+079;8257;1731;36596;Sobekite
+080;17786;392;44265;Temple of Twilight
+083;3680;12244;40247;Ma'ati
+088;20046;19583;7525;The Great Pyramid
+089;8812;1840;40378;Deep Volcanus
+090;5948;728;45181;City of Aerus
+091;19843;19844;7929;Celestius
+120;18580;17917;11455;Jordheim
+125;18600;18046;10733;Arachite Caves
+126;17307;20027;8041;Vendo
+127;7676;11157;19880;werewolf
+128;21729;19734;7808;burial halls
+129;17244;19507;14282;tomte
+150;3025;-350;46240;Trollheim
+160;1317;4139;53125;TG
+161;2714;-561;34211;Iarnvidiur
+180;16135;13034;18040;Fomor
+190;11062;6378;24617;Tur Suil
+191;9793;18125;40702;Galladoria
+209;9900;15750;17400;Tir na Nog
+220;17885;13632;13427;hibernian mine
+221;19546;18475;11783;undead halls
+222;17913;17347;12154;spraggon lair
+223;16610;16296;15157;koalinth caves
+224;17452;16125;11664;ursine lair
+226;952;4903;41705;mid abandonned mines
+227;3066;4232;43656;alb abandonned mines
+228;2056;1665;42333;hib abandonned mines
+233;13562;15091;23938;SH
+244;6022;5176;42340;PoC
+249;46;797;43414;DF
+339;1738;-3856;45443;Darkness Rising Albion Chapter 3
+340;4479;1452;34115;Darkness Rising Midgard Chapter 3
+341;4373;4140;39408;Darkness Rising Hibernia Chapter 3
+360;21188;22143;5907;Darkness Rising Throne Rooms
+394;21863;23428;4554;Darkness Rising Throne Rooms
+395;21954;23438;4375;Hib Throne Room
+489;5225;20217;27836;Mini Darkness Falls
