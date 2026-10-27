@@ -27,6 +27,8 @@ namespace MapCreator.Classes
     public class ZoneConfiguration : IDisposable
     {
         const double ZONE_MAX_COORDINATE = 65536.0;
+        private const int PCX_HEADER_SIZE = 128;
+        private const byte PCX_PALETTE_MARKER = 0x0C;
 
         public string ZoneId { get; }
 
@@ -228,7 +230,7 @@ namespace MapCreator.Classes
 
         public ImageMagick.MagickImage GetWaterMap()
         {
-            var watermap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.DatMpk, "water.pcx"));
+            var watermap = new ImageMagick.MagickImage(this.ReadPcx("water.pcx"));
             watermap.Resize((uint)(this.TargetMapSize), (uint)(this.TargetMapSize));
 
             return watermap;
@@ -236,14 +238,56 @@ namespace MapCreator.Classes
 
         public ImageMagick.MagickImage GetTerrainMap()
         {
-            var terrainmap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.DatMpk, "terrain.pcx"));
+            var terrainmap = new ImageMagick.MagickImage(this.ReadPcx("terrain.pcx"));
             return terrainmap;
         }
 
         public ImageMagick.MagickImage GetOffsetMap()
         {
-            var offsetmap = new ImageMagick.MagickImage(MpkWrapper.GetFileBytesFromMpk(this.DatMpk, "offset.pcx"));
+            var offsetmap = new ImageMagick.MagickImage(this.ReadPcx("offset.pcx"));
             return offsetmap;
+        }
+
+        private byte[] ReadPcx(string name)
+        {
+            return CompletePcxPalette(MpkWrapper.GetFileBytesFromMpk(this.DatMpk, name));
+        }
+
+        // A palette marker without palette after the pixels (Blackthorn zone 113) gets the gray ramp the other maps carry
+        internal static byte[] CompletePcxPalette(byte[] pcx)
+        {
+            if (pcx.Length <= PCX_HEADER_SIZE || pcx[3] != 8 || pcx[65] != 1)
+            {
+                return pcx;
+            }
+
+            var pixels = (pcx[67] << 8 | pcx[66]) * ((pcx[11] << 8 | pcx[10]) - (pcx[7] << 8 | pcx[6]) + 1);
+            var position = PCX_HEADER_SIZE;
+            for (var decoded = 0; decoded < pixels && position < pcx.Length; position++)
+            {
+                if (pcx[position] >= 0xC0)
+                {
+                    decoded += pcx[position] & 0x3F;
+                    position++;
+                }
+                else
+                {
+                    decoded++;
+                }
+            }
+
+            if (position != pcx.Length - 1 || pcx[position] != PCX_PALETTE_MARKER)
+            {
+                return pcx;
+            }
+
+            var completed = new byte[pcx.Length + 768];
+            pcx.CopyTo(completed, 0);
+            for (var i = 0; i < 256; i++)
+            {
+                completed.AsSpan(pcx.Length + 3 * i, 3).Fill((byte)i);
+            }
+            return completed;
         }
 
         private string OrDat(string archive)
